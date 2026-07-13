@@ -1374,7 +1374,10 @@ export default function App() {
               </div>
 
               {/* Canvas draw field */}
-              <div className="relative border-4 border-slate-200 rounded-3xl overflow-hidden shadow-inner bg-slate-100 w-full aspect-[4/3] max-w-[400px] flex-1 flex items-center justify-center">
+              <div 
+                style={{ position: 'relative', aspectRatio: '380/320' }}
+                className="border-4 border-slate-200 rounded-3xl overflow-hidden shadow-inner bg-slate-100 w-full max-w-[380px] flex-1 flex items-center justify-center"
+              >
                 <canvas
                   ref={canvasRef}
                   width={380}
