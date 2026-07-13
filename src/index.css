@@ -211,6 +211,8 @@ body {
 .shadow-amber-50\/10 { box-shadow: 0 4px 14px 0 rgba(245, 158, 11, 0.2); }
 
 /* Layout & Position */
+.relative { position: relative; }
+.absolute { position: absolute; }
 .sticky { position: sticky; }
 .top-0 { top: 0; }
 .bottom-0 { bottom: 0; }
