@@ -15,10 +15,50 @@ import {
   Trophy, 
   Grid,
   ChevronRight,
-  RefreshCw
+  RefreshCw,
+  Palette,
+  Map,
+  Smile,
+  Gamepad2
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { CURRICULUM } from './curriculum';
+const PHONICS_GUIDE = {
+  ka: { phonic: "ka", pron: "k as in cup" },
+  kha: { phonic: "kha", pron: "kh as in Khan (aspirated)" },
+  ga: { phonic: "ga", pron: "g as in go" },
+  gha: { phonic: "gha", pron: "gh as in ghost (aspirated)" },
+  cha: { phonic: "cha", pron: "ch as in chin" },
+  chha: { phonic: "chha", pron: "chh as in match-head (aspirated)" },
+  ja: { phonic: "ja", pron: "j as in joy" },
+  jha: { phonic: "jha", pron: "jh as in hedgehog (aspirated)" },
+  ta: { phonic: "ta", pron: "t as in toy (hard retroflex t)" },
+  tha: { phonic: "tha", pron: "th as in lighthouse (aspirated hard t)" },
+  da: { phonic: "da", pron: "d as in dog (hard retroflex d)" },
+  dha: { phonic: "dha", pron: "dh as in mud-hut (aspirated hard d)" },
+  ana: { phonic: "na", pron: "n as in under (retroflex n)" },
+  ta2: { phonic: "ta", pron: "t as in pasta (soft dental t)" },
+  tha2: { phonic: "tha", pron: "th as in think (soft dental th)" },
+  da2: { phonic: "da", pron: "th as in mother (soft dental d)" },
+  dha2: { phonic: "dha", pron: "dh as in breathe (aspirated soft d)" },
+  na: { phonic: "na", pron: "n as in net" },
+  pa: { phonic: "pa", pron: "p as in pen" },
+  pha: { phonic: "pha", pron: "ph as in phone / puff" },
+  ba: { phonic: "ba", pron: "b as in boy" },
+  bha: { phonic: "bha", pron: "bh as in abhor (aspirated b)" },
+  ma: { phonic: "ma", pron: "m as in map" },
+  ya: { phonic: "ya", pron: "y as in yes" },
+  ra: { phonic: "ra", pron: "r as in run" },
+  la: { phonic: "la", pron: "l as in lion" },
+  va: { phonic: "va", pron: "v as in van / water" },
+  sha: { phonic: "sha", pron: "sh as in show" },
+  ssa: { phonic: "sha", pron: "sh as in sugar (retroflex sh)" },
+  sa: { phonic: "sa", pron: "s as in sun" },
+  ha: { phonic: "ha", pron: "h as in home" },
+  la2: { phonic: "la", pron: "l as in pearl (retroflex l)" },
+  ksha: { phonic: "ksha", pron: "ksh as in action" },
+  gna: { phonic: "gna", pron: "gya as in gyan (nasalized)" }
+};
 
 const STICKERS = [
   { id: 'st1', emoji: '🦁', label: 'Simha (Lion)', cost: 50 },
@@ -123,6 +163,27 @@ export default function App() {
   const [fullscreenActive, setFullscreenActive] = useState(false);
   const [kioskPromptActive, setKioskPromptActive] = useState(false);
   const [installPrompt, setInstallPrompt] = useState(null);
+
+  // Phonics Game States (Idea 3)
+  const [phonicsTarget, setPhonicsTarget] = useState(null);
+  const [phonicsOptions, setPhonicsOptions] = useState([]);
+  const [phonicsSelected, setPhonicsSelected] = useState(null);
+  const [phonicsFeedback, setPhonicsFeedback] = useState(null);
+
+  // Memory Match Game States (Idea 4)
+  const [memoryCards, setMemoryCards] = useState([]);
+  const [flippedCardIndices, setFlippedCardIndices] = useState([]);
+  const [memoryMatchesCount, setMemoryMatchesCount] = useState(0);
+
+  // Sandbox Mode States (Idea 5)
+  const [sandboxTool, setSandboxTool] = useState('draw'); // draw | stamp
+  const [selectedSandboxSticker, setSelectedSandboxSticker] = useState('🪷');
+  const [sandboxIsDrawing, setSandboxIsDrawing] = useState(false);
+  const sandboxCanvasRef = useRef(null);
+  const sandboxLastPointRef = useRef(null);
+
+  // Parent Lock Progression Toggle (Idea 2)
+  const [parentUnlockAll, setParentUnlockAll] = useState(() => localStorage.getItem('guj_parent_unlock_all') === 'true');
 
   const currentLesson = sessionCurriculum[currentLessonIndex];
 
@@ -903,6 +964,223 @@ export default function App() {
     }
   };
 
+  // Phonics Game start (Idea 3)
+  const startPhonicsGame = () => {
+    const targetIdx = Math.floor(Math.random() * sessionCurriculum.length);
+    const target = sessionCurriculum[targetIdx];
+    
+    const distractors = [];
+    while (distractors.length < 2) {
+      const idx = Math.floor(Math.random() * sessionCurriculum.length);
+      if (idx !== targetIdx && !distractors.some(d => d.id === sessionCurriculum[idx].id)) {
+        distractors.push(sessionCurriculum[idx]);
+      }
+    }
+    
+    const options = [target, ...distractors].sort(() => Math.random() - 0.5);
+    
+    setPhonicsTarget(target);
+    setPhonicsOptions(options);
+    setPhonicsSelected(null);
+    setPhonicsFeedback(null);
+    setView('phonics_game');
+    
+    setTimeout(() => {
+      speak(target.letter);
+    }, 400);
+  };
+
+  const handlePhonicsAnswer = (option) => {
+    if (phonicsSelected !== null) return;
+    setPhonicsSelected(option.id);
+    
+    const isCorrect = option.id === phonicsTarget.id;
+    if (isCorrect) {
+      setPhonicsFeedback('correct');
+      setPoints(p => p + 30);
+      playSound('correct');
+      confetti({ particleCount: 50, spread: 50, origin: { y: 0.7 } });
+      speak(`સાચો જવાબ!`);
+      
+      setTimeout(() => {
+        startPhonicsGame();
+      }, 2000);
+    } else {
+      setPhonicsFeedback('wrong');
+      playSound('wrong');
+      speak(`ફરીથી પ્રયાસ કરો.`);
+      
+      setTimeout(() => {
+        setPhonicsSelected(null);
+        setPhonicsFeedback(null);
+      }, 1500);
+    }
+  };
+
+  // Memory Match start (Idea 4)
+  const startMemoryMatch = () => {
+    const shuffledLessons = [...sessionCurriculum].sort(() => Math.random() - 0.5);
+    const selectedLessons = shuffledLessons.slice(0, 6);
+    
+    const cards = [];
+    selectedLessons.forEach((lesson) => {
+      cards.push({
+        id: `${lesson.id}-letter`,
+        lessonId: lesson.id,
+        type: 'letter',
+        content: lesson.letter,
+        isFlipped: false,
+        isMatched: false
+      });
+      cards.push({
+        id: `${lesson.id}-emoji`,
+        lessonId: lesson.id,
+        type: 'emoji',
+        content: lesson.emoji,
+        isFlipped: false,
+        isMatched: false
+      });
+    });
+    
+    const shuffledCards = cards.sort(() => Math.random() - 0.5);
+    
+    setMemoryCards(shuffledCards);
+    setFlippedCardIndices([]);
+    setMemoryMatchesCount(0);
+    setView('memory_match');
+    playSound('waypoint');
+  };
+
+  const handleCardClick = (idx) => {
+    const card = memoryCards[idx];
+    if (card.isFlipped || card.isMatched) return;
+    if (flippedCardIndices.length >= 2) return;
+    
+    playSound('waypoint');
+    
+    const updatedCards = [...memoryCards];
+    updatedCards[idx] = { ...card, isFlipped: true };
+    setMemoryCards(updatedCards);
+    
+    const newFlipped = [...flippedCardIndices, idx];
+    setFlippedCardIndices(newFlipped);
+    
+    if (newFlipped.length === 2) {
+      const idx1 = newFlipped[0];
+      const idx2 = newFlipped[1];
+      const card1 = memoryCards[idx1];
+      const card2 = memoryCards[idx2];
+      
+      if (card1.lessonId === card2.lessonId) {
+        setTimeout(() => {
+          setMemoryCards(prev => {
+            const finalCards = [...prev];
+            finalCards[idx1].isMatched = true;
+            finalCards[idx2].isMatched = true;
+            
+            const allMatched = finalCards.every(c => c.isMatched);
+            if (allMatched) {
+              confetti({ particleCount: 100, spread: 80, origin: { y: 0.7 } });
+              setPoints(p => p + 50);
+              playSound('correct');
+              speak("અદ્ભુત! બધી જોડી મળી ગઈ!");
+            }
+            return finalCards;
+          });
+          
+          setMemoryMatchesCount(c => c + 1);
+          setFlippedCardIndices([]);
+          playSound('correct');
+        }, 600);
+      } else {
+        setTimeout(() => {
+          setMemoryCards(prev => {
+            const finalCards = [...prev];
+            finalCards[idx1].isFlipped = false;
+            finalCards[idx2].isFlipped = false;
+            return finalCards;
+          });
+          setFlippedCardIndices([]);
+        }, 1200);
+      }
+    }
+  };
+
+  // Sandbox Mode Canvas logic (Idea 5)
+  const initSandboxCanvas = () => {
+    const canvas = sandboxCanvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  };
+
+  const startSandboxDrawing = (e) => {
+    e.preventDefault();
+    const canvas = sandboxCanvasRef.current;
+    if (!canvas) return;
+    
+    const rect = canvas.getBoundingClientRect();
+    const clientX = e.touches ? (e.touches[0] ? e.touches[0].clientX : e.changedTouches[0].clientX) : e.clientX;
+    const clientY = e.touches ? (e.touches[0] ? e.touches[0].clientY : e.changedTouches[0].clientY) : e.clientY;
+    
+    const x = ((clientX - rect.left) / rect.width) * canvas.width;
+    const y = ((clientY - rect.top) / rect.height) * canvas.height;
+    
+    if (sandboxTool === 'stamp') {
+      const ctx = canvas.getContext('2d');
+      ctx.font = '44px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(selectedSandboxSticker, x, y);
+      playSound('waypoint');
+      return;
+    }
+    
+    const ctx = canvas.getContext('2d');
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineWidth = brushWidth;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.strokeStyle = brushColor;
+    
+    setSandboxIsDrawing(true);
+    sandboxLastPointRef.current = { x, y };
+  };
+
+  const drawSandbox = (e) => {
+    if (!sandboxIsDrawing || sandboxTool !== 'draw') return;
+    e.preventDefault();
+    const canvas = sandboxCanvasRef.current;
+    if (!canvas) return;
+    
+    const rect = canvas.getBoundingClientRect();
+    const clientX = e.touches ? (e.touches[0] ? e.touches[0].clientX : e.changedTouches[0].clientX) : e.clientX;
+    const clientY = e.touches ? (e.touches[0] ? e.touches[0].clientY : e.changedTouches[0].clientY) : e.clientY;
+    
+    const x = ((clientX - rect.left) / rect.width) * canvas.width;
+    const y = ((clientY - rect.top) / rect.height) * canvas.height;
+    
+    const ctx = canvas.getContext('2d');
+    ctx.lineTo(x, y);
+    ctx.stroke();
+    sandboxLastPointRef.current = { x, y };
+  };
+
+  const stopSandboxDrawing = () => {
+    setSandboxIsDrawing(false);
+  };
+
+  useEffect(() => {
+    if (view === 'sandbox') {
+      setTimeout(() => {
+        initSandboxCanvas();
+      }, 50);
+    }
+  }, [view]);
+
   const buySticker = (sticker) => {
     if (unlockedStickers.includes(sticker.id)) return;
     if (points >= sticker.cost) {
@@ -1061,34 +1339,34 @@ export default function App() {
             {/* Menu options */}
             <div className="grid gap-4 max-w-sm w-full mx-auto px-4">
               <button 
-                onClick={() => setView('learn')}
+                onClick={() => setView('map')}
                 className="bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-lg py-4 px-6 rounded-2xl flex items-center justify-between shadow-lg shadow-indigo-600/20 transition-all transform hover:-translate-y-0.5 active:translate-y-0"
               >
                 <div className="flex items-center gap-3">
-                  <BookOpen size={24} />
-                  <span>Start Tracing Kakko</span>
+                  <Map size={24} />
+                  <span>Start Akshar Path</span>
                 </div>
                 <ChevronRight size={20} />
               </button>
 
               <button 
-                onClick={startMatchGame}
+                onClick={() => setView('games')}
                 className="bg-purple-500 hover:bg-purple-600 text-white font-extrabold text-lg py-4 px-6 rounded-2xl flex items-center justify-between shadow-lg shadow-purple-500/20 transition-all transform hover:-translate-y-0.5 active:translate-y-0"
               >
                 <div className="flex items-center gap-3">
-                  <Grid size={24} />
-                  <span>Play Match Game</span>
+                  <Gamepad2 size={24} />
+                  <span>Interactive Game Zone</span>
                 </div>
                 <ChevronRight size={20} />
               </button>
 
               <button 
-                onClick={startQuiz}
+                onClick={() => setView('sandbox')}
                 className="bg-rose-500 hover:bg-rose-600 text-white font-extrabold text-lg py-4 px-6 rounded-2xl flex items-center justify-between shadow-lg shadow-rose-500/20 transition-all transform hover:-translate-y-0.5 active:translate-y-0"
               >
                 <div className="flex items-center gap-3">
-                  <Award size={24} />
-                  <span>Sound Quiz Game</span>
+                  <Palette size={24} />
+                  <span>Creative Sandbox</span>
                 </div>
                 <ChevronRight size={20} />
               </button>
@@ -1099,7 +1377,7 @@ export default function App() {
               >
                 <div className="flex items-center gap-3">
                   <Sparkles size={24} />
-                  <span>Sticker Locker</span>
+                  <span>Sticker Shop</span>
                 </div>
                 <ChevronRight size={20} />
               </button>
@@ -1139,27 +1417,111 @@ export default function App() {
           </div>
         )}
 
+        {view === 'map' && (
+          <div className="flex-1 flex flex-col">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-black text-slate-800 tracking-tight flex items-center gap-2">
+                <span>🗺️ Akshar Path</span>
+              </h2>
+              <div className="text-xs bg-indigo-100 text-indigo-700 font-extrabold px-3 py-1.5 rounded-full font-sans">
+                {progressLog.completedLessons.length} / 34 Cleared
+              </div>
+            </div>
+            
+            {/* Scrollable Map Container */}
+            <div className="flex-1 overflow-y-auto pr-1 pb-10 relative bg-slate-50/50 rounded-3xl border border-slate-100 p-4 shadow-inner max-w-md mx-auto w-full min-h-[400px]">
+              {/* Adventure Path Line */}
+              <div className="absolute left-1/2 top-4 bottom-10 w-1.5 border-l-4 border-dashed border-indigo-200 -translate-x-1/2 z-0" />
+              
+              <div className="flex flex-col gap-10 relative z-10">
+                {sessionCurriculum.map((item, idx) => {
+                  const isCompleted = progressLog.completedLessons.includes(item.id);
+                  const isLocked = idx > 0 && 
+                                   !progressLog.completedLessons.includes(sessionCurriculum[idx - 1].id) && 
+                                   parentUnlockAll !== true;
+                  const isActive = !isLocked && !isCompleted;
+                  
+                  const alignment = idx % 2 === 0 ? 'flex-row' : 'flex-row-reverse';
+                  const translateOffset = idx % 2 === 0 ? 'translate-x-6' : '-translate-x-6';
+                  
+                  let stoneStyle = "bg-white border-slate-200 text-slate-700 shadow-md hover:scale-105 active:scale-95";
+                  let badgeIcon = null;
+                  
+                  if (isLocked) {
+                    stoneStyle = "bg-slate-200/90 border-slate-300 text-slate-400 cursor-not-allowed opacity-80";
+                    badgeIcon = <Lock size={12} className="text-slate-400" />;
+                  } else if (isActive) {
+                    stoneStyle = "bg-indigo-600 border-indigo-700 text-white scale-110 shadow-lg shadow-indigo-600/30 animate-bounce-slow cursor-pointer ring-4 ring-indigo-100";
+                    badgeIcon = <Sparkles size={12} className="text-white" />;
+                  } else if (isCompleted) {
+                    stoneStyle = "bg-emerald-500 border-emerald-600 text-white shadow-md cursor-pointer hover:bg-emerald-600";
+                    badgeIcon = <CheckCircle size={12} className="text-white" />;
+                  }
+                  
+                  return (
+                    <div 
+                      key={item.id} 
+                      className={`flex items-center justify-center w-full ${alignment}`}
+                    >
+                      <button
+                        disabled={isLocked}
+                        onClick={() => {
+                          setCurrentLessonIndex(idx);
+                          setView('learn');
+                          playSound('waypoint');
+                        }}
+                        className={`w-16 h-16 rounded-full flex flex-col justify-center items-center font-extrabold text-2xl border-4 transition-all duration-300 relative ${stoneStyle}`}
+                      >
+                        <span>{item.letter}</span>
+                        {badgeIcon && (
+                          <div className="absolute -top-1 -right-1 bg-slate-800 rounded-full p-1 border-2 border-white shadow-sm flex items-center justify-center">
+                            {badgeIcon}
+                          </div>
+                        )}
+                      </button>
+                      
+                      <div className={`w-32 px-3 py-2 bg-white rounded-xl border border-slate-100 shadow-sm flex items-center gap-2 ${translateOffset} transition-all duration-300 ${isLocked ? 'opacity-50' : 'opacity-100'}`}>
+                        <span className="text-xl">{item.emoji}</span>
+                        <div className="flex flex-col text-left font-sans">
+                          <span className="font-extrabold text-xs text-slate-800 leading-tight">{item.english}</span>
+                          <span className="text-xxs text-slate-400 font-bold truncate leading-none mt-0.5">{item.wordEnglish}</span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        )}
+
         {view === 'learn' && (
           <div className="flex-1 flex flex-col">
             {/* Top Navigation Selector */}
             <div className="flex justify-between items-center mb-4">
               <button 
-                onClick={() => setView('home')} 
+                onClick={() => setView('map')} 
                 className="font-bold text-slate-500 hover:text-slate-700 bg-white border border-slate-200 px-4 py-2 rounded-xl text-sm shadow-sm flex-shrink-0"
               >
-                Back
+                🗺️ Map
               </button>
               
               <div className="flex gap-1.5 overflow-x-auto max-w-[280px] no-scrollbar pb-1">
-                {sessionCurriculum.map((item, idx) => (
-                  <button
-                    key={item.id}
-                    onClick={() => setCurrentLessonIndex(idx)}
-                    className={`w-8 h-8 rounded-lg font-bold flex justify-center items-center border transition-all flex-shrink-0 text-sm ${currentLessonIndex === idx ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm scale-105' : 'bg-white text-slate-600 border-slate-200'}`}
-                  >
-                    {item.letter}
-                  </button>
-                ))}
+                {sessionCurriculum.map((item, idx) => {
+                  const isLocked = idx > 0 && 
+                                   !progressLog.completedLessons.includes(sessionCurriculum[idx - 1].id) && 
+                                   parentUnlockAll !== true;
+                  return (
+                    <button
+                      key={item.id}
+                      disabled={isLocked}
+                      onClick={() => setCurrentLessonIndex(idx)}
+                      className={`w-8 h-8 rounded-lg font-bold flex justify-center items-center border transition-all flex-shrink-0 text-sm ${currentLessonIndex === idx ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm scale-105' : isLocked ? 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed opacity-60' : 'bg-white text-slate-600 border-slate-200'}`}
+                    >
+                      {item.letter}
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
@@ -1181,12 +1543,29 @@ export default function App() {
               </div>
 
               {/* Word association card */}
-              <div className="flex items-center gap-3 bg-indigo-50/50 w-full p-3 rounded-2xl border border-indigo-50 mb-4">
+              <div className="flex items-center gap-3 bg-indigo-50/50 w-full p-3 rounded-2xl border border-indigo-50 mb-3">
                 <span className="text-4xl">{currentLesson.emoji}</span>
                 <div>
                   <h4 className="font-extrabold text-slate-800 text-base">{currentLesson.word}</h4>
                   <p className="text-indigo-600/80 font-bold text-sm">{currentLesson.wordEnglish}</p>
                 </div>
+              </div>
+
+              {/* Phonics Helper Card */}
+              <div className="flex items-center justify-between w-full p-3 mb-4 bg-amber-50/60 border border-amber-100 rounded-2xl">
+                <div className="flex flex-col text-left font-sans">
+                  <span className="text-xs font-extrabold text-amber-800 uppercase tracking-wide">Pronunciation Helper</span>
+                  <span className="text-xs font-bold text-slate-700 mt-0.5">
+                    <strong>"{PHONICS_GUIDE[currentLesson.id]?.phonic || currentLesson.english}"</strong> — {PHONICS_GUIDE[currentLesson.id]?.pron || ''}
+                  </span>
+                </div>
+                <button
+                  onClick={() => speak(currentLesson.letter)}
+                  className="bg-amber-500 hover:bg-amber-600 text-white p-2.5 rounded-xl shadow-sm transition flex-shrink-0"
+                  title="Listen Pronunciation"
+                >
+                  <Volume2 size={16} className="fill-white" />
+                </button>
               </div>
 
               {/* Canvas draw field */}
@@ -1255,7 +1634,7 @@ export default function App() {
                     </span>
                     
                     {/* Editor Active Toggle */}
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 font-sans">
                       <button
                         onClick={() => setEditorActive(true)}
                         className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold border transition ${editorActive ? 'bg-amber-600 border-amber-600 text-white shadow-sm' : 'bg-white border-amber-200 text-amber-700'}`}
@@ -1273,7 +1652,7 @@ export default function App() {
 
                   {/* Waypoint placement mode toggle */}
                   {editorActive && (
-                    <div className="flex gap-2 mb-3">
+                    <div className="flex gap-2 mb-3 font-sans">
                       <button
                         onClick={() => {
                           setEditorRecordMode(false);
@@ -1315,7 +1694,7 @@ export default function App() {
                   )}
 
                   {/* Editor Buttons */}
-                  <div className="grid grid-cols-2 gap-2 mb-3">
+                  <div className="grid grid-cols-2 gap-2 mb-3 font-sans">
                     {!editorRecordMode ? (
                       <button
                         onClick={() => setEditorMoveTo(!editorMoveTo)}
@@ -1357,13 +1736,13 @@ export default function App() {
                   {/* Device Storage Persistence Save Button */}
                   <button
                     onClick={handleEditorSave}
-                    className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-extrabold py-3 px-4 rounded-xl text-xs flex justify-center items-center gap-2 mb-4 transition shadow"
+                    className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-extrabold py-3 px-4 rounded-xl text-xs flex justify-center items-center gap-2 mb-4 transition shadow font-sans"
                   >
                     💾 Save Waypoints to Device
                   </button>
 
                   {/* JSON Code Copy block */}
-                  <div>
+                  <div className="font-sans">
                     <label className="text-xxs font-extrabold text-amber-800 uppercase tracking-wider block mb-1">
                       Live Waypoints JSON Code:
                     </label>
@@ -1403,7 +1782,7 @@ export default function App() {
 
                 <div className="flex justify-between items-center">
                   <span className="text-xs font-bold text-slate-500">Brush Size:</span>
-                  <div className="flex gap-1.5">
+                  <div className="flex gap-1.5 font-sans">
                     {[
                       { width: 8, label: 'Thin' },
                       { width: 16, label: 'Medium' },
@@ -1426,7 +1805,7 @@ export default function App() {
               </p>
 
               {/* Clear and voice actions */}
-              <div className="flex gap-3 w-full mt-4">
+              <div className="flex gap-3 w-full mt-4 font-sans">
                 <button
                   onClick={initCanvas}
                   className="flex-1 border-3 border-slate-200 hover:border-slate-300 text-slate-600 font-extrabold py-3.5 px-4 rounded-2xl flex justify-center items-center gap-2 transition"
@@ -1446,20 +1825,215 @@ export default function App() {
           </div>
         )}
 
-        {view === 'match' && (
-          <div className="flex-1 flex flex-col justify-center text-center">
+        {view === 'games' && (
+          <div className="flex-1 flex flex-col text-center">
+            <h2 className="text-2xl font-black text-slate-800 mb-1">🎮 Game Zone</h2>
+            <p className="text-slate-500 font-medium mb-6 text-sm">Choose a game to play and earn stars!</p>
+            
+            <div className="grid grid-cols-2 gap-4 max-w-sm mx-auto w-full font-sans">
+              {/* Phonics Listen & Tap */}
+              <button
+                onClick={startPhonicsGame}
+                className="bg-gradient-to-tr from-amber-400 to-amber-500 text-white p-5 rounded-3xl shadow-lg border border-amber-300 flex flex-col items-center gap-3 transition-transform hover:-translate-y-1 active:translate-y-0"
+              >
+                <div className="w-12 h-12 bg-white/20 rounded-2xl flex justify-center items-center text-3xl">👂</div>
+                <div className="flex flex-col">
+                  <span className="font-extrabold text-sm leading-tight">Listen & Tap</span>
+                  <span className="text-white/80 font-bold text-xxs mt-1">Phonics sound quiz</span>
+                </div>
+              </button>
+
+              {/* Memory Match */}
+              <button
+                onClick={startMemoryMatch}
+                className="bg-gradient-to-tr from-rose-400 to-rose-500 text-white p-5 rounded-3xl shadow-lg border border-rose-300 flex flex-col items-center gap-3 transition-transform hover:-translate-y-1 active:translate-y-0"
+              >
+                <div className="w-12 h-12 bg-white/20 rounded-2xl flex justify-center items-center text-3xl">🎴</div>
+                <div className="flex flex-col">
+                  <span className="font-extrabold text-sm leading-tight">Memory Match</span>
+                  <span className="text-white/80 font-bold text-xxs mt-1">Flip and match cards</span>
+                </div>
+              </button>
+
+              {/* Picture Match */}
+              <button
+                onClick={startMatchGame}
+                className="bg-gradient-to-tr from-purple-400 to-purple-500 text-white p-5 rounded-3xl shadow-lg border border-purple-300 flex flex-col items-center gap-3 transition-transform hover:-translate-y-1 active:translate-y-0"
+              >
+                <div className="w-12 h-12 bg-white/20 rounded-2xl flex justify-center items-center text-3xl">🖼️</div>
+                <div className="flex flex-col">
+                  <span className="font-extrabold text-sm leading-tight">Picture Match</span>
+                  <span className="text-white/80 font-bold text-xxs mt-1">Find the matching image</span>
+                </div>
+              </button>
+
+              {/* Translate Quiz */}
+              <button
+                onClick={startQuiz}
+                className="bg-gradient-to-tr from-indigo-400 to-indigo-500 text-white p-5 rounded-3xl shadow-lg border border-indigo-300 flex flex-col items-center gap-3 transition-transform hover:-translate-y-1 active:translate-y-0"
+              >
+                <div className="w-12 h-12 bg-white/20 rounded-2xl flex justify-center items-center text-3xl">📝</div>
+                <div className="flex flex-col">
+                  <span className="font-extrabold text-sm leading-tight">Translate Quiz</span>
+                  <span className="text-white/80 font-bold text-xxs mt-1">Sound translation test</span>
+                </div>
+              </button>
+            </div>
+          </div>
+        )}
+
+        {view === 'phonics_game' && (
+          <div className="flex-1 flex flex-col text-center justify-center">
             <div className="flex justify-between items-center mb-4">
               <button 
-                onClick={() => setView('home')} 
+                onClick={() => setView('games')} 
                 className="font-bold text-slate-500 hover:text-slate-700 bg-white border border-slate-200 px-4 py-2 rounded-xl text-sm shadow-sm flex-shrink-0"
               >
                 Back
               </button>
-              <span className="font-bold text-slate-700 text-lg">Match Game</span>
+              <span className="font-bold text-slate-700 text-lg">Listen & Tap</span>
+            </div>
+
+            <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm flex flex-col items-center max-w-sm mx-auto w-full">
+              <div className="text-center mb-6">
+                <h3 className="text-xl font-black mb-1">Which letter makes this sound?</h3>
+                <p className="text-slate-400 text-xs font-medium">Listen carefully and tap the matching letter!</p>
+              </div>
+
+              {/* Replay Sound Button */}
+              <button
+                onClick={() => speak(phonicsTarget.letter)}
+                className="bg-indigo-50 text-indigo-600 hover:bg-indigo-100 py-3.5 px-6 rounded-2xl font-bold text-sm mb-8 flex items-center gap-2 shadow-sm border border-indigo-100 animate-pulse font-sans"
+              >
+                <Volume2 size={20} className="fill-indigo-100" />
+                <span>Repeat Sound</span>
+              </button>
+
+              {/* Option cards */}
+              <div className="grid grid-cols-3 gap-3.5 w-full">
+                {phonicsOptions.map((option) => {
+                  const isSelected = phonicsSelected === option.id;
+                  const isCorrect = option.id === phonicsTarget.id;
+                  
+                  let cardClass = "border-2 border-slate-200 hover:border-indigo-300 hover:bg-indigo-50/10 bg-white shadow-sm text-slate-700 scale-100";
+                  if (phonicsSelected !== null) {
+                    if (isCorrect) {
+                      cardClass = "border-2 border-emerald-500 bg-emerald-50 text-emerald-700 scale-105 shadow z-10";
+                    } else if (isSelected) {
+                      cardClass = "border-2 border-rose-500 bg-rose-50 text-rose-700";
+                    } else {
+                      cardClass = "border-2 border-slate-100 opacity-40";
+                    }
+                  }
+
+                  return (
+                    <button
+                      key={option.id}
+                      onClick={() => handlePhonicsAnswer(option)}
+                      disabled={phonicsSelected !== null}
+                      className={`h-24 rounded-2xl flex justify-center items-center font-extrabold text-4xl transition-all duration-300 ${cardClass}`}
+                    >
+                      {option.letter}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Feedback alert */}
+              {phonicsFeedback && (
+                <div className={`mt-6 w-full p-4 rounded-2xl font-bold flex justify-center items-center gap-2 font-sans border-2 ${phonicsFeedback === 'correct' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-rose-50 text-rose-700 border-rose-200'}`}>
+                  {phonicsFeedback === 'correct' ? (
+                    <>
+                      <CheckCircle size={20} />
+                      <span>Sachu! Correct! +30 points</span>
+                    </>
+                  ) : (
+                    <>
+                      <ShieldAlert size={20} />
+                      <span>Khoṭu! Try again.</span>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {view === 'memory_match' && (
+          <div className="flex-1 flex flex-col justify-center text-center">
+            <div className="flex justify-between items-center mb-4">
+              <button 
+                onClick={() => setView('games')} 
+                className="font-bold text-slate-500 hover:text-slate-700 bg-white border border-slate-200 px-4 py-2 rounded-xl text-sm shadow-sm flex-shrink-0"
+              >
+                Back
+              </button>
+              <span className="font-bold text-slate-700 text-lg">Memory Match</span>
+            </div>
+
+            <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm flex-1 flex flex-col items-center max-w-sm mx-auto w-full">
+              <div className="text-center mb-4">
+                <h3 className="text-lg font-black text-slate-800">Match Letters & Emojis</h3>
+                <p className="text-slate-400 text-xs font-medium">Flip cards to match the letter to its starting image!</p>
+              </div>
+
+              {/* Card Grid */}
+              <div className="grid grid-cols-3 gap-3 w-full flex-1 justify-center items-center">
+                {memoryCards.map((card, idx) => {
+                  const isFlipped = card.isFlipped || card.isMatched;
+                  
+                  let cardStyle = "bg-gradient-to-tr from-indigo-500 to-purple-500 border-indigo-400 text-white font-black text-4xl shadow-md";
+                  if (isFlipped) {
+                    cardStyle = card.isMatched 
+                      ? "bg-emerald-50 border-emerald-300 text-emerald-700 scale-95 opacity-90"
+                      : "bg-white border-indigo-200 text-slate-800 scale-100 shadow-sm";
+                  }
+                  
+                  return (
+                    <button
+                      key={card.id}
+                      onClick={() => handleCardClick(idx)}
+                      disabled={isFlipped}
+                      className={`h-24 rounded-2xl border-3 flex justify-center items-center transition-all duration-300 ${cardStyle}`}
+                    >
+                      {isFlipped ? (
+                        <span className={card.type === 'emoji' ? 'text-4xl' : 'text-3xl font-extrabold'}>
+                          {card.content}
+                        </span>
+                      ) : (
+                        <span className="font-extrabold text-white text-3xl font-mono">?</span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {memoryCards.every(c => c.isMatched) && (
+                <button
+                  onClick={startMemoryMatch}
+                  className="w-full mt-4 bg-emerald-500 hover:bg-emerald-600 text-white font-extrabold py-3 px-4 rounded-xl text-sm transition shadow font-sans"
+                >
+                  🎉 Play Again!
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
+        {view === 'match' && (
+          <div className="flex-1 flex flex-col justify-center text-center">
+            <div className="flex justify-between items-center mb-4">
+              <button 
+                onClick={() => setView('games')} 
+                className="font-bold text-slate-500 hover:text-slate-700 bg-white border border-slate-200 px-4 py-2 rounded-xl text-sm shadow-sm flex-shrink-0"
+              >
+                Back
+              </button>
+              <span className="font-bold text-slate-700 text-lg">Picture Match</span>
             </div>
 
             {/* Match Game card */}
-            <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm flex flex-col items-center">
+            <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm flex flex-col items-center max-w-sm mx-auto w-full">
               <div className="w-20 h-20 bg-indigo-50 text-indigo-600 rounded-3xl flex justify-center items-center font-bold text-5xl mb-4 shadow-sm animate-bounce-slow">
                 {sessionCurriculum[matchIndex].letter}
               </div>
@@ -1467,7 +2041,7 @@ export default function App() {
               <p className="text-slate-500 mb-6 font-medium">Which picture starts with the Gujarati sound above?</p>
 
               {/* Option cards */}
-              <div className="grid grid-cols-3 gap-3 w-full">
+              <div className="grid grid-cols-3 gap-3 w-full font-sans">
                 {matchOptions.map((option) => {
                   const isSelected = matchSelected === option.id;
                   const isCorrect = option.id === sessionCurriculum[matchIndex].id;
@@ -1499,7 +2073,7 @@ export default function App() {
 
               {/* Feedback alert */}
               {matchFeedback && (
-                <div className={`mt-6 w-full p-4 rounded-xl font-bold flex justify-center items-center gap-2 ${matchFeedback === 'correct' ? 'bg-emerald-50 text-emerald-700 border-2 border-emerald-200' : 'bg-rose-50 text-rose-700 border-2 border-rose-200'}`}>
+                <div className={`mt-6 w-full p-4 rounded-xl font-bold flex justify-center items-center gap-2 font-sans ${matchFeedback === 'correct' ? 'bg-emerald-50 text-emerald-700 border-2 border-emerald-200' : 'bg-rose-50 text-rose-700 border-2 border-rose-200'}`}>
                   {matchFeedback === 'correct' ? (
                     <>
                       <CheckCircle size={20} />
@@ -1521,23 +2095,23 @@ export default function App() {
           <div className="flex-1 flex flex-col justify-center text-center">
             <div className="flex justify-between items-center mb-4">
               <button 
-                onClick={() => setView('home')} 
+                onClick={() => setView('games')} 
                 className="font-bold text-slate-500 hover:text-slate-700 bg-white border border-slate-200 px-4 py-2 rounded-xl text-sm shadow-sm flex-shrink-0"
               >
                 Back
               </button>
-              <span className="font-bold text-slate-700 text-lg">Quiz Challenge</span>
+              <span className="font-bold text-slate-700 text-lg">Translate Quiz</span>
             </div>
 
             {/* Quiz selection card */}
-            <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm flex flex-col items-center">
+            <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm flex flex-col items-center max-w-sm mx-auto w-full">
               <div className="w-16 h-16 bg-rose-50 text-rose-500 rounded-2xl flex justify-center items-center font-bold text-4xl mb-4">
                 {sessionCurriculum[quizIndex].letter}
               </div>
               <h2 className="text-2xl font-extrabold text-slate-800 mb-2">Which letter is this?</h2>
-              <p className="text-slate-500 mb-6 font-medium">Identify the correct phonetic sound for the Gujarati character above.</p>
+              <p className="text-slate-500 mb-6 font-medium">Identify the correct phonetic sound for the Gujarati character.</p>
 
-              <div className="grid gap-3 w-full">
+              <div className="grid gap-3 w-full font-sans">
                 {quizOptions.map((option) => {
                   const isSelected = selectedAnswer === option.id;
                   const isCorrect = option.id === sessionCurriculum[quizIndex].id;
@@ -1568,7 +2142,7 @@ export default function App() {
               </div>
 
               {quizFeedback && (
-                <div className={`mt-6 w-full p-4 rounded-xl font-bold flex justify-center items-center gap-2 ${quizFeedback === 'correct' ? 'bg-emerald-50 text-emerald-700 border-2 border-emerald-200' : 'bg-rose-50 text-rose-700 border-2 border-rose-200'}`}>
+                <div className={`mt-6 w-full p-4 rounded-xl font-bold flex justify-center items-center gap-2 font-sans ${quizFeedback === 'correct' ? 'bg-emerald-50 text-emerald-700 border-2 border-emerald-200' : 'bg-rose-50 text-rose-700 border-2 border-rose-200'}`}>
                   {quizFeedback === 'correct' ? (
                     <>
                       <CheckCircle size={20} />
@@ -1582,6 +2156,153 @@ export default function App() {
                   )}
                 </div>
               )}
+            </div>
+          </div>
+        )}
+
+        {view === 'sandbox' && (
+          <div className="flex-1 flex flex-col text-center justify-center">
+            <div className="flex justify-between items-center mb-4">
+              <button 
+                onClick={() => setView('home')} 
+                className="font-bold text-slate-500 hover:text-slate-700 bg-white border border-slate-200 px-4 py-2 rounded-xl text-sm shadow-sm flex-shrink-0"
+              >
+                Back
+              </button>
+              <span className="font-bold text-slate-700 text-lg">Sticker Sandbox</span>
+            </div>
+
+            <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm flex-1 flex flex-col items-center max-w-sm mx-auto w-full">
+              {/* Tool Mode selector */}
+              <div className="flex gap-2 mb-3 w-full font-sans">
+                <button
+                  onClick={() => setSandboxTool('draw')}
+                  className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold border transition ${sandboxTool === 'draw' ? 'bg-indigo-600 border-indigo-600 text-white shadow-sm' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}
+                >
+                  ✏️ Brush Draw
+                </button>
+                <button
+                  onClick={() => setSandboxTool('stamp')}
+                  className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold border transition ${sandboxTool === 'stamp' ? 'bg-indigo-600 border-indigo-600 text-white shadow-sm' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}
+                >
+                  🖼️ Sticker Stamp
+                </button>
+              </div>
+
+              {/* Blank canvas field */}
+              <div 
+                style={{ position: 'relative', aspectRatio: '380/320' }}
+                className="border-4 border-slate-200 rounded-3xl overflow-hidden shadow-inner bg-white w-full max-w-[380px] flex-1 flex items-center justify-center"
+              >
+                <canvas
+                  ref={sandboxCanvasRef}
+                  width={380}
+                  height={320}
+                  onMouseDown={startSandboxDrawing}
+                  onMouseMove={drawSandbox}
+                  onMouseUp={stopSandboxDrawing}
+                  onMouseLeave={stopSandboxDrawing}
+                  onTouchStart={startSandboxDrawing}
+                  onTouchMove={drawSandbox}
+                  onTouchEnd={stopSandboxDrawing}
+                  className="w-full h-full cursor-crosshair touch-none"
+                />
+              </div>
+
+              {/* Draw Toolbar config */}
+              {sandboxTool === 'draw' ? (
+                <div className="flex flex-col gap-3 w-full mt-3 p-3 bg-slate-50 rounded-2xl border border-slate-100">
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs font-bold text-slate-500">Brush Color:</span>
+                    <div className="flex gap-2">
+                      {[
+                        { hex: '#6366f1', label: 'Indigo' },
+                        { hex: '#f43f5e', label: 'Rose' },
+                        { hex: '#10b981', label: 'Emerald' },
+                        { hex: '#f59e0b', label: 'Amber' },
+                        { hex: '#a855f7', label: 'Purple' }
+                      ].map(c => (
+                        <button
+                          key={c.hex}
+                          onClick={() => setBrushColor(c.hex)}
+                          style={{ backgroundColor: c.hex }}
+                          className={`w-7 h-7 rounded-full border-2 transition-all ${brushColor === c.hex ? 'border-slate-800 scale-110 shadow-sm' : 'border-white hover:scale-105'}`}
+                          title={c.label}
+                        />
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs font-bold text-slate-500">Brush Size:</span>
+                    <div className="flex gap-1.5 font-sans">
+                      {[
+                        { width: 8, label: 'Thin' },
+                        { width: 16, label: 'Medium' },
+                        { width: 24, label: 'Thick' }
+                      ].map(s => (
+                        <button
+                          key={s.width}
+                          onClick={() => setBrushWidth(s.width)}
+                          className={`px-3 py-1 rounded-xl text-xs font-bold border transition ${brushWidth === s.width ? 'bg-indigo-600 border-indigo-600 text-white shadow-sm' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}
+                        >
+                          {s.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                /* Sticker Stamp Selection grid */
+                <div className="w-full mt-3 p-3 bg-slate-50 rounded-2xl border border-slate-100">
+                  <span className="text-xs font-bold text-slate-500 block text-left mb-2">Select Stamp Emoji:</span>
+                  <div className="flex gap-2 overflow-x-auto pb-1 max-w-full no-scrollbar">
+                    {sessionCurriculum.map(item => (
+                      <button
+                        key={item.id}
+                        onClick={() => setSelectedSandboxSticker(item.emoji)}
+                        className={`text-2xl p-2 rounded-xl border transition flex-shrink-0 ${selectedSandboxSticker === item.emoji ? 'bg-indigo-50 border-indigo-300 scale-105 shadow-sm' : 'bg-white border-slate-200 hover:bg-slate-50'}`}
+                      >
+                        {item.emoji}
+                      </button>
+                    ))}
+                    {unlockedStickers.map(id => {
+                      const sticker = STICKERS.find(s => s.id === id);
+                      return sticker ? (
+                        <button
+                          key={sticker.id}
+                          onClick={() => setSelectedSandboxSticker(sticker.emoji)}
+                          className={`text-2xl p-2 rounded-xl border transition flex-shrink-0 ${selectedSandboxSticker === sticker.emoji ? 'bg-indigo-50 border-indigo-300 scale-105 shadow-sm' : 'bg-white border-slate-200 hover:bg-slate-50'}`}
+                        >
+                          {sticker.emoji}
+                        </button>
+                      ) : null;
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Clear and save actions */}
+              <div className="flex gap-3 w-full mt-4 font-sans">
+                <button
+                  onClick={initSandboxCanvas}
+                  className="flex-1 border-3 border-slate-200 hover:border-slate-300 text-slate-600 font-extrabold py-3 px-4 rounded-2xl flex justify-center items-center gap-2 transition"
+                >
+                  <RotateCcw size={18} />
+                  <span>Clear Board</span>
+                </button>
+                <button
+                  onClick={() => {
+                    confetti({ particleCount: 50, spread: 60 });
+                    playSound('success');
+                    speak("તમારું ચિત્ર સુંદર છે!"); // Your picture is beautiful!
+                  }}
+                  className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold py-3 px-4 rounded-2xl flex justify-center items-center gap-2 transition shadow-lg shadow-indigo-600/20"
+                >
+                  <Sparkles size={18} />
+                  <span>Brag Art!</span>
+                </button>
+              </div>
             </div>
           </div>
         )}
@@ -1627,7 +2348,7 @@ export default function App() {
                         <button
                           onClick={() => buySticker(sticker)}
                           disabled={!canAfford}
-                          className={`w-full py-2.5 px-3 rounded-xl font-bold text-xs mt-2 transition shadow-sm ${canAfford ? 'bg-amber-500 hover:bg-amber-600 text-white shadow-amber-500/10' : 'bg-slate-200 text-slate-400 cursor-not-allowed'}`}
+                          className={`w-full py-2.5 px-3 rounded-xl font-bold text-xs mt-2 transition shadow-sm font-sans ${canAfford ? 'bg-amber-500 hover:bg-amber-600 text-white shadow-amber-500/10' : 'bg-slate-200 text-slate-400 cursor-not-allowed'}`}
                         >
                           Buy for {sticker.cost} Pts
                         </button>
@@ -1805,6 +2526,24 @@ export default function App() {
                   </button>
                 </div>
 
+                {/* Unlock All Letters Toggle */}
+                <div className="flex justify-between items-center border-t border-slate-200/60 pt-3">
+                  <div className="flex flex-col">
+                    <span className="text-xs font-bold text-slate-700">Unlock All Tracing Letters</span>
+                    <span className="text-xs text-slate-400">Bypass sequential progression requirement</span>
+                  </div>
+                  <button
+                    onClick={() => {
+                      const next = !parentUnlockAll;
+                      setParentUnlockAll(next);
+                      localStorage.setItem('guj_parent_unlock_all', next);
+                    }}
+                    className={`w-12 h-6 rounded-full transition-all relative ${parentUnlockAll ? 'bg-indigo-600' : 'bg-slate-300'}`}
+                  >
+                    <div className={`w-5 h-5 rounded-full bg-white absolute top-0.5 transition-all ${parentUnlockAll ? 'right-0.5' : 'left-0.5'}`} />
+                  </button>
+                </div>
+
                 {/* Wipe custom waypoints */}
                 <div className="flex justify-between items-center border-t border-slate-200/60 pt-3">
                   <div className="flex flex-col">
@@ -1897,27 +2636,27 @@ export default function App() {
           </button>
           
           <button 
-            onClick={() => setView('learn')} 
-            className={`flex flex-col items-center gap-1 py-1.5 px-2.5 rounded-xl transition ${view === 'learn' ? 'text-indigo-600 font-bold' : 'text-slate-400'}`}
+            onClick={() => setView('map')} 
+            className={`flex flex-col items-center gap-1 py-1.5 px-2.5 rounded-xl transition ${view === 'map' || view === 'learn' ? 'text-indigo-600 font-bold' : 'text-slate-400'}`}
           >
-            <BookOpen size={18} />
+            <Map size={18} />
             <span className="text-xxs font-bold">Trace</span>
           </button>
 
           <button 
-            onClick={startMatchGame} 
-            className={`flex flex-col items-center gap-1 py-1.5 px-2.5 rounded-xl transition ${view === 'match' ? 'text-indigo-600 font-bold' : 'text-slate-400'}`}
+            onClick={() => setView('games')} 
+            className={`flex flex-col items-center gap-1 py-1.5 px-2.5 rounded-xl transition ${['games', 'match', 'quiz', 'phonics_game', 'memory_match'].includes(view) ? 'text-indigo-600 font-bold' : 'text-slate-400'}`}
           >
-            <Grid size={18} />
-            <span className="text-xxs font-bold">Match</span>
+            <Gamepad2 size={18} />
+            <span className="text-xxs font-bold">Games</span>
           </button>
 
           <button 
-            onClick={startQuiz} 
-            className={`flex flex-col items-center gap-1 py-1.5 px-2.5 rounded-xl transition ${view === 'quiz' ? 'text-indigo-600 font-bold' : 'text-slate-400'}`}
+            onClick={() => setView('sandbox')} 
+            className={`flex flex-col items-center gap-1 py-1.5 px-2.5 rounded-xl transition ${view === 'sandbox' ? 'text-indigo-600 font-bold' : 'text-slate-400'}`}
           >
-            <Award size={18} />
-            <span className="text-xxs font-bold">Quiz</span>
+            <Palette size={18} />
+            <span className="text-xxs font-bold">Sandbox</span>
           </button>
 
           <button 
@@ -1925,7 +2664,7 @@ export default function App() {
             className={`flex flex-col items-center gap-1 py-1.5 px-2.5 rounded-xl transition ${view === 'stickers' ? 'text-indigo-600 font-bold' : 'text-slate-400'}`}
           >
             <Sparkles size={18} />
-            <span className="text-xxs font-bold">Stickers</span>
+            <span className="text-xxs font-bold">Shop</span>
           </button>
         </nav>
       )}
