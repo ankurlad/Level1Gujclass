@@ -553,7 +553,7 @@ const CURRICULUM = [
     english: 'Ksha',
     word: 'ક્ષત્રિય',
     wordEnglish: 'Warrior',
-    emoji: '🛡️',
+    emoji: '⚔️',
     instructions: 'Start with a loop, make a double loop in center, and draw vertical line.',
     waypoints: [
       { x: 150, y: 150, label: '1' },
@@ -597,6 +597,10 @@ export default function App() {
   const [view, setView] = useState('home'); // home | learn | match | quiz | stickers | dashboard
   const [currentLessonIndex, setCurrentLessonIndex] = useState(0);
   const [points, setPoints] = useState(() => Number(localStorage.getItem('guj_points')) || 0);
+  
+  // Custom Session Curriculum for visual edits
+  const [sessionCurriculum, setSessionCurriculum] = useState(CURRICULUM);
+  
   const [progressLog, setProgressLog] = useState(() => {
     try {
       return JSON.parse(localStorage.getItem('guj_progress')) || {
@@ -629,6 +633,11 @@ export default function App() {
     return val === null ? true : val === 'true';
   });
 
+  // Waypoint Editor Mode States
+  const [editorMode, setEditorMode] = useState(() => localStorage.getItem('guj_editor_mode') === 'true');
+  const [editorActive, setEditorActive] = useState(false);
+  const [editorWaypoints, setEditorWaypoints] = useState([]);
+
   // Quiz Mode States
   const [quizIndex, setQuizIndex] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState(null);
@@ -656,7 +665,7 @@ export default function App() {
   const [kioskPromptActive, setKioskPromptActive] = useState(false);
   const [installPrompt, setInstallPrompt] = useState(null);
 
-  const currentLesson = CURRICULUM[currentLessonIndex];
+  const currentLesson = sessionCurriculum[currentLessonIndex];
 
   // Local Storage sync hooks
   useEffect(() => {
@@ -690,6 +699,13 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('guj_parent_pin', parentPasscode);
   }, [parentPasscode]);
+
+  // Keep developer editor waypoints synced when letter changes
+  useEffect(() => {
+    if (currentLesson) {
+      setEditorWaypoints(currentLesson.waypoints || []);
+    }
+  }, [currentLessonIndex]);
 
   // Listen to installation prompt event
   useEffect(() => {
@@ -805,7 +821,7 @@ export default function App() {
     if (view === 'learn') {
       initCanvas();
     }
-  }, [view, currentLessonIndex]);
+  }, [view, currentLessonIndex, editorWaypoints]);
 
   const initCanvas = () => {
     const canvas = canvasRef.current;
@@ -829,7 +845,7 @@ export default function App() {
     // Draw dashed guide paths connecting waypoints
     if (currentLesson.waypoints && currentLesson.waypoints.length > 1) {
       ctx.beginPath();
-      ctx.strokeStyle = 'rgba(99, 102, 241, 0.15)';
+      ctx.strokeStyle = editorMode && editorActive ? 'rgba(245, 158, 11, 0.35)' : 'rgba(99, 102, 241, 0.15)';
       ctx.lineWidth = 4;
       ctx.setLineDash([6, 6]);
       ctx.moveTo(currentLesson.waypoints[0].x, currentLesson.waypoints[0].y);
@@ -856,8 +872,35 @@ export default function App() {
     };
   };
 
+  // Click to place coordinates inside Waypoint Editor mode
+  const handleCanvasClick = (e) => {
+    if (!editorMode || !editorActive) return;
+    const { x, y } = getCoords(e);
+    const newPoint = {
+      x: Math.round(x),
+      y: Math.round(y),
+      label: (editorWaypoints.length + 1).toString()
+    };
+    const updated = [...editorWaypoints, newPoint];
+    setEditorWaypoints(updated);
+
+    // Update in-memory session curriculum
+    const newCurriculum = [...sessionCurriculum];
+    newCurriculum[currentLessonIndex] = {
+      ...newCurriculum[currentLessonIndex],
+      waypoints: updated
+    };
+    setSessionCurriculum(newCurriculum);
+    
+    playSound('waypoint');
+  };
+
   const startDrawing = (e) => {
     e.preventDefault();
+    if (editorMode && editorActive) {
+      handleCanvasClick(e);
+      return;
+    }
     const { x, y } = getCoords(e);
     const ctx = canvasRef.current.getContext('2d');
     ctx.beginPath();
@@ -932,10 +975,47 @@ export default function App() {
     speak(`અદ્ભુત! સાચું છે!`);
 
     setTimeout(() => {
-      const nextIndex = (currentLessonIndex + 1) % CURRICULUM.length;
+      const nextIndex = (currentLessonIndex + 1) % sessionCurriculum.length;
       setCurrentLessonIndex(nextIndex);
       initCanvas();
     }, 1500);
+  };
+
+  // Waypoint Editor Controls
+  const handleEditorUndo = () => {
+    if (editorWaypoints.length === 0) return;
+    const updated = editorWaypoints.slice(0, -1);
+    setEditorWaypoints(updated);
+
+    const newCurriculum = [...sessionCurriculum];
+    newCurriculum[currentLessonIndex] = {
+      ...newCurriculum[currentLessonIndex],
+      waypoints: updated
+    };
+    setSessionCurriculum(newCurriculum);
+  };
+
+  const handleEditorClear = () => {
+    setEditorWaypoints([]);
+
+    const newCurriculum = [...sessionCurriculum];
+    newCurriculum[currentLessonIndex] = {
+      ...newCurriculum[currentLessonIndex],
+      waypoints: []
+    };
+    setSessionCurriculum(newCurriculum);
+  };
+
+  const handleEditorReset = () => {
+    const originalWaypoints = CURRICULUM[currentLessonIndex].waypoints;
+    setEditorWaypoints(originalWaypoints);
+
+    const newCurriculum = [...sessionCurriculum];
+    newCurriculum[currentLessonIndex] = {
+      ...newCurriculum[currentLessonIndex],
+      waypoints: originalWaypoints
+    };
+    setSessionCurriculum(newCurriculum);
   };
 
   // Math lock generator
@@ -1000,14 +1080,14 @@ export default function App() {
 
   // Match Game start
   const startMatchGame = () => {
-    const correctIdx = Math.floor(Math.random() * CURRICULUM.length);
+    const correctIdx = Math.floor(Math.random() * sessionCurriculum.length);
     setMatchIndex(correctIdx);
     setMatchSelected(null);
     setMatchFeedback(null);
     
-    const correctItem = CURRICULUM[correctIdx];
+    const correctItem = sessionCurriculum[correctIdx];
     const options = [correctItem];
-    const pool = CURRICULUM.filter(item => item.id !== correctItem.id);
+    const pool = sessionCurriculum.filter(item => item.id !== correctItem.id);
     const wrong = pool.sort(() => 0.5 - Math.random()).slice(0, 2);
     options.push(...wrong);
     
@@ -1018,7 +1098,7 @@ export default function App() {
   const handleMatchAnswer = (item) => {
     if (matchSelected !== null) return;
     setMatchSelected(item.id);
-    const isCorrect = item.id === CURRICULUM[matchIndex].id;
+    const isCorrect = item.id === sessionCurriculum[matchIndex].id;
     if (isCorrect) {
       setPoints(p => p + 30);
       setMatchFeedback('correct');
@@ -1045,13 +1125,13 @@ export default function App() {
 
   // Quiz Game start
   const startQuiz = () => {
-    const correctIdx = Math.floor(Math.random() * CURRICULUM.length);
+    const correctIdx = Math.floor(Math.random() * sessionCurriculum.length);
     setQuizIndex(correctIdx);
     setSelectedAnswer(null);
     setQuizFeedback(null);
     
-    const options = [CURRICULUM[correctIdx]];
-    const pool = CURRICULUM.filter(item => item.id !== CURRICULUM[correctIdx].id);
+    const options = [sessionCurriculum[correctIdx]];
+    const pool = sessionCurriculum.filter(item => item.id !== sessionCurriculum[correctIdx].id);
     const wrong = pool.sort(() => 0.5 - Math.random()).slice(0, 2);
     options.push(...wrong);
     
@@ -1062,7 +1142,7 @@ export default function App() {
   const handleQuizAnswer = (item) => {
     if (selectedAnswer !== null) return;
     setSelectedAnswer(item.id);
-    const isCorrect = item.id === CURRICULUM[quizIndex].id;
+    const isCorrect = item.id === sessionCurriculum[quizIndex].id;
     if (isCorrect) {
       setPoints(p => p + 30);
       setQuizFeedback('correct');
@@ -1329,13 +1409,13 @@ export default function App() {
             <div className="flex justify-between items-center mb-4">
               <button 
                 onClick={() => setView('home')} 
-                className="font-bold text-slate-500 hover:text-slate-700 bg-white border border-slate-200 px-4 py-2 rounded-xl text-sm shadow-sm"
+                className="font-bold text-slate-500 hover:text-slate-700 bg-white border border-slate-200 px-4 py-2 rounded-xl text-sm shadow-sm flex-shrink-0"
               >
-                Back Home
+                Back
               </button>
               
               <div className="flex gap-1.5 overflow-x-auto max-w-[280px] no-scrollbar pb-1">
-                {CURRICULUM.map((item, idx) => (
+                {sessionCurriculum.map((item, idx) => (
                   <button
                     key={item.id}
                     onClick={() => setCurrentLessonIndex(idx)}
@@ -1397,6 +1477,15 @@ export default function App() {
                   const isCompleted = completedWaypoints.includes(idx);
                   const isNext = completedWaypoints.length === idx;
                   
+                  let dotClass = "bg-white border-slate-300 text-slate-500";
+                  if (editorMode && editorActive) {
+                    dotClass = "bg-amber-500 border-amber-600 text-white scale-105 shadow z-20 animate-pulse";
+                  } else if (isCompleted) {
+                    dotClass = "bg-emerald-500 border-emerald-600 text-white scale-90";
+                  } else if (isNext) {
+                    dotClass = "bg-indigo-600 border-indigo-700 text-white pulse-glow-dot scale-110 z-10";
+                  }
+                  
                   return (
                     <div
                       key={idx}
@@ -1406,13 +1495,89 @@ export default function App() {
                         top: `${(wp.y / 320) * 100}%`,
                         transform: 'translate(-50%, -50%)',
                       }}
-                      className={`w-8 h-8 rounded-full flex justify-center items-center font-bold text-xs shadow border-2 transition-all ${isCompleted ? 'bg-emerald-500 border-emerald-600 text-white scale-90' : isNext ? 'bg-indigo-600 border-indigo-700 text-white pulse-glow-dot scale-110 z-10' : 'bg-white border-slate-300 text-slate-500'}`}
+                      className={`w-8 h-8 rounded-full flex justify-center items-center font-bold text-xs shadow border-2 transition-all ${dotClass}`}
                     >
                       {wp.label}
                     </div>
                   );
                 })}
               </div>
+
+              {/* Developer Waypoint Editor Section */}
+              {editorMode && (
+                <div className="w-full mt-3 p-4 bg-amber-50/60 border border-amber-200 rounded-2xl text-left">
+                  <div className="flex flex-col gap-2 mb-3">
+                    <span className="font-extrabold text-sm text-amber-800 flex items-center gap-1.5">
+                      🔧 Waypoint Builder Tool
+                    </span>
+                    
+                    {/* Editor Active Toggle */}
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => setEditorActive(true)}
+                        className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold border transition ${editorActive ? 'bg-amber-600 border-amber-600 text-white shadow-sm' : 'bg-white border-amber-200 text-amber-700'}`}
+                      >
+                        Editor Active
+                      </button>
+                      <button
+                        onClick={() => setEditorActive(false)}
+                        className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold border transition ${!editorActive ? 'bg-amber-600 border-amber-600 text-white shadow-sm' : 'bg-white border-amber-200 text-amber-700'}`}
+                      >
+                        Test Tracing
+                      </button>
+                    </div>
+                  </div>
+
+                  {editorActive ? (
+                    <p className="text-xs text-amber-700 font-medium mb-3">
+                      👉 Click or tap directly on the canvas grid above to place waypoints in order.
+                    </p>
+                  ) : (
+                    <p className="text-xs text-amber-700 font-medium mb-3">
+                      ✍️ Test tracing your custom waypoints using the brush below.
+                    </p>
+                  )}
+
+                  {/* Editor Buttons */}
+                  <div className="grid grid-cols-3 gap-2 mb-4">
+                    <button
+                      onClick={handleEditorUndo}
+                      className="bg-white border border-amber-300 text-amber-700 hover:bg-amber-100 py-2.5 rounded-xl text-xs font-bold transition"
+                    >
+                      Undo Point
+                    </button>
+                    <button
+                      onClick={handleEditorClear}
+                      className="bg-white border border-amber-300 text-amber-700 hover:bg-amber-100 py-2.5 rounded-xl text-xs font-bold transition"
+                    >
+                      Clear All
+                    </button>
+                    <button
+                      onClick={handleEditorReset}
+                      className="bg-white border border-amber-300 text-amber-700 hover:bg-amber-100 py-2.5 rounded-xl text-xs font-bold transition"
+                    >
+                      Reset Default
+                    </button>
+                  </div>
+
+                  {/* JSON Code Copy block */}
+                  <div>
+                    <label className="text-xxs font-extrabold text-amber-800 uppercase tracking-wider block mb-1">
+                      Live Waypoints JSON Code:
+                    </label>
+                    <textarea
+                      readOnly
+                      value={JSON.stringify(editorWaypoints, null, 2)}
+                      className="w-full h-32 font-mono text-xxs border-2 border-amber-200 p-2 rounded-xl bg-white focus:outline-none focus:border-amber-400 select-all cursor-pointer"
+                      onClick={(e) => e.target.select()}
+                      title="Click to select all"
+                    />
+                    <p className="text-xxs text-amber-600 mt-1 font-medium leading-normal">
+                      💡 Click inside the box to select all, copy, and paste this array into the CURRICULUM data inside src/App.jsx.
+                    </p>
+                  </div>
+                </div>
+              )}
 
               {/* Kid friendly Brush toolbar */}
               <div className="flex flex-col gap-3 w-full mt-3 p-3 bg-slate-50 rounded-2xl border border-slate-100">
@@ -1483,21 +1648,21 @@ export default function App() {
         )}
 
         {view === 'match' && (
-          <div className="flex-1 flex flex-col justify-center">
+          <div className="flex-1 flex flex-col justify-center text-center">
             <div className="flex justify-between items-center mb-4">
               <button 
                 onClick={() => setView('home')} 
-                className="font-bold text-slate-500 hover:text-slate-700 bg-white border border-slate-200 px-4 py-2 rounded-xl text-sm shadow-sm"
+                className="font-bold text-slate-500 hover:text-slate-700 bg-white border border-slate-200 px-4 py-2 rounded-xl text-sm shadow-sm flex-shrink-0"
               >
-                Back Home
+                Back
               </button>
               <span className="font-bold text-slate-700 text-lg">Match Game</span>
             </div>
 
             {/* Match Game card */}
-            <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm flex flex-col items-center text-center">
+            <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm flex flex-col items-center">
               <div className="w-20 h-20 bg-indigo-50 text-indigo-600 rounded-3xl flex justify-center items-center font-bold text-5xl mb-4 shadow-sm animate-bounce-slow">
-                {CURRICULUM[matchIndex].letter}
+                {sessionCurriculum[matchIndex].letter}
               </div>
               <h2 className="text-2xl font-extrabold text-slate-800 mb-2">Find the matching card!</h2>
               <p className="text-slate-500 mb-6 font-medium">Which picture starts with the Gujarati sound above?</p>
@@ -1506,7 +1671,7 @@ export default function App() {
               <div className="grid grid-cols-3 gap-3 w-full">
                 {matchOptions.map((option) => {
                   const isSelected = matchSelected === option.id;
-                  const isCorrect = option.id === CURRICULUM[matchIndex].id;
+                  const isCorrect = option.id === sessionCurriculum[matchIndex].id;
                   
                   let cardClass = "border-2 border-slate-200 hover:border-slate-300 hover:bg-slate-50 bg-white shadow-sm";
                   if (matchSelected !== null) {
@@ -1554,21 +1719,21 @@ export default function App() {
         )}
 
         {view === 'quiz' && (
-          <div className="flex-1 flex flex-col justify-center">
+          <div className="flex-1 flex flex-col justify-center text-center">
             <div className="flex justify-between items-center mb-4">
               <button 
                 onClick={() => setView('home')} 
-                className="font-bold text-slate-500 hover:text-slate-700 bg-white border border-slate-200 px-4 py-2 rounded-xl text-sm shadow-sm"
+                className="font-bold text-slate-500 hover:text-slate-700 bg-white border border-slate-200 px-4 py-2 rounded-xl text-sm shadow-sm flex-shrink-0"
               >
-                Back Home
+                Back
               </button>
               <span className="font-bold text-slate-700 text-lg">Quiz Challenge</span>
             </div>
 
             {/* Quiz selection card */}
-            <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm flex flex-col items-center text-center">
+            <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm flex flex-col items-center">
               <div className="w-16 h-16 bg-rose-50 text-rose-500 rounded-2xl flex justify-center items-center font-bold text-4xl mb-4">
-                {CURRICULUM[quizIndex].letter}
+                {sessionCurriculum[quizIndex].letter}
               </div>
               <h2 className="text-2xl font-extrabold text-slate-800 mb-2">Which letter is this?</h2>
               <p className="text-slate-500 mb-6 font-medium">Identify the correct phonetic sound for the Gujarati character above.</p>
@@ -1576,7 +1741,7 @@ export default function App() {
               <div className="grid gap-3 w-full">
                 {quizOptions.map((option) => {
                   const isSelected = selectedAnswer === option.id;
-                  const isCorrect = option.id === CURRICULUM[quizIndex].id;
+                  const isCorrect = option.id === sessionCurriculum[quizIndex].id;
                   
                   let buttonClass = "border-3 border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-700";
                   if (selectedAnswer !== null) {
@@ -1627,9 +1792,9 @@ export default function App() {
             <div className="flex justify-between items-center mb-4">
               <button 
                 onClick={() => setView('home')} 
-                className="font-bold text-slate-500 hover:text-slate-700 bg-white border border-slate-200 px-4 py-2 rounded-xl text-sm shadow-sm"
+                className="font-bold text-slate-500 hover:text-slate-700 bg-white border border-slate-200 px-4 py-2 rounded-xl text-sm shadow-sm flex-shrink-0"
               >
-                Back Home
+                Back
               </button>
               <span className="font-bold text-slate-700 text-lg">Sticker Locker</span>
             </div>
@@ -1681,15 +1846,15 @@ export default function App() {
             <div className="flex justify-between items-center mb-4">
               <button 
                 onClick={() => setView('home')} 
-                className="font-bold text-slate-500 hover:text-slate-700 bg-white border border-slate-200 px-4 py-2 rounded-xl text-sm shadow-sm"
+                className="font-bold text-slate-500 hover:text-slate-700 bg-white border border-slate-200 px-4 py-2 rounded-xl text-sm shadow-sm flex-shrink-0"
               >
-                Exit Dashboard
+                Back
               </button>
               <span className="font-bold text-slate-800 text-lg">Parents Room</span>
             </div>
 
             {/* Dashboard stats & settings */}
-            <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm flex-1 flex flex-col gap-6">
+            <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm flex-1 flex flex-col gap-6 text-left">
               <div className="flex items-center gap-3 border-b border-slate-100 pb-4">
                 <div className="bg-indigo-50 text-indigo-600 w-12 h-12 rounded-2xl flex justify-center items-center">
                   <TrendingUp size={24} />
@@ -1716,13 +1881,13 @@ export default function App() {
                   <div className="flex justify-between items-center mb-2">
                     <h5 className="text-slate-500 text-xs font-extrabold uppercase">Workbook Progress</h5>
                     <span className="text-sm font-bold text-emerald-700">
-                      {progressLog.completedLessons.length} / {CURRICULUM.length} Letters
+                      {progressLog.completedLessons.length} / {sessionCurriculum.length} Letters
                     </span>
                   </div>
                   
                   <div className="w-full bg-slate-200/60 h-3 rounded-full overflow-hidden">
                     <div 
-                      style={{ width: `${(progressLog.completedLessons.length / CURRICULUM.length) * 100}%` }}
+                      style={{ width: `${(progressLog.completedLessons.length / sessionCurriculum.length) * 100}%` }}
                       className="bg-emerald-500 h-full rounded-full transition-all duration-500"
                     />
                   </div>
@@ -1822,6 +1987,24 @@ export default function App() {
                     <div className={`w-5 h-5 rounded-full bg-white absolute top-0.5 transition-all ${soundEnabled ? 'right-0.5' : 'left-0.5'}`} />
                   </button>
                 </div>
+
+                {/* Waypoint Editor Mode Toggle */}
+                <div className="flex justify-between items-center border-t border-slate-200/60 pt-3">
+                  <div className="flex flex-col">
+                    <span className="text-xs font-bold text-slate-700">Developer Waypoint Editor</span>
+                    <span className="text-xs text-slate-400">Enable click-to-place waypoint builder tool</span>
+                  </div>
+                  <button
+                    onClick={() => {
+                      const next = !editorMode;
+                      setEditorMode(next);
+                      localStorage.setItem('guj_editor_mode', next);
+                    }}
+                    className={`w-12 h-6 rounded-full transition-all relative ${editorMode ? 'bg-amber-500' : 'bg-slate-300'}`}
+                  >
+                    <div className={`w-5 h-5 rounded-full bg-white absolute top-0.5 transition-all ${editorMode ? 'right-0.5' : 'left-0.5'}`} />
+                  </button>
+                </div>
               </div>
 
               {/* Sync status card */}
@@ -1841,7 +2024,7 @@ export default function App() {
                 {progressLog.completedLessons.length > 0 ? (
                   <div className="flex flex-wrap gap-2">
                     {progressLog.completedLessons.map(id => {
-                      const item = CURRICULUM.find(l => l.id === id);
+                      const item = sessionCurriculum.find(l => l.id === id);
                       return item ? (
                         <div key={id} className="bg-white border border-slate-200 px-3 py-1.5 rounded-xl font-bold text-sm text-slate-800 flex items-center gap-1.5 shadow-sm">
                           <span>{item.letter}</span>
