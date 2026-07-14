@@ -94,6 +94,8 @@ export default function App() {
   const [editorWaypoints, setEditorWaypoints] = useState([]);
   const [editorMoveTo, setEditorMoveTo] = useState(false);
   const [editorRecordMode, setEditorRecordMode] = useState(false);
+  const [draggedWaypointIndex, setDraggedWaypointIndex] = useState(null);
+  const [isDraggingWaypoint, setIsDraggingWaypoint] = useState(false);
 
   // Quiz Mode States
   const [quizIndex, setQuizIndex] = useState(0);
@@ -165,6 +167,70 @@ export default function App() {
       setSaveStatus('');
     }
   }, [currentLessonIndex]);
+
+  const updateWaypointPosition = (index, x, y) => {
+    const clampedX = Math.max(0, Math.min(380, Math.round(x)));
+    const clampedY = Math.max(0, Math.min(320, Math.round(y)));
+    
+    const updated = [...editorWaypoints];
+    updated[index] = {
+      ...updated[index],
+      x: clampedX,
+      y: clampedY
+    };
+    setEditorWaypoints(updated);
+    
+    // Update in-memory session curriculum
+    const newCurriculum = [...sessionCurriculum];
+    newCurriculum[currentLessonIndex] = {
+      ...newCurriculum[currentLessonIndex],
+      waypoints: updated
+    };
+    setSessionCurriculum(newCurriculum);
+  };
+
+  const handleWaypointMouseDown = (e, idx) => {
+    if (!editorMode || !editorActive) return;
+    e.stopPropagation();
+    e.preventDefault();
+    setDraggedWaypointIndex(idx);
+    setIsDraggingWaypoint(true);
+  };
+
+  const handleWaypointTouchStart = (e, idx) => {
+    if (!editorMode || !editorActive) return;
+    e.stopPropagation();
+    setDraggedWaypointIndex(idx);
+    setIsDraggingWaypoint(true);
+  };
+
+  // Dragging event listener for moving waypoints
+  useEffect(() => {
+    if (!isDraggingWaypoint || draggedWaypointIndex === null) return;
+    
+    const handleDragMove = (e) => {
+      if (e.cancelable) e.preventDefault();
+      const { x, y } = getCoords(e);
+      updateWaypointPosition(draggedWaypointIndex, x, y);
+    };
+    
+    const handleDragEnd = () => {
+      setIsDraggingWaypoint(false);
+      setDraggedWaypointIndex(null);
+    };
+    
+    window.addEventListener('mousemove', handleDragMove);
+    window.addEventListener('mouseup', handleDragEnd);
+    window.addEventListener('touchmove', handleDragMove, { passive: false });
+    window.addEventListener('touchend', handleDragEnd);
+    
+    return () => {
+      window.removeEventListener('mousemove', handleDragMove);
+      window.removeEventListener('mouseup', handleDragEnd);
+      window.removeEventListener('touchmove', handleDragMove);
+      window.removeEventListener('touchend', handleDragEnd);
+    };
+  }, [isDraggingWaypoint, draggedWaypointIndex, editorWaypoints]);
 
   // Listen to installation prompt event
   useEffect(() => {
@@ -1056,7 +1122,7 @@ export default function App() {
                   
                   let dotClass = "bg-white border-slate-300 text-slate-500";
                   if (editorMode && editorActive) {
-                    dotClass = "bg-amber-500 border-amber-600 text-white scale-105 shadow z-20 animate-pulse";
+                    dotClass = "bg-amber-500 border-amber-600 text-white scale-105 shadow z-20 animate-pulse cursor-move select-none";
                   } else if (isCompleted) {
                     dotClass = "bg-emerald-500 border-emerald-600 text-white scale-90";
                   } else if (isNext) {
@@ -1076,6 +1142,8 @@ export default function App() {
                         transform: 'translate(-50%, -50%)',
                         ...strokeStyle
                       }}
+                      onMouseDown={(e) => handleWaypointMouseDown(e, idx)}
+                      onTouchStart={(e) => handleWaypointTouchStart(e, idx)}
                       className={`w-8 h-8 rounded-full flex justify-center items-center font-bold text-xs shadow border-2 transition-all ${dotClass}`}
                     >
                       {wp.label}
