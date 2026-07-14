@@ -34,7 +34,7 @@ const CURRICULUM = [
       { x: 130, y: 175, label: '3' },
       { x: 190, y: 240, label: '4' },
       { x: 120, y: 250, label: '5' },
-      { x: 140, y: 180, label: '6' },
+      { x: 140, y: 180, label: '6', moveTo: true },
       { x: 240, y: 180, label: '7' }
     ]
   },
@@ -51,7 +51,7 @@ const CURRICULUM = [
       { x: 110, y: 140, label: '2' },
       { x: 150, y: 170, label: '3' },
       { x: 220, y: 170, label: '4' },
-      { x: 250, y: 100, label: '5' },
+      { x: 250, y: 100, label: '5', moveTo: true },
       { x: 250, y: 260, label: '6' }
     ]
   },
@@ -68,7 +68,7 @@ const CURRICULUM = [
       { x: 120, y: 150, label: '2' },
       { x: 120, y: 230, label: '3' },
       { x: 180, y: 230, label: '4' },
-      { x: 260, y: 100, label: '5' },
+      { x: 260, y: 100, label: '5', moveTo: true },
       { x: 260, y: 260, label: '6' }
     ]
   },
@@ -85,7 +85,7 @@ const CURRICULUM = [
       { x: 120, y: 180, label: '2' },
       { x: 180, y: 180, label: '3' },
       { x: 200, y: 250, label: '4' },
-      { x: 270, y: 100, label: '5' },
+      { x: 270, y: 100, label: '5', moveTo: true },
       { x: 270, y: 260, label: '6' }
     ]
   },
@@ -101,7 +101,7 @@ const CURRICULUM = [
       { x: 120, y: 160, label: '1' },
       { x: 190, y: 160, label: '2' },
       { x: 150, y: 240, label: '3' },
-      { x: 250, y: 100, label: '4' },
+      { x: 250, y: 100, label: '4', moveTo: true },
       { x: 250, y: 260, label: '5' }
     ]
   },
@@ -151,7 +151,7 @@ const CURRICULUM = [
       { x: 120, y: 150, label: '2' },
       { x: 180, y: 190, label: '3' },
       { x: 100, y: 250, label: '4' },
-      { x: 250, y: 120, label: '5' },
+      { x: 250, y: 120, label: '5', moveTo: true },
       { x: 250, y: 260, label: '6' }
     ]
   },
@@ -229,9 +229,9 @@ const CURRICULUM = [
     waypoints: [
       { x: 130, y: 100, label: '1' },
       { x: 130, y: 240, label: '2' },
-      { x: 170, y: 200, label: '3' },
+      { x: 170, y: 200, label: '3', moveTo: true },
       { x: 210, y: 200, label: '4' },
-      { x: 260, y: 100, label: '5' },
+      { x: 260, y: 100, label: '5', moveTo: true },
       { x: 260, y: 260, label: '6' }
     ]
   },
@@ -247,7 +247,7 @@ const CURRICULUM = [
       { x: 130, y: 180, label: '1' },
       { x: 190, y: 180, label: '2' },
       { x: 190, y: 130, label: '3' },
-      { x: 250, y: 100, label: '4' },
+      { x: 250, y: 100, label: '4', moveTo: true },
       { x: 250, y: 260, label: '5' }
     ]
   },
@@ -264,7 +264,7 @@ const CURRICULUM = [
       { x: 130, y: 150, label: '2' },
       { x: 170, y: 180, label: '3' },
       { x: 150, y: 240, label: '4' },
-      { x: 250, y: 100, label: '5' },
+      { x: 250, y: 100, label: '5', moveTo: true },
       { x: 250, y: 260, label: '6' }
     ]
   },
@@ -297,7 +297,7 @@ const CURRICULUM = [
       { x: 120, y: 160, label: '2' },
       { x: 180, y: 180, label: '3' },
       { x: 140, y: 240, label: '4' },
-      { x: 250, y: 140, label: '5' },
+      { x: 250, y: 140, label: '5', moveTo: true },
       { x: 250, y: 260, label: '6' }
     ]
   },
@@ -313,7 +313,7 @@ const CURRICULUM = [
       { x: 140, y: 220, label: '1' },
       { x: 120, y: 200, label: '2' },
       { x: 200, y: 200, label: '3' },
-      { x: 250, y: 100, label: '4' },
+      { x: 250, y: 100, label: '4', moveTo: true },
       { x: 250, y: 260, label: '5' }
     ]
   },
@@ -329,7 +329,7 @@ const CURRICULUM = [
       { x: 140, y: 100, label: '1' },
       { x: 140, y: 210, label: '2' },
       { x: 200, y: 210, label: '3' },
-      { x: 260, y: 100, label: '4' },
+      { x: 260, y: 100, label: '4', moveTo: true },
       { x: 260, y: 260, label: '5' }
     ]
   },
@@ -347,7 +347,7 @@ const CURRICULUM = [
       { x: 130, y: 220, label: '3' },
       { x: 230, y: 220, label: '4' },
       { x: 250, y: 180, label: '5' },
-      { x: 140, y: 180, label: '6' },
+      { x: 140, y: 180, label: '6', moveTo: true },
       { x: 240, y: 180, label: '7' }
     ]
   },
@@ -364,7 +364,7 @@ const CURRICULUM = [
       { x: 180, y: 130, label: '2' },
       { x: 180, y: 220, label: '3' },
       { x: 220, y: 220, label: '4' },
-      { x: 260, y: 100, label: '5' },
+      { x: 260, y: 100, label: '5', moveTo: true },
       { x: 260, y: 260, label: '6' }
     ]
   },
@@ -380,7 +380,7 @@ const CURRICULUM = [
       { x: 140, y: 120, label: '1' },
       { x: 140, y: 220, label: '2' },
       { x: 200, y: 200, label: '3' },
-      { x: 260, y: 100, label: '4' },
+      { x: 260, y: 100, label: '4', moveTo: true },
       { x: 260, y: 260, label: '5' }
     ]
   },
@@ -396,7 +396,7 @@ const CURRICULUM = [
       { x: 140, y: 140, label: '1' },
       { x: 140, y: 220, label: '2' },
       { x: 210, y: 220, label: '3' },
-      { x: 260, y: 100, label: '4' },
+      { x: 260, y: 100, label: '4', moveTo: true },
       { x: 260, y: 260, label: '5' }
     ]
   },
@@ -412,7 +412,7 @@ const CURRICULUM = [
       { x: 130, y: 120, label: '1' },
       { x: 180, y: 170, label: '2' },
       { x: 140, y: 240, label: '3' },
-      { x: 260, y: 100, label: '4' },
+      { x: 260, y: 100, label: '4', moveTo: true },
       { x: 260, y: 260, label: '5' }
     ]
   },
@@ -445,7 +445,7 @@ const CURRICULUM = [
       { x: 130, y: 180, label: '2' },
       { x: 180, y: 130, label: '3' },
       { x: 210, y: 180, label: '4' },
-      { x: 260, y: 100, label: '5' },
+      { x: 260, y: 100, label: '5', moveTo: true },
       { x: 260, y: 260, label: '6' }
     ]
   },
@@ -461,7 +461,7 @@ const CURRICULUM = [
       { x: 180, y: 130, label: '1' },
       { x: 130, y: 180, label: '2' },
       { x: 180, y: 230, label: '3' },
-      { x: 260, y: 100, label: '4' },
+      { x: 260, y: 100, label: '4', moveTo: true },
       { x: 260, y: 260, label: '5' }
     ]
   },
@@ -477,7 +477,7 @@ const CURRICULUM = [
       { x: 130, y: 120, label: '1' },
       { x: 170, y: 170, label: '2' },
       { x: 130, y: 240, label: '3' },
-      { x: 260, y: 100, label: '4' },
+      { x: 260, y: 100, label: '4', moveTo: true },
       { x: 260, y: 260, label: '5' }
     ]
   },
@@ -493,9 +493,9 @@ const CURRICULUM = [
       { x: 140, y: 100, label: '1' },
       { x: 140, y: 210, label: '2' },
       { x: 200, y: 210, label: '3' },
-      { x: 260, y: 100, label: '4' },
+      { x: 260, y: 100, label: '4', moveTo: true },
       { x: 260, y: 260, label: '5' },
-      { x: 150, y: 130, label: '6' },
+      { x: 150, y: 130, label: '6', moveTo: true },
       { x: 250, y: 230, label: '7' }
     ]
   },
@@ -511,8 +511,8 @@ const CURRICULUM = [
       { x: 140, y: 110, label: '1' },
       { x: 190, y: 170, label: '2' },
       { x: 140, y: 240, label: '3' },
-      { x: 180, y: 180, label: '4' },
-      { x: 260, y: 100, label: '5' },
+      { x: 180, y: 180, label: '4', moveTo: true },
+      { x: 260, y: 100, label: '5', moveTo: true },
       { x: 260, y: 260, label: '6' }
     ]
   },
@@ -559,7 +559,7 @@ const CURRICULUM = [
       { x: 150, y: 150, label: '1' },
       { x: 190, y: 150, label: '2' },
       { x: 150, y: 230, label: '3' },
-      { x: 260, y: 100, label: '4' },
+      { x: 260, y: 100, label: '4', moveTo: true },
       { x: 260, y: 260, label: '5' }
     ]
   },
@@ -576,7 +576,7 @@ const CURRICULUM = [
       { x: 180, y: 180, label: '2' },
       { x: 140, y: 220, label: '3' },
       { x: 200, y: 220, label: '4' },
-      { x: 260, y: 100, label: '5' },
+      { x: 260, y: 100, label: '5', moveTo: true },
       { x: 260, y: 260, label: '6' }
     ]
   }
@@ -622,6 +622,7 @@ export default function App() {
 
   // Canvas Drawing & Styling Customizations
   const canvasRef = useRef(null);
+  const lastPointRef = useRef(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [completedWaypoints, setCompletedWaypoints] = useState([]);
   const [traceStartTime, setTraceStartTime] = useState(null);
@@ -637,6 +638,8 @@ export default function App() {
   const [editorMode, setEditorMode] = useState(() => localStorage.getItem('guj_editor_mode') === 'true');
   const [editorActive, setEditorActive] = useState(false);
   const [editorWaypoints, setEditorWaypoints] = useState([]);
+  const [editorMoveTo, setEditorMoveTo] = useState(false);
+  const [editorRecordMode, setEditorRecordMode] = useState(false);
 
   // Quiz Mode States
   const [quizIndex, setQuizIndex] = useState(0);
@@ -704,6 +707,7 @@ export default function App() {
   useEffect(() => {
     if (currentLesson) {
       setEditorWaypoints(currentLesson.waypoints || []);
+      setEditorMoveTo(false);
     }
   }, [currentLessonIndex]);
 
@@ -842,15 +846,20 @@ export default function App() {
     ctx.textBaseline = 'middle';
     ctx.fillText(currentLesson.letter, canvas.width / 2, canvas.height / 2 + 10);
 
-    // Draw dashed guide paths connecting waypoints
+    // Draw dashed guide paths connecting waypoints (respecting moveTo skips)
     if (currentLesson.waypoints && currentLesson.waypoints.length > 1) {
       ctx.beginPath();
-      ctx.strokeStyle = editorMode && editorActive ? 'rgba(245, 158, 11, 0.35)' : 'rgba(99, 102, 241, 0.15)';
+      ctx.strokeStyle = editorMode && editorActive ? 'rgba(245, 158, 11, 0.45)' : 'rgba(99, 102, 241, 0.15)';
       ctx.lineWidth = 4;
       ctx.setLineDash([6, 6]);
       ctx.moveTo(currentLesson.waypoints[0].x, currentLesson.waypoints[0].y);
       for (let i = 1; i < currentLesson.waypoints.length; i++) {
-        ctx.lineTo(currentLesson.waypoints[i].x, currentLesson.waypoints[i].y);
+        const wp = currentLesson.waypoints[i];
+        if (wp.moveTo) {
+          ctx.moveTo(wp.x, wp.y);
+        } else {
+          ctx.lineTo(wp.x, wp.y);
+        }
       }
       ctx.stroke();
       ctx.setLineDash([]);
@@ -881,6 +890,10 @@ export default function App() {
       y: Math.round(y),
       label: (editorWaypoints.length + 1).toString()
     };
+    if (editorMoveTo) {
+      newPoint.moveTo = true;
+      setEditorMoveTo(false); // Reset
+    }
     const updated = [...editorWaypoints, newPoint];
     setEditorWaypoints(updated);
 
@@ -897,11 +910,52 @@ export default function App() {
 
   const startDrawing = (e) => {
     e.preventDefault();
+    const { x, y } = getCoords(e);
+
     if (editorMode && editorActive) {
-      handleCanvasClick(e);
+      if (editorRecordMode) {
+        // Record path drawing mode
+        const newPoint = {
+          x: Math.round(x),
+          y: Math.round(y),
+          label: (editorWaypoints.length + 1).toString()
+        };
+        
+        // If drawing a new stroke after lift-pen, mark starting point as moveTo
+        if (editorWaypoints.length > 0) {
+          newPoint.moveTo = true;
+        }
+
+        const updated = [...editorWaypoints, newPoint];
+        setEditorWaypoints(updated);
+
+        // Update in-memory session curriculum
+        const newCurriculum = [...sessionCurriculum];
+        newCurriculum[currentLessonIndex] = {
+          ...newCurriculum[currentLessonIndex],
+          waypoints: updated
+        };
+        setSessionCurriculum(newCurriculum);
+
+        lastPointRef.current = { x, y };
+        setIsDrawing(true);
+        playSound('waypoint');
+
+        const canvas = canvasRef.current;
+        const ctx = canvas.getContext('2d');
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+        ctx.lineWidth = brushWidth;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.strokeStyle = '#f59e0b'; // Amber color trail for recording
+      } else {
+        handleCanvasClick(e);
+      }
       return;
     }
-    const { x, y } = getCoords(e);
+
+    // Normal kids tracing mode
     const ctx = canvasRef.current.getContext('2d');
     ctx.beginPath();
     ctx.moveTo(x, y);
@@ -917,6 +971,40 @@ export default function App() {
     if (!isDrawing) return;
     e.preventDefault();
     const { x, y } = getCoords(e);
+
+    if (editorMode && editorActive && editorRecordMode) {
+      const lastPoint = lastPointRef.current;
+      if (lastPoint) {
+        const dist = Math.hypot(x - lastPoint.x, y - lastPoint.y);
+        // Spacing downsampling threshold (35px)
+        if (dist >= 35) {
+          const newPoint = {
+            x: Math.round(x),
+            y: Math.round(y),
+            label: (editorWaypoints.length + 1).toString()
+          };
+          const updated = [...editorWaypoints, newPoint];
+          setEditorWaypoints(updated);
+
+          const newCurriculum = [...sessionCurriculum];
+          newCurriculum[currentLessonIndex] = {
+            ...newCurriculum[currentLessonIndex],
+            waypoints: updated
+          };
+          setSessionCurriculum(newCurriculum);
+
+          lastPointRef.current = { x, y };
+          playSound('waypoint');
+        }
+      }
+
+      const ctx = canvasRef.current.getContext('2d');
+      ctx.lineTo(x, y);
+      ctx.stroke();
+      return;
+    }
+
+    // Normal kids tracing mode
     const ctx = canvasRef.current.getContext('2d');
     ctx.lineTo(x, y);
     ctx.stroke();
@@ -1391,7 +1479,7 @@ export default function App() {
             )}
 
             {/* Offline notification card */}
-            <div className="mt-8 mx-auto bg-white max-w-sm rounded-2xl p-4 border border-slate-100 shadow-sm flex items-center gap-3 text-left">
+            <div className="mt-8 mx-auto bg-white max-w-sm rounded-2xl p-4 border border-slate-100 shadow-sm flex-center gap-3 text-left">
               <div className="bg-emerald-100 text-emerald-600 w-10 h-10 rounded-full flex justify-center items-center flex-shrink-0">
                 <CheckCircle size={20} />
               </div>
@@ -1485,6 +1573,9 @@ export default function App() {
                   } else if (isNext) {
                     dotClass = "bg-indigo-600 border-indigo-700 text-white pulse-glow-dot scale-110 z-10";
                   }
+
+                  // Dash border indicator for moveTo starting new strokes
+                  const strokeStyle = wp.moveTo ? { borderStyle: 'dashed', borderWidth: '3px', borderColor: '#4f46e5' } : {};
                   
                   return (
                     <div
@@ -1494,6 +1585,7 @@ export default function App() {
                         left: `${(wp.x / 380) * 100}%`,
                         top: `${(wp.y / 320) * 100}%`,
                         transform: 'translate(-50%, -50%)',
+                        ...strokeStyle
                       }}
                       className={`w-8 h-8 rounded-full flex justify-center items-center font-bold text-xs shadow border-2 transition-all ${dotClass}`}
                     >
@@ -1528,10 +1620,43 @@ export default function App() {
                     </div>
                   </div>
 
+                  {/* Waypoint placement mode toggle */}
+                  {editorActive && (
+                    <div className="flex gap-2 mb-3">
+                      <button
+                        onClick={() => {
+                          setEditorRecordMode(false);
+                          playSound('waypoint');
+                        }}
+                        className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold border transition ${!editorRecordMode ? 'bg-amber-600 border-amber-600 text-white shadow-sm' : 'bg-white border-amber-200 text-amber-700 hover:bg-amber-50'}`}
+                      >
+                        👆 Manual Click
+                      </button>
+                      <button
+                        onClick={() => {
+                          setEditorRecordMode(true);
+                          playSound('waypoint');
+                        }}
+                        className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold border transition flex justify-center items-center gap-1.5 ${editorRecordMode ? 'bg-rose-600 border-rose-600 text-white shadow-sm animate-pulse' : 'bg-white border-amber-200 text-amber-700 hover:bg-amber-50'}`}
+                      >
+                        <span className="w-2.5 h-2.5 rounded-full bg-rose-500 border border-white inline-block flex-shrink-0" />
+                        Draw to Record
+                      </button>
+                    </div>
+                  )}
+
                   {editorActive ? (
-                    <p className="text-xs text-amber-700 font-medium mb-3">
-                      👉 Click or tap directly on the canvas grid above to place waypoints in order.
-                    </p>
+                    <div className="bg-slate-100/50 p-2.5 rounded-xl border border-slate-200/50 mb-3 text-xs text-slate-700 font-medium">
+                      {editorRecordMode ? (
+                        <p className="text-rose-700">
+                          🔴 <strong>Record Mode Active:</strong> Drag your finger/mouse on the canvas to draw the character. Waypoints will automatically generate along your drawing path.
+                        </p>
+                      ) : (
+                        <p className="text-amber-800">
+                          👉 <strong>Manual Click Mode:</strong> Click or tap directly on the canvas grid above to place coordinates point-by-point.
+                        </p>
+                      )}
+                    </div>
                   ) : (
                     <p className="text-xs text-amber-700 font-medium mb-3">
                       ✍️ Test tracing your custom waypoints using the brush below.
@@ -1539,7 +1664,25 @@ export default function App() {
                   )}
 
                   {/* Editor Buttons */}
-                  <div className="grid grid-cols-3 gap-2 mb-4">
+                  <div className="grid grid-cols-2 gap-2 mb-4">
+                    {!editorRecordMode ? (
+                      <button
+                        onClick={() => setEditorMoveTo(!editorMoveTo)}
+                        className={`py-2.5 px-3 rounded-xl text-xs font-bold border transition flex justify-center items-center ${editorMoveTo ? 'bg-indigo-600 border-indigo-600 text-white shadow-sm animate-pulse' : 'bg-amber-100 border-amber-300 text-amber-800'}`}
+                      >
+                        {editorMoveTo ? '✏️ New Stroke Ready' : '✨ Start New Stroke'}
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => {
+                          handleEditorClear();
+                          initCanvas();
+                        }}
+                        className="bg-rose-50 border border-rose-200 text-rose-700 hover:bg-rose-100 py-2.5 rounded-xl text-xs font-bold transition flex justify-center items-center gap-1"
+                      >
+                        🔄 Start New Record
+                      </button>
+                    )}
                     <button
                       onClick={handleEditorUndo}
                       className="bg-white border border-amber-300 text-amber-700 hover:bg-amber-100 py-2.5 rounded-xl text-xs font-bold transition"
