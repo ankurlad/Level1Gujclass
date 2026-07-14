@@ -18,569 +18,7 @@ import {
   RefreshCw
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
-
-const CURRICULUM = [
-  {
-    id: 'ka',
-    letter: 'ક',
-    english: 'Ka',
-    word: 'કમળ',
-    wordEnglish: 'Lotus',
-    emoji: '🪷',
-    instructions: 'Start from top-right, draw an S shape to bottom-left, then draw the crossbar.',
-    waypoints: [
-      { x: 260, y: 110, label: '1' },
-      { x: 190, y: 110, label: '2' },
-      { x: 130, y: 175, label: '3' },
-      { x: 190, y: 240, label: '4' },
-      { x: 120, y: 250, label: '5' },
-      { x: 140, y: 180, label: '6', moveTo: true },
-      { x: 240, y: 180, label: '7' }
-    ]
-  },
-  {
-    id: 'kha',
-    letter: 'ખ',
-    english: 'Kha',
-    word: 'ખિસકોલી',
-    wordEnglish: 'Squirrel',
-    emoji: '🐿️',
-    instructions: 'Start top-left, make a loop on the left, draw horizontal bar, and finish with vertical line.',
-    waypoints: [
-      { x: 150, y: 100, label: '1' },
-      { x: 110, y: 140, label: '2' },
-      { x: 150, y: 170, label: '3' },
-      { x: 220, y: 170, label: '4' },
-      { x: 250, y: 100, label: '5', moveTo: true },
-      { x: 250, y: 260, label: '6' }
-    ]
-  },
-  {
-    id: 'ga',
-    letter: 'ગ',
-    english: 'Ga',
-    word: 'ગાય',
-    wordEnglish: 'Cow',
-    emoji: '🐄',
-    instructions: 'Draw a hook shape on the left, then a vertical line on the right.',
-    waypoints: [
-      { x: 180, y: 120, label: '1' },
-      { x: 120, y: 150, label: '2' },
-      { x: 120, y: 230, label: '3' },
-      { x: 180, y: 230, label: '4' },
-      { x: 260, y: 100, label: '5', moveTo: true },
-      { x: 260, y: 260, label: '6' }
-    ]
-  },
-  {
-    id: 'gha',
-    letter: 'ઘ',
-    english: 'Gha',
-    word: 'ઘર',
-    wordEnglish: 'House',
-    emoji: '🏠',
-    instructions: 'Draw two curves starting from top-left, and finish with a vertical line on the right.',
-    waypoints: [
-      { x: 120, y: 110, label: '1' },
-      { x: 120, y: 180, label: '2' },
-      { x: 180, y: 180, label: '3' },
-      { x: 200, y: 250, label: '4' },
-      { x: 270, y: 100, label: '5', moveTo: true },
-      { x: 270, y: 260, label: '6' }
-    ]
-  },
-  {
-    id: 'cha',
-    letter: 'ચ',
-    english: 'Cha',
-    word: 'ચકલી',
-    wordEnglish: 'Sparrow',
-    emoji: '🐦',
-    instructions: 'Start from left, make a middle loop, drop down to a curve, and draw the vertical line.',
-    waypoints: [
-      { x: 120, y: 160, label: '1' },
-      { x: 190, y: 160, label: '2' },
-      { x: 150, y: 240, label: '3' },
-      { x: 250, y: 100, label: '4', moveTo: true },
-      { x: 250, y: 260, label: '5' }
-    ]
-  },
-  {
-    id: 'chha',
-    letter: 'છ',
-    english: 'Chha',
-    word: 'છત્રી',
-    wordEnglish: 'Umbrella',
-    emoji: '🌂',
-    instructions: 'Draw consecutive loops descending, tie a knot at bottom-right, and draw a short hook up.',
-    waypoints: [
-      { x: 140, y: 110, label: '1' },
-      { x: 130, y: 170, label: '2' },
-      { x: 180, y: 230, label: '3' },
-      { x: 240, y: 180, label: '4' },
-      { x: 260, y: 140, label: '5' },
-      { x: 260, y: 100, label: '6' }
-    ]
-  },
-  {
-    id: 'ja',
-    letter: 'જ',
-    english: 'Ja',
-    word: 'જહાજ',
-    wordEnglish: 'Ship',
-    emoji: '🚢',
-    instructions: 'Draw a top-left loop, curve down to center loop, loop at bottom, and end with right hook.',
-    waypoints: [
-      { x: 120, y: 120, label: '1' },
-      { x: 160, y: 180, label: '2' },
-      { x: 130, y: 240, label: '3' },
-      { x: 220, y: 240, label: '4' },
-      { x: 250, y: 200, label: '5' }
-    ]
-  },
-  {
-    id: 'jha',
-    letter: 'ઝ',
-    english: 'Jha',
-    word: 'ઝાડ',
-    wordEnglish: 'Tree',
-    emoji: '🌳',
-    instructions: 'Draw a left curve shape, then draw a right hook shape connected next to it.',
-    waypoints: [
-      { x: 160, y: 110, label: '1' },
-      { x: 120, y: 150, label: '2' },
-      { x: 180, y: 190, label: '3' },
-      { x: 100, y: 250, label: '4' },
-      { x: 250, y: 120, label: '5', moveTo: true },
-      { x: 250, y: 260, label: '6' }
-    ]
-  },
-  {
-    id: 'ta',
-    letter: 'ટ',
-    english: 'Ta',
-    word: 'ટામેટું',
-    wordEnglish: 'Tomato',
-    emoji: '🍅',
-    instructions: 'Draw a top loop right and hook left like a backwards S.',
-    waypoints: [
-      { x: 140, y: 120, label: '1' },
-      { x: 230, y: 140, label: '2' },
-      { x: 190, y: 200, label: '3' },
-      { x: 150, y: 240, label: '4' },
-      { x: 230, y: 250, label: '5' }
-    ]
-  },
-  {
-    id: 'tha',
-    letter: 'ઠ',
-    english: 'Tha',
-    word: 'ઠળીયો',
-    wordEnglish: 'Peach seed',
-    emoji: '🍑',
-    instructions: 'Draw a full circle starting from the top.',
-    waypoints: [
-      { x: 190, y: 100, label: '1' },
-      { x: 130, y: 180, label: '2' },
-      { x: 190, y: 260, label: '3' },
-      { x: 250, y: 180, label: '4' },
-      { x: 195, y: 105, label: '5' }
-    ]
-  },
-  {
-    id: 'da',
-    letter: 'ડ',
-    english: 'Da',
-    word: 'ડમરું',
-    wordEnglish: 'Small Drum',
-    emoji: '🪘',
-    instructions: 'Draw an S shape from top to bottom.',
-    waypoints: [
-      { x: 240, y: 110, label: '1' },
-      { x: 150, y: 150, label: '2' },
-      { x: 240, y: 210, label: '3' },
-      { x: 150, y: 250, label: '4' }
-    ]
-  },
-  {
-    id: 'dha',
-    letter: 'ઢ',
-    english: 'Dha',
-    word: 'ઢાલ',
-    wordEnglish: 'Shield',
-    emoji: '🛡️',
-    instructions: 'Start top-right, loop left, drop down, make a small circle at the end.',
-    waypoints: [
-      { x: 240, y: 120, label: '1' },
-      { x: 150, y: 160, label: '2' },
-      { x: 200, y: 250, label: '3' },
-      { x: 240, y: 220, label: '4' },
-      { x: 210, y: 200, label: '5' }
-    ]
-  },
-  {
-    id: 'ana',
-    letter: 'ણ',
-    english: 'Na',
-    word: 'બાણ',
-    wordEnglish: 'Arrow',
-    emoji: '🏹',
-    instructions: 'Draw a standing hook curve, then a vertical bar, and finish with a vertical line.',
-    waypoints: [
-      { x: 130, y: 100, label: '1' },
-      { x: 130, y: 240, label: '2' },
-      { x: 170, y: 200, label: '3', moveTo: true },
-      { x: 210, y: 200, label: '4' },
-      { x: 260, y: 100, label: '5', moveTo: true },
-      { x: 260, y: 260, label: '6' }
-    ]
-  },
-  {
-    id: 'ta2',
-    letter: 'ત',
-    english: 'Ta',
-    word: 'તડબૂચ',
-    wordEnglish: 'Watermelon',
-    emoji: '🍉',
-    instructions: 'Start with a curve, make a sharp hook right, then a vertical line on the right.',
-    waypoints: [
-      { x: 130, y: 180, label: '1' },
-      { x: 190, y: 180, label: '2' },
-      { x: 190, y: 130, label: '3' },
-      { x: 250, y: 100, label: '4', moveTo: true },
-      { x: 250, y: 260, label: '5' }
-    ]
-  },
-  {
-    id: 'tha2',
-    letter: 'થ',
-    english: 'Tha',
-    word: 'થર્મોસ',
-    wordEnglish: 'Thermos',
-    emoji: '🫙',
-    instructions: 'Start with a small loop, curve up and down, then draw a vertical line on the right.',
-    waypoints: [
-      { x: 150, y: 130, label: '1' },
-      { x: 130, y: 150, label: '2' },
-      { x: 170, y: 180, label: '3' },
-      { x: 150, y: 240, label: '4' },
-      { x: 250, y: 100, label: '5', moveTo: true },
-      { x: 250, y: 260, label: '6' }
-    ]
-  },
-  {
-    id: 'da2',
-    letter: 'દ',
-    english: 'Da',
-    word: 'દ્રાક્ષ',
-    wordEnglish: 'Grapes',
-    emoji: '🍇',
-    instructions: 'Draw a C shape, then draw another C shape connected below it.',
-    waypoints: [
-      { x: 240, y: 110, label: '1' },
-      { x: 150, y: 140, label: '2' },
-      { x: 210, y: 180, label: '3' },
-      { x: 150, y: 220, label: '4' },
-      { x: 240, y: 250, label: '5' }
-    ]
-  },
-  {
-    id: 'dha2',
-    letter: 'ધ',
-    english: 'Dha',
-    word: 'ધનુષ',
-    wordEnglish: 'Bow',
-    emoji: '🏹',
-    instructions: 'Start with a small loop, draw two curves, and finish with a short vertical line.',
-    waypoints: [
-      { x: 140, y: 130, label: '1' },
-      { x: 120, y: 160, label: '2' },
-      { x: 180, y: 180, label: '3' },
-      { x: 140, y: 240, label: '4' },
-      { x: 250, y: 140, label: '5', moveTo: true },
-      { x: 250, y: 260, label: '6' }
-    ]
-  },
-  {
-    id: 'na',
-    letter: 'ન',
-    english: 'Na',
-    word: 'નળ',
-    wordEnglish: 'Tap',
-    emoji: '🚰',
-    instructions: 'Draw a small loop, a horizontal line to the right, and finish with a vertical line.',
-    waypoints: [
-      { x: 140, y: 220, label: '1' },
-      { x: 120, y: 200, label: '2' },
-      { x: 200, y: 200, label: '3' },
-      { x: 250, y: 100, label: '4', moveTo: true },
-      { x: 250, y: 260, label: '5' }
-    ]
-  },
-  {
-    id: 'pa',
-    letter: 'પ',
-    english: 'Pa',
-    word: 'પતંગ',
-    wordEnglish: 'Kite',
-    emoji: '🪁',
-    instructions: 'Draw a U shape, and finish with a vertical line on the right.',
-    waypoints: [
-      { x: 140, y: 100, label: '1' },
-      { x: 140, y: 210, label: '2' },
-      { x: 200, y: 210, label: '3' },
-      { x: 260, y: 100, label: '4', moveTo: true },
-      { x: 260, y: 260, label: '5' }
-    ]
-  },
-  {
-    id: 'pha',
-    letter: 'ફ',
-    english: 'Pha',
-    word: 'ફળ',
-    wordEnglish: 'Fruit',
-    emoji: '🍎',
-    instructions: 'Draw a Ka-like shape but loop it differently at the bottom-right.',
-    waypoints: [
-      { x: 150, y: 110, label: '1' },
-      { x: 190, y: 160, label: '2' },
-      { x: 130, y: 220, label: '3' },
-      { x: 230, y: 220, label: '4' },
-      { x: 250, y: 180, label: '5' },
-      { x: 140, y: 180, label: '6', moveTo: true },
-      { x: 240, y: 180, label: '7' }
-    ]
-  },
-  {
-    id: 'ba',
-    letter: 'બ',
-    english: 'Ba',
-    word: 'બતક',
-    wordEnglish: 'Duck',
-    emoji: '🦆',
-    instructions: 'Draw a curve on the left, make a loop, extend right, and draw a vertical line.',
-    waypoints: [
-      { x: 140, y: 150, label: '1' },
-      { x: 180, y: 130, label: '2' },
-      { x: 180, y: 220, label: '3' },
-      { x: 220, y: 220, label: '4' },
-      { x: 260, y: 100, label: '5', moveTo: true },
-      { x: 260, y: 260, label: '6' }
-    ]
-  },
-  {
-    id: 'bha',
-    letter: 'ભ',
-    english: 'Bha',
-    word: 'ભાલુ',
-    wordEnglish: 'Bear',
-    emoji: '🐻',
-    instructions: 'Draw a top loop, go straight down, make a bottom loop, go right, and draw a vertical line.',
-    waypoints: [
-      { x: 140, y: 120, label: '1' },
-      { x: 140, y: 220, label: '2' },
-      { x: 200, y: 200, label: '3' },
-      { x: 260, y: 100, label: '4', moveTo: true },
-      { x: 260, y: 260, label: '5' }
-    ]
-  },
-  {
-    id: 'ma',
-    letter: 'મ',
-    english: 'Ma',
-    word: 'મરચું',
-    wordEnglish: 'Chilli',
-    emoji: '🌶️',
-    instructions: 'Start from top-left, go down, loop to the right, and finish with a vertical line.',
-    waypoints: [
-      { x: 140, y: 140, label: '1' },
-      { x: 140, y: 220, label: '2' },
-      { x: 210, y: 220, label: '3' },
-      { x: 260, y: 100, label: '4', moveTo: true },
-      { x: 260, y: 260, label: '5' }
-    ]
-  },
-  {
-    id: 'ya',
-    letter: 'ય',
-    english: 'Ya',
-    word: 'યજ્ઞ',
-    wordEnglish: 'Sage',
-    emoji: '🧘',
-    instructions: 'Draw a wide double curve on the left, and finish with a vertical line on the right.',
-    waypoints: [
-      { x: 130, y: 120, label: '1' },
-      { x: 180, y: 170, label: '2' },
-      { x: 140, y: 240, label: '3' },
-      { x: 260, y: 100, label: '4', moveTo: true },
-      { x: 260, y: 260, label: '5' }
-    ]
-  },
-  {
-    id: 'ra',
-    letter: 'ર',
-    english: 'Ra',
-    word: 'રમકડું',
-    wordEnglish: 'Toy',
-    emoji: '🧸',
-    instructions: 'Draw a curve, make a loop at center-left, and curve down to bottom-right.',
-    waypoints: [
-      { x: 140, y: 110, label: '1' },
-      { x: 230, y: 110, label: '2' },
-      { x: 190, y: 170, label: '3' },
-      { x: 140, y: 240, label: '4' },
-      { x: 240, y: 250, label: '5' }
-    ]
-  },
-  {
-    id: 'la',
-    letter: 'લ',
-    english: 'La',
-    word: 'લસણ',
-    wordEnglish: 'Garlic',
-    emoji: '🧄',
-    instructions: 'Draw a curve like a C, a horizontal connecting line, and finish with a vertical line.',
-    waypoints: [
-      { x: 180, y: 250, label: '1' },
-      { x: 130, y: 180, label: '2' },
-      { x: 180, y: 130, label: '3' },
-      { x: 210, y: 180, label: '4' },
-      { x: 260, y: 100, label: '5', moveTo: true },
-      { x: 260, y: 260, label: '6' }
-    ]
-  },
-  {
-    id: 'va',
-    letter: 'વ',
-    english: 'Va',
-    word: 'વડ',
-    wordEnglish: 'Banyan Tree',
-    emoji: '🌳',
-    instructions: 'Draw a circular shape on the left, and finish with a vertical line on the right.',
-    waypoints: [
-      { x: 180, y: 130, label: '1' },
-      { x: 130, y: 180, label: '2' },
-      { x: 180, y: 230, label: '3' },
-      { x: 260, y: 100, label: '4', moveTo: true },
-      { x: 260, y: 260, label: '5' }
-    ]
-  },
-  {
-    id: 'sha',
-    letter: 'શ',
-    english: 'Sha',
-    word: 'શરણાઈ',
-    wordEnglish: 'Oboe',
-    emoji: '🎺',
-    instructions: 'Start with a loop, draw a shape like ર, and finish with a vertical line.',
-    waypoints: [
-      { x: 130, y: 120, label: '1' },
-      { x: 170, y: 170, label: '2' },
-      { x: 130, y: 240, label: '3' },
-      { x: 260, y: 100, label: '4', moveTo: true },
-      { x: 260, y: 260, label: '5' }
-    ]
-  },
-  {
-    id: 'ssa',
-    letter: 'ષ',
-    english: 'Ssa',
-    word: 'ષટકોણ',
-    wordEnglish: 'Hexagon',
-    emoji: '⬡',
-    instructions: 'Draw a Pa-like shape and draw a diagonal line inside it.',
-    waypoints: [
-      { x: 140, y: 100, label: '1' },
-      { x: 140, y: 210, label: '2' },
-      { x: 200, y: 210, label: '3' },
-      { x: 260, y: 100, label: '4', moveTo: true },
-      { x: 260, y: 260, label: '5' },
-      { x: 150, y: 130, label: '6', moveTo: true },
-      { x: 250, y: 230, label: '7' }
-    ]
-  },
-  {
-    id: 'sa',
-    letter: 'સ',
-    english: 'Sa',
-    word: 'સસલું',
-    wordEnglish: 'Rabbit',
-    emoji: '🐇',
-    instructions: 'Draw a Ra-like shape, draw a horizontal link, and finish with a vertical line.',
-    waypoints: [
-      { x: 140, y: 110, label: '1' },
-      { x: 190, y: 170, label: '2' },
-      { x: 140, y: 240, label: '3' },
-      { x: 180, y: 180, label: '4', moveTo: true },
-      { x: 260, y: 100, label: '5', moveTo: true },
-      { x: 260, y: 260, label: '6' }
-    ]
-  },
-  {
-    id: 'ha',
-    letter: 'હ',
-    english: 'Ha',
-    word: 'હાથી',
-    wordEnglish: 'Elephant',
-    emoji: '🐘',
-    instructions: 'Draw a curve down, make a small loop, and curve to bottom-right.',
-    waypoints: [
-      { x: 140, y: 110, label: '1' },
-      { x: 240, y: 130, label: '2' },
-      { x: 170, y: 190, label: '3' },
-      { x: 240, y: 250, label: '4' }
-    ]
-  },
-  {
-    id: 'la2',
-    letter: 'ળ',
-    english: 'La',
-    word: 'જળ',
-    wordEnglish: 'Water',
-    emoji: '💧',
-    instructions: 'Draw a left curve, loop to right, loop back, and draw a hook down.',
-    waypoints: [
-      { x: 140, y: 110, label: '1' },
-      { x: 140, y: 240, label: '2' },
-      { x: 200, y: 180, label: '3' },
-      { x: 260, y: 240, label: '4' },
-      { x: 260, y: 110, label: '5' }
-    ]
-  },
-  {
-    id: 'ksha',
-    letter: 'ક્ષ',
-    english: 'Ksha',
-    word: 'ક્ષત્રિય',
-    wordEnglish: 'Warrior',
-    emoji: '⚔️',
-    instructions: 'Start with a loop, make a double loop in center, and draw vertical line.',
-    waypoints: [
-      { x: 150, y: 150, label: '1' },
-      { x: 190, y: 150, label: '2' },
-      { x: 150, y: 230, label: '3' },
-      { x: 260, y: 100, label: '4', moveTo: true },
-      { x: 260, y: 260, label: '5' }
-    ]
-  },
-  {
-    id: 'gna',
-    letter: 'જ્ઞ',
-    english: 'Gna',
-    word: 'જ્ઞાની',
-    wordEnglish: 'Wise scholar',
-    emoji: '🧠',
-    instructions: 'Draw a loop like Ja, draw a horizontal line, and finish with a vertical line.',
-    waypoints: [
-      { x: 140, y: 150, label: '1' },
-      { x: 180, y: 180, label: '2' },
-      { x: 140, y: 220, label: '3' },
-      { x: 200, y: 220, label: '4' },
-      { x: 260, y: 100, label: '5', moveTo: true },
-      { x: 260, y: 260, label: '6' }
-    ]
-  }
-];
+import { CURRICULUM } from './curriculum';
 
 const STICKERS = [
   { id: 'st1', emoji: '🦁', label: 'Simha (Lion)', cost: 50 },
@@ -593,13 +31,29 @@ const STICKERS = [
   { id: 'st8', emoji: '🎈', label: 'Fuggo (Balloon)', cost: 400 }
 ];
 
+// Helper to load curriculum with local overrides from localStorage
+const loadSavedCurriculum = () => {
+  return CURRICULUM.map(item => {
+    const saved = localStorage.getItem(`guj_custom_waypoints_${item.id}`);
+    if (saved) {
+      try {
+        return { ...item, waypoints: JSON.parse(saved) };
+      } catch (e) {
+        console.error("Failed to parse saved waypoints for " + item.id, e);
+      }
+    }
+    return item;
+  });
+};
+
 export default function App() {
   const [view, setView] = useState('home'); // home | learn | match | quiz | stickers | dashboard
   const [currentLessonIndex, setCurrentLessonIndex] = useState(0);
   const [points, setPoints] = useState(() => Number(localStorage.getItem('guj_points')) || 0);
   
-  // Custom Session Curriculum for visual edits
-  const [sessionCurriculum, setSessionCurriculum] = useState(CURRICULUM);
+  // Custom Session Curriculum with overrides loaded
+  const [sessionCurriculum, setSessionCurriculum] = useState(loadSavedCurriculum);
+  const [saveStatus, setSaveStatus] = useState(''); // Visual save feedback
   
   const [progressLog, setProgressLog] = useState(() => {
     try {
@@ -708,8 +162,9 @@ export default function App() {
     if (currentLesson) {
       setEditorWaypoints(currentLesson.waypoints || []);
       setEditorMoveTo(false);
+      setSaveStatus('');
     }
-  }, [currentLessonIndex]);
+  }, [currentLessonIndex, sessionCurriculum]);
 
   // Listen to installation prompt event
   useEffect(() => {
@@ -1069,6 +524,33 @@ export default function App() {
     }, 1500);
   };
 
+  // Save waypoints to Local Storage device memory
+  const handleEditorSave = () => {
+    localStorage.setItem(`guj_custom_waypoints_${currentLesson.id}`, JSON.stringify(editorWaypoints));
+    
+    // Update local state curriculum
+    const updatedCurriculum = [...sessionCurriculum];
+    updatedCurriculum[currentLessonIndex].waypoints = editorWaypoints;
+    setSessionCurriculum(updatedCurriculum);
+    
+    playSound('success');
+    setSaveStatus('Saved to device memory! 💾');
+    setTimeout(() => setSaveStatus(''), 3000);
+  };
+
+  // Revert all customized coordinates back to default database settings
+  const clearAllCustomWaypoints = () => {
+    if (confirm("Are you sure you want to revert all custom-drawn letter waypoints back to default? This cannot be undone!")) {
+      sessionCurriculum.forEach(item => {
+        localStorage.removeItem(`guj_custom_waypoints_${item.id}`);
+      });
+      // Load standard curriculum back
+      setSessionCurriculum(CURRICULUM);
+      playSound('success');
+      alert("All waypoints successfully reverted to default! 🔄");
+    }
+  };
+
   // Waypoint Editor Controls
   const handleEditorUndo = () => {
     if (editorWaypoints.length === 0) return;
@@ -1095,6 +577,9 @@ export default function App() {
   };
 
   const handleEditorReset = () => {
+    // Clear item specific localstorage override
+    localStorage.removeItem(`guj_custom_waypoints_${currentLesson.id}`);
+    
     const originalWaypoints = CURRICULUM[currentLessonIndex].waypoints;
     setEditorWaypoints(originalWaypoints);
 
@@ -1104,6 +589,10 @@ export default function App() {
       waypoints: originalWaypoints
     };
     setSessionCurriculum(newCurriculum);
+    
+    playSound('success');
+    setSaveStatus('Reset to default! 🔄');
+    setTimeout(() => setSaveStatus(''), 3000);
   };
 
   // Math lock generator
@@ -1599,8 +1088,9 @@ export default function App() {
               {editorMode && (
                 <div className="w-full mt-3 p-4 bg-amber-50/60 border border-amber-200 rounded-2xl text-left">
                   <div className="flex flex-col gap-2 mb-3">
-                    <span className="font-extrabold text-sm text-amber-800 flex items-center gap-1.5">
-                      🔧 Waypoint Builder Tool
+                    <span className="font-extrabold text-sm text-amber-800 flex items-center gap-1.5 justify-between">
+                      <span>🔧 Waypoint Builder Tool</span>
+                      {saveStatus && <span className="text-xs bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-md animate-pulse">{saveStatus}</span>}
                     </span>
                     
                     {/* Editor Active Toggle */}
@@ -1639,7 +1129,7 @@ export default function App() {
                         }}
                         className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold border transition flex justify-center items-center gap-1.5 ${editorRecordMode ? 'bg-rose-600 border-rose-600 text-white shadow-sm animate-pulse' : 'bg-white border-amber-200 text-amber-700 hover:bg-amber-50'}`}
                       >
-                        <span className="w-2.5 h-2.5 rounded-full bg-rose-500 border border-white inline-block flex-shrink-0" />
+                        <span className="w-2.5 h-2.5 rounded-full bg-rose-500 border border-white inline-block flex-shrink-0 animate-ping" />
                         Draw to Record
                       </button>
                     </div>
@@ -1649,7 +1139,7 @@ export default function App() {
                     <div className="bg-slate-100/50 p-2.5 rounded-xl border border-slate-200/50 mb-3 text-xs text-slate-700 font-medium">
                       {editorRecordMode ? (
                         <p className="text-rose-700">
-                          🔴 <strong>Record Mode Active:</strong> Drag your finger/mouse on the canvas to draw the character. Waypoints will automatically generate along your drawing path.
+                          🔴 <strong>Record Mode:</strong> Draw directly on the canvas guidelines to trace the letter shape. Waypoints will generate automatically under your touch path.
                         </p>
                       ) : (
                         <p className="text-amber-800">
@@ -1664,7 +1154,7 @@ export default function App() {
                   )}
 
                   {/* Editor Buttons */}
-                  <div className="grid grid-cols-2 gap-2 mb-4">
+                  <div className="grid grid-cols-2 gap-2 mb-3">
                     {!editorRecordMode ? (
                       <button
                         onClick={() => setEditorMoveTo(!editorMoveTo)}
@@ -1703,6 +1193,14 @@ export default function App() {
                     </button>
                   </div>
 
+                  {/* Device Storage Persistence Save Button */}
+                  <button
+                    onClick={handleEditorSave}
+                    className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-extrabold py-3 px-4 rounded-xl text-xs flex justify-center items-center gap-2 mb-4 transition shadow"
+                  >
+                    💾 Save Waypoints to Device
+                  </button>
+
                   {/* JSON Code Copy block */}
                   <div>
                     <label className="text-xxs font-extrabold text-amber-800 uppercase tracking-wider block mb-1">
@@ -1715,9 +1213,6 @@ export default function App() {
                       onClick={(e) => e.target.select()}
                       title="Click to select all"
                     />
-                    <p className="text-xxs text-amber-600 mt-1 font-medium leading-normal">
-                      💡 Click inside the box to select all, copy, and paste this array into the CURRICULUM data inside src/App.jsx.
-                    </p>
                   </div>
                 </div>
               )}
@@ -2146,6 +1641,20 @@ export default function App() {
                     className={`w-12 h-6 rounded-full transition-all relative ${editorMode ? 'bg-amber-500' : 'bg-slate-300'}`}
                   >
                     <div className={`w-5 h-5 rounded-full bg-white absolute top-0.5 transition-all ${editorMode ? 'right-0.5' : 'left-0.5'}`} />
+                  </button>
+                </div>
+
+                {/* Wipe custom waypoints */}
+                <div className="flex justify-between items-center border-t border-slate-200/60 pt-3">
+                  <div className="flex flex-col">
+                    <span className="text-xs font-bold text-slate-700">Revert All Custom Waypoints</span>
+                    <span className="text-xs text-slate-400">Clear all recorded paths and revert to default</span>
+                  </div>
+                  <button
+                    onClick={clearAllCustomWaypoints}
+                    className="bg-rose-50 hover:bg-rose-100 text-rose-600 font-bold text-xs py-2.5 px-4 rounded-xl border border-rose-200 transition"
+                  >
+                    Revert All
                   </button>
                 </div>
               </div>
