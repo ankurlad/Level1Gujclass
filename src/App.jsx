@@ -233,21 +233,25 @@ export default function App() {
     const clampedX = Math.max(0, Math.min(380, snapped.x));
     const clampedY = Math.max(0, Math.min(320, snapped.y));
     
-    const updated = [...editorWaypoints];
-    updated[index] = {
-      ...updated[index],
-      x: clampedX,
-      y: clampedY
-    };
-    setEditorWaypoints(updated);
-    
-    // Update in-memory session curriculum
-    const newCurriculum = [...sessionCurriculum];
-    newCurriculum[currentLessonIndex] = {
-      ...newCurriculum[currentLessonIndex],
-      waypoints: updated
-    };
-    setSessionCurriculum(newCurriculum);
+    setEditorWaypoints(prev => {
+      const updated = [...prev];
+      updated[index] = {
+        ...updated[index],
+        x: clampedX,
+        y: clampedY
+      };
+      
+      setSessionCurriculum(prevCurriculum => {
+        const newCurriculum = [...prevCurriculum];
+        newCurriculum[currentLessonIndex] = {
+          ...newCurriculum[currentLessonIndex],
+          waypoints: updated
+        };
+        return newCurriculum;
+      });
+      
+      return updated;
+    });
   };
 
   const handleWaypointMouseDown = (e, idx) => {
@@ -291,7 +295,7 @@ export default function App() {
       window.removeEventListener('touchmove', handleDragMove);
       window.removeEventListener('touchend', handleDragEnd);
     };
-  }, [isDraggingWaypoint, draggedWaypointIndex, editorWaypoints]);
+  }, [isDraggingWaypoint, draggedWaypointIndex]);
 
   // Listen to installation prompt event
   useEffect(() => {
@@ -455,8 +459,18 @@ export default function App() {
     const canvas = canvasRef.current;
     if (!canvas) return { x: 0, y: 0 };
     const rect = canvas.getBoundingClientRect();
-    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    
+    let clientX = e.clientX;
+    let clientY = e.clientY;
+    
+    if (e.touches && e.touches.length > 0) {
+      clientX = e.touches[0].clientX;
+      clientY = e.touches[0].clientY;
+    } else if (e.changedTouches && e.changedTouches.length > 0) {
+      clientX = e.changedTouches[0].clientX;
+      clientY = e.changedTouches[0].clientY;
+    }
+    
     return {
       x: ((clientX - rect.left) / rect.width) * canvas.width,
       y: ((clientY - rect.top) / rect.height) * canvas.height
@@ -468,25 +482,30 @@ export default function App() {
     if (!editorMode || !editorActive) return;
     const { x, y } = getCoords(e);
     const snapped = snapToCenterline(x, y);
-    const newPoint = {
-      x: snapped.x,
-      y: snapped.y,
-      label: (editorWaypoints.length + 1).toString()
-    };
-    if (editorMoveTo) {
-      newPoint.moveTo = true;
-      setEditorMoveTo(false); // Reset
-    }
-    const updated = [...editorWaypoints, newPoint];
-    setEditorWaypoints(updated);
-
-    // Update in-memory session curriculum
-    const newCurriculum = [...sessionCurriculum];
-    newCurriculum[currentLessonIndex] = {
-      ...newCurriculum[currentLessonIndex],
-      waypoints: updated
-    };
-    setSessionCurriculum(newCurriculum);
+    
+    setEditorWaypoints(prev => {
+      const newPoint = {
+        x: snapped.x,
+        y: snapped.y,
+        label: (prev.length + 1).toString()
+      };
+      if (editorMoveTo) {
+        newPoint.moveTo = true;
+        setEditorMoveTo(false); // Reset
+      }
+      const updated = [...prev, newPoint];
+      
+      setSessionCurriculum(prevCurriculum => {
+        const newCurriculum = [...prevCurriculum];
+        newCurriculum[currentLessonIndex] = {
+          ...newCurriculum[currentLessonIndex],
+          waypoints: updated
+        };
+        return newCurriculum;
+      });
+      
+      return updated;
+    });
     
     playSound('waypoint');
   };
@@ -499,29 +518,32 @@ export default function App() {
       if (editorRecordMode) {
         // Record path drawing mode
         const snapped = snapToCenterline(x, y);
-        const newPoint = {
-          x: snapped.x,
-          y: snapped.y,
-          label: (editorWaypoints.length + 1).toString()
-        };
         
-        // If drawing a new stroke after lift-pen, mark starting point as moveTo
-        if (editorWaypoints.length > 0) {
-          newPoint.moveTo = true;
-        }
+        setEditorWaypoints(prev => {
+          const newPoint = {
+            x: snapped.x,
+            y: snapped.y,
+            label: (prev.length + 1).toString()
+          };
+          if (prev.length > 0) {
+            newPoint.moveTo = true;
+          }
+          const updated = [...prev, newPoint];
+          
+          setSessionCurriculum(prevCurriculum => {
+            const newCurriculum = [...prevCurriculum];
+            newCurriculum[currentLessonIndex] = {
+              ...newCurriculum[currentLessonIndex],
+              waypoints: updated
+            };
+            return newCurriculum;
+          });
+          
+          return updated;
+        });
 
-        const updated = [...editorWaypoints, newPoint];
-        setEditorWaypoints(updated);
-
-        // Update in-memory session curriculum
-        const newCurriculum = [...sessionCurriculum];
-        newCurriculum[currentLessonIndex] = {
-          ...newCurriculum[currentLessonIndex],
-          waypoints: updated
-        };
-        setSessionCurriculum(newCurriculum);
-
-        lastPointRef.current = { x: snapped.x, y: snapped.y };
+        // Save the unsnapped coordinates for relative distance checks!
+        lastPointRef.current = { x, y };
         setIsDrawing(true);
         playSound('waypoint');
 
@@ -560,25 +582,32 @@ export default function App() {
       const lastPoint = lastPointRef.current;
       if (lastPoint) {
         const dist = Math.hypot(x - lastPoint.x, y - lastPoint.y);
-        // Spacing downsampling threshold (35px)
+        // Spacing downsampling threshold (35px) between unsnapped points
         if (dist >= 35) {
           const snapped = snapToCenterline(x, y);
-          const newPoint = {
-            x: snapped.x,
-            y: snapped.y,
-            label: (editorWaypoints.length + 1).toString()
-          };
-          const updated = [...editorWaypoints, newPoint];
-          setEditorWaypoints(updated);
+          
+          setEditorWaypoints(prev => {
+            const newPoint = {
+              x: snapped.x,
+              y: snapped.y,
+              label: (prev.length + 1).toString()
+            };
+            const updated = [...prev, newPoint];
+            
+            setSessionCurriculum(prevCurriculum => {
+              const newCurriculum = [...prevCurriculum];
+              newCurriculum[currentLessonIndex] = {
+                ...newCurriculum[currentLessonIndex],
+                waypoints: updated
+              };
+              return newCurriculum;
+            });
+            
+            return updated;
+          });
 
-          const newCurriculum = [...sessionCurriculum];
-          newCurriculum[currentLessonIndex] = {
-            ...newCurriculum[currentLessonIndex],
-            waypoints: updated
-          };
-          setSessionCurriculum(newCurriculum);
-
-          lastPointRef.current = { x: snapped.x, y: snapped.y };
+          // Save the unsnapped coordinates for relative distance checks!
+          lastPointRef.current = { x, y };
           playSound('waypoint');
         }
       }
