@@ -164,7 +164,7 @@ export default function App() {
       setEditorMoveTo(false);
       setSaveStatus('');
     }
-  }, [currentLessonIndex, sessionCurriculum]);
+  }, [currentLessonIndex]);
 
   // Listen to installation prompt event
   useEffect(() => {
