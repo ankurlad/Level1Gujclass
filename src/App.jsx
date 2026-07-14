@@ -168,9 +168,70 @@ export default function App() {
     }
   }, [currentLessonIndex]);
 
+  const snapToCenterline = (x, y) => {
+    try {
+      const tempCanvas = document.createElement('canvas');
+      tempCanvas.width = 380;
+      tempCanvas.height = 320;
+      const tempCtx = tempCanvas.getContext('2d');
+      
+      // Draw background
+      tempCtx.fillStyle = '#f8fafc';
+      tempCtx.fillRect(0, 0, 380, 320);
+      
+      // Draw letter text exactly like the main canvas
+      tempCtx.font = '220px Fredoka, sans-serif';
+      tempCtx.fillStyle = 'rgba(226, 232, 240, 0.95)';
+      tempCtx.textAlign = 'center';
+      tempCtx.textBaseline = 'middle';
+      tempCtx.fillText(currentLesson.letter, 190, 170); // Center is 190, 170
+      
+      const imgData = tempCtx.getImageData(0, 0, 380, 320).data;
+      
+      let sumX = 0;
+      let sumY = 0;
+      let count = 0;
+      const radius = 22; // 22px search radius
+      
+      const ix = Math.round(x);
+      const iy = Math.round(y);
+      
+      for (let dx = -radius; dx <= radius; dx++) {
+        for (let dy = -radius; dy <= radius; dy++) {
+          const px = ix + dx;
+          const py = iy + dy;
+          if (px >= 0 && px < 380 && py >= 0 && py < 320) {
+            const pixelIndex = (py * 380 + px) * 4;
+            const r = imgData[pixelIndex];
+            const g = imgData[pixelIndex + 1];
+            const b = imgData[pixelIndex + 2];
+            
+            // The background is 248, 250, 252. The letter is darker: 226, 232, 240
+            if (r < 240 && g < 240 && b < 240) {
+              sumX += px;
+              sumY += py;
+              count++;
+            }
+          }
+        }
+      }
+      
+      if (count > 0) {
+        return {
+          x: Math.round(sumX / count),
+          y: Math.round(sumY / count)
+        };
+      }
+    } catch (e) {
+      console.error("Centerline snapping failed", e);
+    }
+    return { x, y };
+  };
+
   const updateWaypointPosition = (index, x, y) => {
-    const clampedX = Math.max(0, Math.min(380, Math.round(x)));
-    const clampedY = Math.max(0, Math.min(320, Math.round(y)));
+    const snapped = snapToCenterline(x, y);
+    const clampedX = Math.max(0, Math.min(380, snapped.x));
+    const clampedY = Math.max(0, Math.min(320, snapped.y));
     
     const updated = [...editorWaypoints];
     updated[index] = {
@@ -406,9 +467,10 @@ export default function App() {
   const handleCanvasClick = (e) => {
     if (!editorMode || !editorActive) return;
     const { x, y } = getCoords(e);
+    const snapped = snapToCenterline(x, y);
     const newPoint = {
-      x: Math.round(x),
-      y: Math.round(y),
+      x: snapped.x,
+      y: snapped.y,
       label: (editorWaypoints.length + 1).toString()
     };
     if (editorMoveTo) {
@@ -436,9 +498,10 @@ export default function App() {
     if (editorMode && editorActive) {
       if (editorRecordMode) {
         // Record path drawing mode
+        const snapped = snapToCenterline(x, y);
         const newPoint = {
-          x: Math.round(x),
-          y: Math.round(y),
+          x: snapped.x,
+          y: snapped.y,
           label: (editorWaypoints.length + 1).toString()
         };
         
@@ -458,7 +521,7 @@ export default function App() {
         };
         setSessionCurriculum(newCurriculum);
 
-        lastPointRef.current = { x, y };
+        lastPointRef.current = { x: snapped.x, y: snapped.y };
         setIsDrawing(true);
         playSound('waypoint');
 
@@ -499,9 +562,10 @@ export default function App() {
         const dist = Math.hypot(x - lastPoint.x, y - lastPoint.y);
         // Spacing downsampling threshold (35px)
         if (dist >= 35) {
+          const snapped = snapToCenterline(x, y);
           const newPoint = {
-            x: Math.round(x),
-            y: Math.round(y),
+            x: snapped.x,
+            y: snapped.y,
             label: (editorWaypoints.length + 1).toString()
           };
           const updated = [...editorWaypoints, newPoint];
@@ -514,7 +578,7 @@ export default function App() {
           };
           setSessionCurriculum(newCurriculum);
 
-          lastPointRef.current = { x, y };
+          lastPointRef.current = { x: snapped.x, y: snapped.y };
           playSound('waypoint');
         }
       }
