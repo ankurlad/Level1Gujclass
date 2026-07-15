@@ -771,10 +771,26 @@ export default function App() {
     }
   };
 
+  // Helper to serialize a waypoint array with one coordinate object per line (matching curriculum.js formatting)
+  const stringifyWaypointsArray = (arr) => {
+    if (!arr || arr.length === 0) return "[]";
+    const lines = arr.map(wp => {
+      const parts = [];
+      parts.push(`"x": ${wp.x}`);
+      parts.push(`"y": ${wp.y}`);
+      parts.push(`"label": "${wp.label}"`);
+      if (wp.moveTo) {
+        parts.push(`"moveTo": true`);
+      }
+      return `  { ${parts.join(', ')} }`;
+    });
+    return `[\n${lines.join(',\n')}\n]`;
+  };
+
   // Export current letter waypoints as single JSON file
   const exportCurrentLetterWaypoints = () => {
     try {
-      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(editorWaypoints, null, 2));
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(stringifyWaypointsArray(editorWaypoints));
       const downloadAnchor = document.createElement('a');
       downloadAnchor.setAttribute("href", dataStr);
       downloadAnchor.setAttribute("download", `waypoints_${currentLesson.id}.json`);
@@ -803,7 +819,31 @@ export default function App() {
         return item;
       });
 
-      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(fullCurriculumExport, null, 2));
+      const stringifyFullCurriculum = (curriculumArray) => {
+        const items = curriculumArray.map(item => {
+          const waypointsStr = item.waypoints && item.waypoints.length > 0 
+            ? `[\n${item.waypoints.map(wp => {
+                const parts = [`"x": ${wp.x}`, `"y": ${wp.y}`, `"label": "${wp.label}"`];
+                if (wp.moveTo) parts.push(`"moveTo": true`);
+                return `        { ${parts.join(', ')} }`;
+              }).join(',\n')}\n      ]`
+            : "[]";
+
+          return `  {
+    "id": "${item.id}",
+    "letter": "${item.letter}",
+    "english": "${item.english}",
+    "word": "${item.word}",
+    "wordEnglish": "${item.wordEnglish}",
+    "emoji": "${item.emoji}",
+    "instructions": "${item.instructions.replace(/"/g, '\\"')}",
+    "waypoints": ${waypointsStr}
+  }`;
+        });
+        return `[\n${items.join(',\n')}\n]`;
+      };
+
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(stringifyFullCurriculum(fullCurriculumExport));
       const downloadAnchor = document.createElement('a');
       downloadAnchor.setAttribute("href", dataStr);
       downloadAnchor.setAttribute("download", "curriculum_custom.json");
@@ -1803,7 +1843,7 @@ export default function App() {
                     </label>
                     <textarea
                       readOnly
-                      value={JSON.stringify(editorWaypoints, null, 2)}
+                      value={stringifyWaypointsArray(editorWaypoints)}
                       className="w-full h-32 font-mono text-xxs border-2 border-amber-200 p-2 rounded-xl bg-white focus:outline-none focus:border-amber-400 select-all cursor-pointer"
                       onClick={(e) => e.target.select()}
                       title="Click to select all"
