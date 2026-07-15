@@ -241,7 +241,7 @@ export default function App() {
       tempCtx.fillRect(0, 0, 380, 320);
       
       // Draw letter text exactly like the main canvas
-      tempCtx.font = '220px Fredoka, sans-serif';
+      tempCtx.font = '220px "Baloo Bhai 2", "Noto Sans Gujarati", sans-serif';
       tempCtx.fillStyle = 'rgba(226, 232, 240, 0.95)';
       tempCtx.textAlign = 'center';
       tempCtx.textBaseline = 'middle';
@@ -470,7 +470,13 @@ export default function App() {
   // Canvas Tracing Draw setup
   useEffect(() => {
     if (view === 'learn') {
-      initCanvas();
+      if (document.fonts) {
+        document.fonts.ready.then(() => {
+          initCanvas();
+        });
+      } else {
+        initCanvas();
+      }
     }
   }, [view, currentLessonIndex, editorWaypoints]);
 
@@ -487,7 +493,7 @@ export default function App() {
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     
     // Guide letter in huge light grey font
-    ctx.font = '220px Fredoka, sans-serif';
+    ctx.font = '220px "Baloo Bhai 2", "Noto Sans Gujarati", sans-serif';
     ctx.fillStyle = 'rgba(226, 232, 240, 0.95)';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';

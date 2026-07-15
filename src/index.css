@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Outfit:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Baloo+Bhai+2:wght@400;500;600;700;800&family=Fredoka:wght@400;600;700&family=Outfit:wght@400;500;600;700;800&family=Noto+Sans+Gujarati:wght@400;500;600;700&display=swap');
 
 :root {
   --primary: #4f46e5;
@@ -18,7 +18,7 @@
   --text-muted: #475569;
   --border-color: rgba(241, 245, 249, 0.6);
   
-  font-family: 'Outfit', 'Fredoka', system-ui, -apple-system, sans-serif;
+  font-family: 'Outfit', 'Baloo Bhai 2', 'Noto Sans Gujarati', 'Fredoka', system-ui, -apple-system, sans-serif;
   background-color: #f1f5f9;
   color: var(--text-main);
 }
