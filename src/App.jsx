@@ -907,6 +907,70 @@ export default function App() {
     setTimeout(() => setSaveStatus(''), 3000);
   };
 
+  // Auto-centers coordinates horizontally based on letter strokes for points 1-10
+  const handleAutoCenterRows = () => {
+    if (editorWaypoints.length === 0) return;
+    
+    try {
+      const wps = [...editorWaypoints];
+      const letter = currentLesson.letter;
+      const canvasWidth = 380;
+      const canvasHeight = 320;
+      
+      const tempCanvas = document.createElement('canvas');
+      tempCanvas.width = canvasWidth;
+      tempCanvas.height = canvasHeight;
+      const tempCtx = tempCanvas.getContext('2d');
+      
+      tempCtx.font = '220px "Baloo Bhai 2", "Noto Sans Gujarati", sans-serif';
+      tempCtx.fillStyle = 'black';
+      tempCtx.textAlign = 'center';
+      tempCtx.textBaseline = 'middle';
+      tempCtx.fillText(letter, canvasWidth / 2, canvasHeight / 2 + 10);
+      
+      wps.forEach(point => {
+        const labelNum = parseInt(point.label);
+        if (labelNum >= 1 && labelNum <= 10) {
+          const y = Math.floor(point.y);
+          const imageData = tempCtx.getImageData(0, y, canvasWidth, 1).data;
+          
+          let minX = -1;
+          let maxX = -1;
+          const alphaThreshold = 10;
+          
+          for (let x = 0; x < canvasWidth; x++) {
+            const alphaIndex = (x * 4) + 3;
+            const alpha = imageData[alphaIndex];
+            if (alpha > alphaThreshold) {
+              if (minX === -1) minX = x;
+              maxX = x;
+            }
+          }
+          
+          if (minX !== -1 && maxX !== -1) {
+            point.x = Math.round((minX + maxX) / 2);
+          }
+        }
+      });
+      
+      setEditorWaypoints(wps);
+      
+      const newCurriculum = [...sessionCurriculum];
+      newCurriculum[currentLessonIndex] = {
+        ...newCurriculum[currentLessonIndex],
+        waypoints: wps
+      };
+      setSessionCurriculum(newCurriculum);
+      
+      playSound('success');
+      setSaveStatus('Auto-centered rows! ⚖️');
+      setTimeout(() => setSaveStatus(''), 3000);
+    } catch (e) {
+      console.error("Auto centering failed", e);
+      alert("Failed to auto-center waypoints.");
+    }
+  };
+
   // Math lock generator
   const generateLockQuestion = () => {
     const num1 = Math.floor(Math.random() * 8) + 6;
@@ -1822,6 +1886,13 @@ export default function App() {
                       className="bg-white border border-amber-300 text-amber-700 hover:bg-amber-100 py-2.5 rounded-xl text-xs font-bold transition"
                     >
                       Reset Default
+                    </button>
+                    <button
+                      onClick={handleAutoCenterRows}
+                      className="bg-white border border-amber-300 text-amber-700 hover:bg-amber-100 py-2.5 rounded-xl text-xs font-bold transition col-span-2 flex justify-center items-center gap-1.5"
+                      title="Auto-center horizontal coordinates 1-10 on letter strokes"
+                    >
+                      ⚖️ Auto-Center Rows
                     </button>
                   </div>
 
