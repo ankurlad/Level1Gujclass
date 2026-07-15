@@ -771,6 +771,52 @@ export default function App() {
     }
   };
 
+  // Export current letter waypoints as single JSON file
+  const exportCurrentLetterWaypoints = () => {
+    try {
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(editorWaypoints, null, 2));
+      const downloadAnchor = document.createElement('a');
+      downloadAnchor.setAttribute("href", dataStr);
+      downloadAnchor.setAttribute("download", `waypoints_${currentLesson.id}.json`);
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
+      playSound('success');
+    } catch (e) {
+      console.error("Export current waypoints failed", e);
+      alert("Failed to export waypoints.");
+    }
+  };
+
+  // Export entire curriculum (with custom waypoints merged) as a single JSON file
+  const exportAllCustomWaypoints = () => {
+    try {
+      const fullCurriculumExport = sessionCurriculum.map(item => {
+        const saved = localStorage.getItem(`guj_custom_waypoints_${item.id}`);
+        if (saved) {
+          try {
+            return { ...item, waypoints: JSON.parse(saved) };
+          } catch (e) {
+            console.error("Failed to parse saved waypoints for " + item.id, e);
+          }
+        }
+        return item;
+      });
+
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(fullCurriculumExport, null, 2));
+      const downloadAnchor = document.createElement('a');
+      downloadAnchor.setAttribute("href", dataStr);
+      downloadAnchor.setAttribute("download", "curriculum_custom.json");
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
+      playSound('success');
+    } catch (e) {
+      console.error("Export all waypoints failed", e);
+      alert("Failed to export all waypoints.");
+    }
+  };
+
   // Waypoint Editor Controls
   const handleEditorUndo = () => {
     if (editorWaypoints.length === 0) return;
@@ -1734,12 +1780,21 @@ export default function App() {
                   </div>
 
                   {/* Device Storage Persistence Save Button */}
-                  <button
-                    onClick={handleEditorSave}
-                    className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-extrabold py-3 px-4 rounded-xl text-xs flex justify-center items-center gap-2 mb-4 transition shadow font-sans"
-                  >
-                    💾 Save Waypoints to Device
-                  </button>
+                  <div className="flex gap-2 mb-4">
+                    <button
+                      onClick={handleEditorSave}
+                      className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white font-extrabold py-3 px-2 rounded-xl text-xs flex justify-center items-center gap-1.5 transition shadow font-sans"
+                    >
+                      💾 Save Waypoints
+                    </button>
+                    <button
+                      onClick={exportCurrentLetterWaypoints}
+                      className="flex-1 bg-indigo-500 hover:bg-indigo-600 text-white font-extrabold py-3 px-2 rounded-xl text-xs flex justify-center items-center gap-1.5 transition shadow font-sans animate-pulse"
+                      title="Download waypoints for this alphabet as a JSON file"
+                    >
+                      📥 Export Letter
+                    </button>
+                  </div>
 
                   {/* JSON Code Copy block */}
                   <div className="font-sans">
@@ -2555,6 +2610,20 @@ export default function App() {
                     className="bg-rose-50 hover:bg-rose-100 text-rose-600 font-bold text-xs py-2.5 px-4 rounded-xl border border-rose-200 transition"
                   >
                     Revert All
+                  </button>
+                </div>
+
+                {/* Export all custom waypoints */}
+                <div className="flex justify-between items-center border-t border-slate-200/60 pt-3">
+                  <div className="flex flex-col">
+                    <span className="text-xs font-bold text-slate-700">Export Full Curriculum JSON</span>
+                    <span className="text-xs text-slate-400">Download the entire curriculum including custom waypoints</span>
+                  </div>
+                  <button
+                    onClick={exportAllCustomWaypoints}
+                    className="bg-indigo-50 hover:bg-indigo-100 text-indigo-600 font-bold text-xs py-2.5 px-4 rounded-xl border border-indigo-200 transition"
+                  >
+                    Export JSON
                   </button>
                 </div>
               </div>
