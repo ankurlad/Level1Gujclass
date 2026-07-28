@@ -1497,7 +1497,7 @@ export default function App() {
           onClick={() => setView('home')}
           aria-label="Akshar PWA Home"
         >
-          <div className="bg-gradient-to-tr from-indigo-600 to-purple-600 text-white w-9 h-9 rounded-xl flex justify-center items-center text-xl font-bold font-gujarati shadow-sm">
+          <div className="bg-gradient-to-tr from-indigo-600 to-purple-600 text-white w-9 h-9 rounded-xl flex justify-center items-center text-xl font-gujarati shadow-sm">
             અ
           </div>
           <span className="font-extrabold text-lg tracking-tight text-slate-800">
@@ -1549,7 +1549,7 @@ export default function App() {
           <div className="flex-1 flex flex-col justify-center py-6 text-center">
             <div className="mb-8">
               <div className="w-24 h-24 mx-auto rounded-3xl overflow-hidden shadow-xl mb-4 border-4 border-white animate-bounce-slow bg-gradient-to-tr from-indigo-600 via-purple-600 to-pink-500 flex justify-center items-center">
-                <span className="text-white font-bold text-5xl font-gujarati">ક</span>
+                <span className="text-white text-5xl font-gujarati">ક</span>
               </div>
               <h1 className="text-3xl font-extrabold text-slate-800 mb-2">Kem Chho! 👋</h1>
               <p className="text-slate-500 font-medium text-lg px-6">Ready to learn the Gujarati alphabet and earn lovely stickers?</p>
@@ -1769,7 +1769,7 @@ export default function App() {
             <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm flex-1 flex flex-col items-center">
               <div className="flex justify-between items-center w-full mb-3">
                 <div className="flex items-center gap-2">
-                  <span className="text-4xl font-bold font-gujarati text-indigo-600">{currentLesson.letter}</span>
+                  <span className="text-4xl font-gujarati text-indigo-600">{currentLesson.letter}</span>
                   <span className="text-slate-400 font-bold text-lg">({currentLesson.english})</span>
                 </div>
                 
@@ -2291,7 +2291,7 @@ export default function App() {
             {/* Match Game card */}
             <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm flex flex-col items-center max-w-sm mx-auto w-full">
               <div className="bg-indigo-50 border-2 border-indigo-200 rounded-3xl p-6 mb-6 flex justify-center items-center shadow-inner">
-                <span className="text-7xl font-bold font-gujarati text-indigo-600 animate-bounce-slow">
+                <span className="text-7xl font-gujarati text-indigo-600 animate-bounce-slow">
                   {sessionCurriculum[matchIndex].letter}
                 </span>
               </div>
@@ -2364,7 +2364,7 @@ export default function App() {
             {/* Quiz selection card */}
             <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm flex flex-col items-center max-w-sm mx-auto w-full">
               <div className="bg-indigo-50 border-2 border-indigo-200 rounded-3xl p-6 mb-6 flex justify-center items-center shadow-inner">
-                <span className="text-7xl font-bold font-gujarati text-indigo-600">
+                <span className="text-7xl font-gujarati text-indigo-600">
                   {sessionCurriculum[quizIndex].letter}
                 </span>
               </div>

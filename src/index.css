@@ -24,13 +24,13 @@
 }
 
 .font-gujarati {
-  font-family: 'Noto Sans Gujarati', 'Baloo Bhai 2', sans-serif !important;
-  font-weight: 600 !important;
+  font-family: 'Noto Sans Gujarati', sans-serif !important;
+  font-weight: 500 !important;
   font-synthesis: none !important;
   -webkit-font-synthesis: none !important;
   -webkit-font-smoothing: antialiased !important;
   -moz-osx-font-smoothing: grayscale !important;
-  text-rendering: optimizeLegibility !important;
+  text-rendering: geometricPrecision !important;
   text-shadow: none !important;
   filter: none !important;
   letter-spacing: normal !important;
