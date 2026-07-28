@@ -1109,6 +1109,7 @@ export default function App() {
       }, 1500);
     } else {
       setMatchFeedback('wrong');
+      setPoints(p => Math.max(0, p - 10));
       playSound('wrong');
       speak(`ફરીથી પ્રયાસ કરો.`);
       setTimeout(() => {
@@ -1153,6 +1154,7 @@ export default function App() {
       }, 2000);
     } else {
       setQuizFeedback('wrong');
+      setPoints(p => Math.max(0, p - 10));
       playSound('wrong');
       speak(`ફરીથી પ્રયાસ કરો.`);
       setTimeout(() => {
@@ -2204,7 +2206,7 @@ export default function App() {
                   ) : (
                     <>
                       <ShieldAlert size={20} />
-                      <span>Khoṭu! Try again.</span>
+                      <span>Khoṭu! Try again (-10 points).</span>
                     </>
                   )}
                 </div>
@@ -2338,7 +2340,7 @@ export default function App() {
                   ) : (
                     <>
                       <ShieldAlert size={20} />
-                      <span>Khoṭu! Try again.</span>
+                      <span>Khoṭu! Try again (-10 points).</span>
                     </>
                   )}
                 </div>
@@ -2409,7 +2411,7 @@ export default function App() {
                   ) : (
                     <>
                       <ShieldAlert size={20} />
-                      <span>Khoṭu! Try again next question.</span>
+                      <span>Khoṭu! Try again next question (-10 points).</span>
                     </>
                   )}
                 </div>
