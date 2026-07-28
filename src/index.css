@@ -315,10 +315,10 @@ body {
 }
 
 .bg-kids-pattern {
-  background-color: #faf5ff !important;
-  background-image: radial-gradient(#818cf8 2.5px, transparent 2.5px), radial-gradient(#f43f5e 2.5px, #faf5ff 2.5px) !important;
-  background-size: 32px 32px !important;
-  background-position: 0 0, 16px 16px !important;
+  background-color: #faf8ff !important;
+  background-image: radial-gradient(rgba(99, 102, 241, 0.18) 1.2px, transparent 1.2px), radial-gradient(rgba(244, 63, 94, 0.18) 1.2px, #faf8ff 1.2px) !important;
+  background-size: 20px 20px !important;
+  background-position: 0 0, 10px 10px !important;
 }
 
 .shadow-glow-indigo { box-shadow: 0 12px 28px -4px rgba(99, 102, 241, 0.35); }
