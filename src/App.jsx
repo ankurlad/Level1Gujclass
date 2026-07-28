@@ -1205,6 +1205,7 @@ export default function App() {
       }, 2000);
     } else {
       setPhonicsFeedback('wrong');
+      setPoints(p => Math.max(0, p - 10));
       playSound('wrong');
       speak(`ફરીથી પ્રયાસ કરો.`);
       
