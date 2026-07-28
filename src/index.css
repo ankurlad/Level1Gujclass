@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Baloo+Bhai+2:wght@400;500;600;700;800&family=Fredoka:wght@400;600;700&family=Outfit:wght@400;500;600;700;800&family=Noto+Sans+Gujarati:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Baloo+Bhai+2:wght@400;500;600;700;800&family=Fredoka:wght@400;600;700&family=Outfit:wght@400;500;600;700;800&family=Noto+Sans+Gujarati:wght@400;500;600;700;800;900&display=swap');
 
 :root {
   --primary: #4f46e5;
@@ -24,14 +24,18 @@
 }
 
 .font-gujarati {
-  font-family: 'Noto Sans Gujarati', sans-serif !important;
-  font-weight: 500 !important;
+  font-family: 'Noto Sans Gujarati', 'Baloo Bhai 2', sans-serif !important;
+  font-weight: 600 !important;
+  font-synthesis: none !important;
+  -webkit-font-synthesis: none !important;
   -webkit-font-smoothing: antialiased !important;
   -moz-osx-font-smoothing: grayscale !important;
-  text-rendering: geometricPrecision !important;
+  text-rendering: optimizeLegibility !important;
   text-shadow: none !important;
   filter: none !important;
   letter-spacing: normal !important;
+  stroke: none !important;
+  -webkit-text-stroke: 0px !important;
 }
 
 body {
