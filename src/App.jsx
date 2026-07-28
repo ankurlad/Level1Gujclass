@@ -19,7 +19,8 @@ import {
   Palette,
   Map,
   Smile,
-  Gamepad2
+  Gamepad2,
+  Download
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { CURRICULUM } from './curriculum';
@@ -133,6 +134,12 @@ export default function App() {
   const [editorActive, setEditorActive] = useState(false);
   const [editorWaypoints, setEditorWaypoints] = useState([]);
   const [editorMoveTo, setEditorMoveTo] = useState(false);
+
+  // PWA Install States & Handlers
+  const [installPrompt, setInstallPrompt] = useState(null);
+  const [showInstallModal, setShowInstallModal] = useState(false);
+  const [isStandalone, setIsStandalone] = useState(false);
+  const [installDismissed, setInstallDismissed] = useState(() => localStorage.getItem('guj_install_dismissed') === 'true');
   const [editorRecordMode, setEditorRecordMode] = useState(false);
   const [draggedWaypointIndex, setDraggedWaypointIndex] = useState(null);
   const [isDraggingWaypoint, setIsDraggingWaypoint] = useState(false);
@@ -162,7 +169,6 @@ export default function App() {
   // PWA & Installation states
   const [fullscreenActive, setFullscreenActive] = useState(false);
   const [kioskPromptActive, setKioskPromptActive] = useState(false);
-  const [installPrompt, setInstallPrompt] = useState(null);
 
   // Phonics Game States (Idea 3)
   const [phonicsTarget, setPhonicsTarget] = useState(null);
@@ -241,7 +247,7 @@ export default function App() {
       tempCtx.fillRect(0, 0, 380, 320);
       
       // Draw letter text exactly like the main canvas
-      tempCtx.font = '220px "Baloo Bhai 2", "Noto Sans Gujarati", sans-serif';
+      tempCtx.font = '220px "Noto Sans Gujarati", "Baloo Bhai 2", sans-serif';
       tempCtx.fillStyle = 'rgba(226, 232, 240, 0.95)';
       tempCtx.textAlign = 'center';
       tempCtx.textBaseline = 'middle';
@@ -358,25 +364,58 @@ export default function App() {
     };
   }, [isDraggingWaypoint, draggedWaypointIndex]);
 
-  // Listen to installation prompt event
+  // Listen to installation prompt event, appinstalled, and check standalone display mode
   useEffect(() => {
     const handleBeforeInstallPrompt = (e) => {
       e.preventDefault();
       setInstallPrompt(e);
     };
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
+    const handleAppInstalled = () => {
+      setIsStandalone(true);
+      setInstallPrompt(null);
+    };
+    window.addEventListener('appinstalled', handleAppInstalled);
+
+    const checkStandalone = () => {
+      const isStandaloneMedia = window.matchMedia('(display-mode: standalone)').matches || 
+                                window.matchMedia('(display-mode: fullscreen)').matches || 
+                                window.matchMedia('(display-mode: minimal-ui)').matches;
+      const isNavStandalone = window.navigator.standalone === true || (document.referrer && document.referrer.includes('android-app://'));
+      return isStandaloneMedia || isNavStandalone;
+    };
+    setIsStandalone(checkStandalone());
+
+    const mediaQuery = window.matchMedia('(display-mode: standalone)');
+    const handleMediaChange = (e) => {
+      if (e.matches) {
+        setIsStandalone(true);
+      }
+    };
+    if (mediaQuery.addEventListener) {
+      mediaQuery.addEventListener('change', handleMediaChange);
+    }
+
     return () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+      window.removeEventListener('appinstalled', handleAppInstalled);
+      if (mediaQuery.removeEventListener) {
+        mediaQuery.removeEventListener('change', handleMediaChange);
+      }
     };
   }, []);
 
-  const handleInstallClick = async () => {
-    if (!installPrompt) return;
-    installPrompt.prompt();
-    const { outcome } = await installPrompt.userChoice;
-    if (outcome === 'accepted') {
-      setInstallPrompt(null);
+  const triggerPwaInstall = async () => {
+    if (installPrompt) {
+      installPrompt.prompt();
+      const { outcome } = await installPrompt.userChoice;
+      if (outcome === 'accepted') {
+        setInstallPrompt(null);
+      }
+      return;
     }
+    setShowInstallModal(true);
   };
 
   // Synthesize Sound Effects using Web Audio API
@@ -493,7 +532,7 @@ export default function App() {
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     
     // Guide letter in huge light grey font
-    ctx.font = '220px "Baloo Bhai 2", "Noto Sans Gujarati", sans-serif';
+    ctx.font = '220px "Noto Sans Gujarati", "Baloo Bhai 2", sans-serif';
     ctx.fillStyle = 'rgba(226, 232, 240, 0.95)';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
@@ -985,26 +1024,28 @@ export default function App() {
   const handleParentLockVerify = (e) => {
     e.preventDefault();
     if (gateType === 'math') {
-      if (parseInt(lockAnswer) === lockQuestion.a) {
+      if (parseInt(lockAnswer, 10) === lockQuestion.a) {
         setShowParentLock(false);
         setView(parentLockTarget);
         setLockAnswer('');
-      } else {
-        playSound('wrong');
-        alert("Incorrect answer! Try again.");
-        generateLockQuestion();
+        return;
       }
-    } else {
-      if (lockAnswer === parentPasscode) {
-        setShowParentLock(false);
-        setView(parentLockTarget);
-        setLockAnswer('');
-      } else {
-        playSound('wrong');
-        alert("Incorrect Passcode! Try again.");
-        setLockAnswer('');
-      }
+      playSound('wrong');
+      alert("Incorrect answer! Try again.");
+      generateLockQuestion();
+      return;
     }
+
+    if (lockAnswer === parentPasscode) {
+      setShowParentLock(false);
+      setView(parentLockTarget);
+      setLockAnswer('');
+      return;
+    }
+
+    playSound('wrong');
+    alert("Incorrect Passcode! Try again.");
+    setLockAnswer('');
   };
 
   const requestParentView = (targetView) => {
@@ -1018,17 +1059,18 @@ export default function App() {
   };
 
   const toggleFullscreen = () => {
-    if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen().then(() => {
-        setFullscreenActive(true);
-      }).catch(err => {
-        console.error("Fullscreen lock failed", err);
-      });
-    } else {
-      document.exitFullscreen().then(() => {
-        setFullscreenActive(false);
-      });
+    if (document.fullscreenElement) {
+      if (document.exitFullscreen) {
+        document.exitFullscreen().then(() => setFullscreenActive(false));
+      }
+      return;
     }
+
+    document.documentElement.requestFullscreen().then(() => {
+      setFullscreenActive(true);
+    }).catch(err => {
+      console.error("Fullscreen lock failed", err);
+    });
   };
 
   // Match Game start
@@ -1446,34 +1488,52 @@ export default function App() {
       )}
 
       {/* Header bar */}
-      <header className="bg-white border-b border-slate-100 px-4 py-3 sticky top-0 z-30 flex justify-between items-center shadow-sm">
-        <div className="flex items-center gap-2 cursor-pointer" onClick={() => setView('home')}>
-          <div className="bg-gradient-to-tr from-indigo-500 to-rose-400 text-white w-9 h-9 rounded-xl flex justify-center items-center font-black text-xl shadow-md">
+      <header className="bg-white/95 backdrop-blur-md border-b border-slate-200/80 px-4 py-3 sticky top-0 z-30 flex justify-between items-center shadow-sm">
+        <button 
+          className="flex items-center gap-2.5 cursor-pointer bg-transparent border-0 p-0 text-left transition hover:opacity-90" 
+          onClick={() => setView('home')}
+          aria-label="Akshar PWA Home"
+        >
+          <div className="bg-gradient-to-tr from-indigo-600 to-purple-600 text-white w-9 h-9 rounded-xl flex justify-center items-center text-xl font-bold font-gujarati shadow-sm">
             અ
           </div>
-          <span className="font-extrabold text-xl tracking-tight bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
+          <span className="font-extrabold text-lg tracking-tight text-slate-800">
             Akshar PWA
           </span>
-        </div>
+        </button>
         
-        <div className="flex items-center gap-3">
-          <div className="bg-amber-50 text-amber-700 border-2 border-amber-200 px-3 py-1.5 rounded-full flex items-center gap-1.5 font-bold text-sm shadow-sm animate-float">
-            <Trophy size={16} className="text-amber-500 fill-amber-300" />
+        <div className="flex items-center gap-2">
+          {!isStandalone && (
+            <button 
+              onClick={triggerPwaInstall}
+              className="bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-700 font-extrabold text-xs px-2.5 py-1.5 rounded-xl flex items-center gap-1.5 shadow-sm transition min-h-[44px] min-w-[44px]"
+              aria-label="Install Akshar PWA"
+              title="Install Akshar PWA on your device"
+            >
+              <Download size={16} />
+              <span className="hidden sm:inline">Install</span>
+            </button>
+          )}
+
+          <div className="bg-amber-50 text-amber-800 border border-amber-200/80 px-3 py-1 rounded-full flex items-center gap-1.5 font-bold text-xs shadow-sm animate-float">
+            <Trophy size={15} className="text-amber-500 fill-amber-400" />
             <span>{points} Pts</span>
           </div>
 
           <button 
             onClick={toggleFullscreen}
-            className={`p-2 rounded-xl transition-all border-2 ${fullscreenActive ? 'bg-indigo-50 border-indigo-200 text-indigo-600' : 'bg-slate-50 border-slate-200 text-slate-500 hover:bg-slate-100'}`}
+            className={`min-w-[44px] min-h-[44px] p-2 rounded-xl transition-all border flex items-center justify-center ${fullscreenActive ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm' : 'bg-slate-100/80 border-slate-200/80 text-slate-600 hover:bg-slate-200/80'}`}
             title="Lock Single App Mode"
+            aria-label="Toggle Single App Mode"
           >
             {fullscreenActive ? <Lock size={18} /> : <Unlock size={18} />}
           </button>
 
           <button 
             onClick={() => requestParentView('dashboard')}
-            className={`p-2 rounded-xl border-2 ${view === 'dashboard' ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'}`}
+            className={`min-w-[44px] min-h-[44px] p-2 rounded-xl border flex items-center justify-center transition-all ${view === 'dashboard' ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm' : 'bg-slate-100/80 border-slate-200/80 text-slate-600 hover:bg-slate-200/80'}`}
             title="Parents Settings"
+            aria-label="Parent Settings"
           >
             <Settings size={18} />
           </button>
@@ -1485,8 +1545,8 @@ export default function App() {
         {view === 'home' && (
           <div className="flex-1 flex flex-col justify-center py-6 text-center">
             <div className="mb-8">
-              <div className="w-28 h-28 mx-auto rounded-3xl overflow-hidden shadow-xl mb-4 border-4 border-white animate-bounce-slow bg-gradient-to-tr from-indigo-500 to-pink-500 flex justify-center items-center">
-                <span className="text-white font-black text-6xl">ક</span>
+              <div className="w-24 h-24 mx-auto rounded-3xl overflow-hidden shadow-lg mb-4 border-4 border-white animate-bounce-slow bg-gradient-to-tr from-indigo-600 via-purple-600 to-pink-500 flex justify-center items-center">
+                <span className="text-white font-bold text-5xl font-gujarati">ક</span>
               </div>
               <h1 className="text-3xl font-extrabold text-slate-800 mb-2">Kem Chho! 👋</h1>
               <p className="text-slate-500 font-medium text-lg px-6">Ready to learn the Gujarati alphabet and earn lovely stickers?</p>
@@ -1496,66 +1556,86 @@ export default function App() {
             <div className="grid gap-4 max-w-sm w-full mx-auto px-4">
               <button 
                 onClick={() => setView('map')}
-                className="bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-lg py-4 px-6 rounded-2xl flex items-center justify-between shadow-lg shadow-indigo-600/20 transition-all transform hover:-translate-y-0.5 active:translate-y-0"
+                className="bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-extrabold text-lg py-4 px-6 rounded-2xl flex items-center justify-between shadow-glow-indigo transition-all transform hover:-translate-y-1 active:translate-y-0"
               >
-                <div className="flex items-center gap-3">
-                  <Map size={24} />
+                <div className="flex items-center gap-3.5">
+                  <div className="bg-white/20 p-2 rounded-xl">
+                    <Map size={24} />
+                  </div>
                   <span>Start Akshar Path</span>
                 </div>
-                <ChevronRight size={20} />
+                <ChevronRight size={22} />
               </button>
 
               <button 
                 onClick={() => setView('games')}
-                className="bg-purple-500 hover:bg-purple-600 text-white font-extrabold text-lg py-4 px-6 rounded-2xl flex items-center justify-between shadow-lg shadow-purple-500/20 transition-all transform hover:-translate-y-0.5 active:translate-y-0"
+                className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-extrabold text-lg py-4 px-6 rounded-2xl flex items-center justify-between shadow-glow-purple transition-all transform hover:-translate-y-1 active:translate-y-0"
               >
-                <div className="flex items-center gap-3">
-                  <Gamepad2 size={24} />
+                <div className="flex items-center gap-3.5">
+                  <div className="bg-white/20 p-2 rounded-xl">
+                    <Gamepad2 size={24} />
+                  </div>
                   <span>Interactive Game Zone</span>
                 </div>
-                <ChevronRight size={20} />
+                <ChevronRight size={22} />
               </button>
 
               <button 
                 onClick={() => setView('sandbox')}
-                className="bg-rose-500 hover:bg-rose-600 text-white font-extrabold text-lg py-4 px-6 rounded-2xl flex items-center justify-between shadow-lg shadow-rose-500/20 transition-all transform hover:-translate-y-0.5 active:translate-y-0"
+                className="bg-gradient-to-r from-rose-500 to-pink-600 hover:from-rose-400 hover:to-pink-500 text-white font-extrabold text-lg py-4 px-6 rounded-2xl flex items-center justify-between shadow-glow-rose transition-all transform hover:-translate-y-1 active:translate-y-0"
               >
-                <div className="flex items-center gap-3">
-                  <Palette size={24} />
+                <div className="flex items-center gap-3.5">
+                  <div className="bg-white/20 p-2 rounded-xl">
+                    <Palette size={24} />
+                  </div>
                   <span>Creative Sandbox</span>
                 </div>
-                <ChevronRight size={20} />
+                <ChevronRight size={22} />
               </button>
 
               <button 
                 onClick={() => setView('stickers')}
-                className="bg-emerald-500 hover:bg-emerald-600 text-white font-extrabold text-lg py-4 px-6 rounded-2xl flex items-center justify-between shadow-lg shadow-emerald-500/20 transition-all transform hover:-translate-y-0.5 active:translate-y-0"
+                className="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-extrabold text-lg py-4 px-6 rounded-2xl flex items-center justify-between shadow-glow-emerald transition-all transform hover:-translate-y-1 active:translate-y-0"
               >
-                <div className="flex items-center gap-3">
-                  <Sparkles size={24} />
+                <div className="flex items-center gap-3.5">
+                  <div className="bg-white/20 p-2 rounded-xl">
+                    <Sparkles size={24} />
+                  </div>
                   <span>Sticker Shop</span>
                 </div>
-                <ChevronRight size={20} />
+                <ChevronRight size={22} />
               </button>
             </div>
 
-            {/* PWA Promo Install Prompt */}
-            {installPrompt && (
-              <div className="mt-8 mx-auto bg-gradient-to-tr from-indigo-500 to-pink-500 max-w-sm rounded-2xl p-4 border border-indigo-400 shadow-md flex items-center justify-between text-left text-white animate-float">
-                <div className="flex items-center gap-3">
-                  <div className="bg-white/20 p-2 rounded-xl">
-                    <Sparkles size={20} className="text-white" />
+            {/* PWA Promo Install Banner */}
+            {!isStandalone && !installDismissed && (
+              <div className="mt-6 mx-auto bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-500 max-w-sm rounded-3xl p-5 border border-indigo-400/30 shadow-lg flex flex-col gap-3 text-left text-white animate-float relative">
+                <button
+                  onClick={() => {
+                    setInstallDismissed(true);
+                    localStorage.setItem('guj_install_dismissed', 'true');
+                  }}
+                  className="absolute top-2 right-2 text-white/70 hover:text-white p-1 rounded-full text-xs min-h-[44px] min-w-[44px] flex items-center justify-center"
+                  aria-label="Dismiss install card"
+                  title="Dismiss"
+                >
+                  ✕
+                </button>
+                <div className="flex items-center gap-3 pr-6">
+                  <div className="bg-white/20 p-2.5 rounded-2xl flex-shrink-0">
+                    <Sparkles size={24} className="text-white" />
                   </div>
                   <div>
-                    <h4 className="font-extrabold text-sm">Install Akshar App!</h4>
-                    <p className="text-white/80 text-xs">Run offline directly on your screen.</p>
+                    <h4 className="font-extrabold text-base">Install Akshar App</h4>
+                    <p className="text-white/80 text-xs font-medium">Practice Kakko offline anytime directly on your device screen.</p>
                   </div>
                 </div>
                 <button
-                  onClick={handleInstallClick}
-                  className="bg-white text-indigo-700 font-extrabold text-xs py-2 px-3.5 rounded-xl hover:bg-slate-100 transition shadow"
+                  onClick={triggerPwaInstall}
+                  className="w-full bg-white text-indigo-700 font-extrabold text-sm py-3 px-4 rounded-2xl hover:bg-slate-100 transition shadow-md flex items-center justify-center gap-2 min-h-[44px]"
                 >
-                  Install
+                  <Download size={18} />
+                  <span>Install App Now</span>
                 </button>
               </div>
             )}
@@ -1600,12 +1680,12 @@ export default function App() {
                   const alignment = idx % 2 === 0 ? 'flex-row' : 'flex-row-reverse';
                   const translateOffset = idx % 2 === 0 ? 'translate-x-6' : '-translate-x-6';
                   
-                  let stoneStyle = "bg-white border-slate-200 text-slate-700 shadow-md hover:scale-105 active:scale-95";
+                  let stoneStyle = "bg-white border-slate-200 text-slate-800 shadow-md hover:scale-105 active:scale-95";
                   let badgeIcon = null;
                   
                   if (isLocked) {
-                    stoneStyle = "bg-slate-200/90 border-slate-300 text-slate-400 cursor-not-allowed opacity-80";
-                    badgeIcon = <Lock size={12} className="text-slate-400" />;
+                    stoneStyle = "bg-slate-200 border-slate-300 text-slate-600 cursor-not-allowed opacity-90";
+                    badgeIcon = <Lock size={12} className="text-slate-500" />;
                   } else if (isActive) {
                     stoneStyle = "bg-indigo-600 border-indigo-700 text-white scale-110 shadow-lg shadow-indigo-600/30 animate-bounce-slow cursor-pointer ring-4 ring-indigo-100";
                     badgeIcon = <Sparkles size={12} className="text-white" />;
@@ -1626,9 +1706,9 @@ export default function App() {
                           setView('learn');
                           playSound('waypoint');
                         }}
-                        className={`w-16 h-16 rounded-full flex flex-col justify-center items-center font-extrabold text-2xl border-4 transition-all duration-300 relative ${stoneStyle}`}
+                        className={`w-16 h-16 rounded-full flex flex-col justify-center items-center text-2xl border-4 transition-all duration-300 relative ${stoneStyle}`}
                       >
-                        <span>{item.letter}</span>
+                        <span className="font-gujarati text-2xl">{item.letter}</span>
                         {badgeIcon && (
                           <div className="absolute -top-1 -right-1 bg-slate-800 rounded-full p-1 border-2 border-white shadow-sm flex items-center justify-center">
                             {badgeIcon}
@@ -1672,9 +1752,10 @@ export default function App() {
                       key={item.id}
                       disabled={isLocked}
                       onClick={() => setCurrentLessonIndex(idx)}
-                      className={`w-8 h-8 rounded-lg font-bold flex justify-center items-center border transition-all flex-shrink-0 text-sm ${currentLessonIndex === idx ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm scale-105' : isLocked ? 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed opacity-60' : 'bg-white text-slate-600 border-slate-200'}`}
+                      aria-label={`Lesson ${item.english}`}
+                      className={`min-w-[44px] min-h-[44px] rounded-xl font-bold flex justify-center items-center border transition-all flex-shrink-0 text-sm ${currentLessonIndex === idx ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm scale-105' : isLocked ? 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed opacity-60' : 'bg-white text-slate-600 border-slate-200'}`}
                     >
-                      {item.letter}
+                      <span className="font-gujarati">{item.letter}</span>
                     </button>
                   );
                 })}
@@ -1685,7 +1766,7 @@ export default function App() {
             <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm flex-1 flex flex-col items-center">
               <div className="flex justify-between items-center w-full mb-3">
                 <div className="flex items-center gap-2">
-                  <span className="text-4xl font-extrabold text-indigo-600">{currentLesson.letter}</span>
+                  <span className="text-4xl font-bold font-gujarati text-indigo-600">{currentLesson.letter}</span>
                   <span className="text-slate-400 font-bold text-lg">({currentLesson.english})</span>
                 </div>
                 
@@ -2206,8 +2287,10 @@ export default function App() {
 
             {/* Match Game card */}
             <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm flex flex-col items-center max-w-sm mx-auto w-full">
-              <div className="w-20 h-20 bg-indigo-50 text-indigo-600 rounded-3xl flex justify-center items-center font-bold text-5xl mb-4 shadow-sm animate-bounce-slow">
-                {sessionCurriculum[matchIndex].letter}
+              <div className="bg-indigo-50 border-2 border-indigo-200 rounded-3xl p-6 mb-6 flex justify-center items-center shadow-inner">
+                <span className="text-7xl font-bold font-gujarati text-indigo-600 animate-bounce-slow">
+                  {sessionCurriculum[matchIndex].letter}
+                </span>
               </div>
               <h2 className="text-2xl font-extrabold text-slate-800 mb-2">Find the matching card!</h2>
               <p className="text-slate-500 mb-6 font-medium">Which picture starts with the Gujarati sound above?</p>
@@ -2277,8 +2360,10 @@ export default function App() {
 
             {/* Quiz selection card */}
             <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm flex flex-col items-center max-w-sm mx-auto w-full">
-              <div className="w-16 h-16 bg-rose-50 text-rose-500 rounded-2xl flex justify-center items-center font-bold text-4xl mb-4">
-                {sessionCurriculum[quizIndex].letter}
+              <div className="bg-indigo-50 border-2 border-indigo-200 rounded-3xl p-6 mb-6 flex justify-center items-center shadow-inner">
+                <span className="text-7xl font-bold font-gujarati text-indigo-600">
+                  {sessionCurriculum[quizIndex].letter}
+                </span>
               </div>
               <h2 className="text-2xl font-extrabold text-slate-800 mb-2">Which letter is this?</h2>
               <p className="text-slate-500 mb-6 font-medium">Identify the correct phonetic sound for the Gujarati character.</p>
@@ -2674,9 +2759,10 @@ export default function App() {
                   </div>
                   <button
                     onClick={() => setSoundEnabled(!soundEnabled)}
-                    className={`w-12 h-6 rounded-full transition-all relative ${soundEnabled ? 'bg-indigo-600' : 'bg-slate-300'}`}
+                    aria-label="Toggle App Sound Effects"
+                    className={`min-w-[44px] min-h-[44px] px-1 rounded-full transition-all relative flex items-center ${soundEnabled ? 'bg-indigo-600 justify-end' : 'bg-slate-300 justify-start'}`}
                   >
-                    <div className={`w-5 h-5 rounded-full bg-white absolute top-0.5 transition-all ${soundEnabled ? 'right-0.5' : 'left-0.5'}`} />
+                    <div className="w-5 h-5 rounded-full bg-white transition-all shadow-sm" />
                   </button>
                 </div>
 
@@ -2692,9 +2778,10 @@ export default function App() {
                       setEditorMode(next);
                       localStorage.setItem('guj_editor_mode', next);
                     }}
-                    className={`w-12 h-6 rounded-full transition-all relative ${editorMode ? 'bg-amber-500' : 'bg-slate-300'}`}
+                    aria-label="Toggle Developer Waypoint Editor"
+                    className={`min-w-[44px] min-h-[44px] px-1 rounded-full transition-all relative flex items-center ${editorMode ? 'bg-amber-500 justify-end' : 'bg-slate-300 justify-start'}`}
                   >
-                    <div className={`w-5 h-5 rounded-full bg-white absolute top-0.5 transition-all ${editorMode ? 'right-0.5' : 'left-0.5'}`} />
+                    <div className="w-5 h-5 rounded-full bg-white transition-all shadow-sm" />
                   </button>
                 </div>
 
@@ -2710,9 +2797,10 @@ export default function App() {
                       setParentUnlockAll(next);
                       localStorage.setItem('guj_parent_unlock_all', next);
                     }}
-                    className={`w-12 h-6 rounded-full transition-all relative ${parentUnlockAll ? 'bg-indigo-600' : 'bg-slate-300'}`}
+                    aria-label="Toggle Unlock All Tracing Letters"
+                    className={`min-w-[44px] min-h-[44px] px-1 rounded-full transition-all relative flex items-center ${parentUnlockAll ? 'bg-indigo-600 justify-end' : 'bg-slate-300 justify-start'}`}
                   >
-                    <div className={`w-5 h-5 rounded-full bg-white absolute top-0.5 transition-all ${parentUnlockAll ? 'right-0.5' : 'left-0.5'}`} />
+                    <div className="w-5 h-5 rounded-full bg-white transition-all shadow-sm" />
                   </button>
                 </div>
 
@@ -2724,7 +2812,8 @@ export default function App() {
                   </div>
                   <button
                     onClick={clearAllCustomWaypoints}
-                    className="bg-rose-50 hover:bg-rose-100 text-rose-600 font-bold text-xs py-2.5 px-4 rounded-xl border border-rose-200 transition"
+                    aria-label="Revert all custom waypoints"
+                    className="min-w-[44px] min-h-[44px] bg-rose-50 hover:bg-rose-100 text-rose-600 font-bold text-xs py-2.5 px-4 rounded-xl border border-rose-200 transition flex items-center justify-center"
                   >
                     Revert All
                   </button>
@@ -2738,7 +2827,8 @@ export default function App() {
                   </div>
                   <button
                     onClick={exportAllCustomWaypoints}
-                    className="bg-indigo-50 hover:bg-indigo-100 text-indigo-600 font-bold text-xs py-2.5 px-4 rounded-xl border border-indigo-200 transition"
+                    aria-label="Export curriculum JSON"
+                    className="min-w-[44px] min-h-[44px] bg-indigo-50 hover:bg-indigo-100 text-indigo-600 font-bold text-xs py-2.5 px-4 rounded-xl border border-indigo-200 transition flex items-center justify-center"
                   >
                     Export JSON
                   </button>
@@ -2765,7 +2855,7 @@ export default function App() {
                       const item = sessionCurriculum.find(l => l.id === id);
                       return item ? (
                         <div key={id} className="bg-white border border-slate-200 px-3 py-1.5 rounded-xl font-bold text-sm text-slate-800 flex items-center gap-1.5 shadow-sm">
-                          <span>{item.letter}</span>
+                          <span className="font-gujarati">{item.letter}</span>
                           <span className="text-xs text-slate-400">({item.english})</span>
                         </div>
                       ) : null;
@@ -2812,10 +2902,15 @@ export default function App() {
 
       {/* Footer Nav Bar */}
       {view !== 'dashboard' && (
-        <nav className="bg-white border-t border-slate-100 px-1 py-2 flex justify-around items-center sticky bottom-0 z-30 shadow-md">
+        <nav 
+          aria-label="Main Navigation" 
+          className="mx-3 mb-2 rounded-2xl bg-white/90 backdrop-blur-xl border border-slate-200/80 shadow-xl px-2 py-1.5 flex justify-around items-center sticky bottom-2 z-30"
+        >
           <button 
             onClick={() => setView('home')} 
-            className={`flex flex-col items-center gap-1 py-1.5 px-2.5 rounded-xl transition ${view === 'home' ? 'text-indigo-600 font-bold' : 'text-slate-400'}`}
+            aria-label="Home view"
+            aria-current={view === 'home' ? 'page' : undefined}
+            className={`min-w-[44px] min-h-[44px] flex flex-col items-center justify-center gap-0.5 px-3 py-1.5 rounded-xl transition-all ${view === 'home' ? 'bg-indigo-600 text-white font-extrabold shadow-md scale-105' : 'text-slate-500 hover:text-slate-700'}`}
           >
             <Home size={18} />
             <span className="text-xxs font-bold">Home</span>
@@ -2823,7 +2918,9 @@ export default function App() {
           
           <button 
             onClick={() => setView('map')} 
-            className={`flex flex-col items-center gap-1 py-1.5 px-2.5 rounded-xl transition ${view === 'map' || view === 'learn' ? 'text-indigo-600 font-bold' : 'text-slate-400'}`}
+            aria-label="Trace lessons map"
+            aria-current={view === 'map' || view === 'learn' ? 'page' : undefined}
+            className={`min-w-[44px] min-h-[44px] flex flex-col items-center justify-center gap-0.5 px-3 py-1.5 rounded-xl transition-all ${view === 'map' || view === 'learn' ? 'bg-indigo-600 text-white font-extrabold shadow-md scale-105' : 'text-slate-500 hover:text-slate-700'}`}
           >
             <Map size={18} />
             <span className="text-xxs font-bold">Trace</span>
@@ -2831,7 +2928,9 @@ export default function App() {
 
           <button 
             onClick={() => setView('games')} 
-            className={`flex flex-col items-center gap-1 py-1.5 px-2.5 rounded-xl transition ${['games', 'match', 'quiz', 'phonics_game', 'memory_match'].includes(view) ? 'text-indigo-600 font-bold' : 'text-slate-400'}`}
+            aria-label="Interactive games"
+            aria-current={['games', 'match', 'quiz', 'phonics_game', 'memory_match'].includes(view) ? 'page' : undefined}
+            className={`min-w-[44px] min-h-[44px] flex flex-col items-center justify-center gap-0.5 px-3 py-1.5 rounded-xl transition-all ${['games', 'match', 'quiz', 'phonics_game', 'memory_match'].includes(view) ? 'bg-indigo-600 text-white font-extrabold shadow-md scale-105' : 'text-slate-500 hover:text-slate-700'}`}
           >
             <Gamepad2 size={18} />
             <span className="text-xxs font-bold">Games</span>
@@ -2839,7 +2938,9 @@ export default function App() {
 
           <button 
             onClick={() => setView('sandbox')} 
-            className={`flex flex-col items-center gap-1 py-1.5 px-2.5 rounded-xl transition ${view === 'sandbox' ? 'text-indigo-600 font-bold' : 'text-slate-400'}`}
+            aria-label="Creative drawing sandbox"
+            aria-current={view === 'sandbox' ? 'page' : undefined}
+            className={`min-w-[44px] min-h-[44px] flex flex-col items-center justify-center gap-0.5 px-3 py-1.5 rounded-xl transition-all ${view === 'sandbox' ? 'bg-indigo-600 text-white font-extrabold shadow-md scale-105' : 'text-slate-500 hover:text-slate-700'}`}
           >
             <Palette size={18} />
             <span className="text-xxs font-bold">Sandbox</span>
@@ -2847,12 +2948,71 @@ export default function App() {
 
           <button 
             onClick={() => setView('stickers')} 
-            className={`flex flex-col items-center gap-1 py-1.5 px-2.5 rounded-xl transition ${view === 'stickers' ? 'text-indigo-600 font-bold' : 'text-slate-400'}`}
+            aria-label="Sticker shop"
+            aria-current={view === 'stickers' ? 'page' : undefined}
+            className={`min-w-[44px] min-h-[44px] flex flex-col items-center justify-center gap-0.5 px-3 py-1.5 rounded-xl transition-all ${view === 'stickers' ? 'bg-indigo-600 text-white font-extrabold shadow-md scale-105' : 'text-slate-500 hover:text-slate-700'}`}
           >
             <Sparkles size={18} />
             <span className="text-xxs font-bold">Shop</span>
           </button>
         </nav>
+      )}
+
+      {/* PWA Installation Instructions Modal */}
+      {showInstallModal && (
+        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl p-6 max-w-sm w-full border border-slate-100 shadow-2xl text-left animate-fluentSlideIn">
+            <div className="flex justify-between items-center mb-4">
+              <div className="flex items-center gap-2">
+                <div className="bg-indigo-100 text-indigo-600 p-2 rounded-xl">
+                  <Download size={20} />
+                </div>
+                <h3 className="font-extrabold text-lg text-slate-800">Install Akshar App</h3>
+              </div>
+              <button 
+                onClick={() => setShowInstallModal(false)}
+                className="text-slate-400 hover:text-slate-600 font-bold p-1 text-sm rounded-lg min-h-[44px] min-w-[44px] flex items-center justify-center"
+                aria-label="Close modal"
+              >
+                ✕
+              </button>
+            </div>
+
+            <p className="text-slate-600 text-sm font-medium mb-4">
+              Add Akshar Gujarati Learner directly to your device home screen for 100% offline access:
+            </p>
+
+            <div className="space-y-3 mb-6 font-sans">
+              <div className="bg-slate-50 border border-slate-100 p-3 rounded-2xl">
+                <h4 className="font-extrabold text-xs text-indigo-600 uppercase tracking-wide mb-1">📱 iOS (iPhone / iPad)</h4>
+                <p className="text-xs text-slate-600 font-medium">
+                  Tap the <strong>Share button</strong> in Safari, then scroll down and select <strong>'Add to Home Screen'</strong>.
+                </p>
+              </div>
+
+              <div className="bg-slate-50 border border-slate-100 p-3 rounded-2xl">
+                <h4 className="font-extrabold text-xs text-emerald-600 uppercase tracking-wide mb-1">🤖 Android & Chrome</h4>
+                <p className="text-xs text-slate-600 font-medium">
+                  Tap the browser menu <strong>(⋮)</strong>, then select <strong>'Install app'</strong> or <strong>'Add to Home screen'</strong>.
+                </p>
+              </div>
+
+              <div className="bg-slate-50 border border-slate-100 p-3 rounded-2xl">
+                <h4 className="font-extrabold text-xs text-purple-600 uppercase tracking-wide mb-1">💻 Desktop (Chrome / Edge)</h4>
+                <p className="text-xs text-slate-600 font-medium">
+                  Click the <strong>Install icon</strong> in the right corner of your address bar.
+                </p>
+              </div>
+            </div>
+
+            <button
+              onClick={() => setShowInstallModal(false)}
+              className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold py-3 px-4 rounded-2xl text-sm transition shadow-md min-h-[44px]"
+            >
+              Got it!
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );

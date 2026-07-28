@@ -13,7 +13,7 @@ export default defineConfig({
         short_name: 'Gujarati Kid',
         description: 'PWA for Kids to Learn and Trace Gujarati Alphabets',
         theme_color: '#4f46e5',
-        background_color: '#ffffff',
+        background_color: '#f8fafc',
         display: 'standalone',
         orientation: 'portrait',
         icons: [
