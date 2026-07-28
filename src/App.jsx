@@ -1544,11 +1544,11 @@ export default function App() {
       </header>
 
       {/* Main View Area */}
-      <main className="flex-1 flex flex-col p-4 bg-slate-50 overflow-y-auto">
+      <main className="flex-1 flex flex-col p-4 bg-kids-pattern overflow-y-auto">
         {view === 'home' && (
           <div className="flex-1 flex flex-col justify-center py-6 text-center">
             <div className="mb-8">
-              <div className="w-24 h-24 mx-auto rounded-3xl overflow-hidden shadow-lg mb-4 border-4 border-white animate-bounce-slow bg-gradient-to-tr from-indigo-600 via-purple-600 to-pink-500 flex justify-center items-center">
+              <div className="w-24 h-24 mx-auto rounded-3xl overflow-hidden shadow-xl mb-4 border-4 border-white animate-bounce-slow bg-gradient-to-tr from-indigo-600 via-purple-600 to-pink-500 flex justify-center items-center">
                 <span className="text-white font-bold text-5xl font-gujarati">ક</span>
               </div>
               <h1 className="text-3xl font-extrabold text-slate-800 mb-2">Kem Chho! 👋</h1>
@@ -1559,10 +1559,10 @@ export default function App() {
             <div className="grid gap-4 max-w-sm w-full mx-auto px-4">
               <button 
                 onClick={() => setView('map')}
-                className="bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-extrabold text-lg py-4 px-6 rounded-2xl flex items-center justify-between shadow-glow-indigo transition-all transform hover:-translate-y-1 active:translate-y-0"
+                className="btn-tactile-indigo text-white font-extrabold text-lg py-4 px-6 rounded-3xl flex items-center justify-between shadow-lg cursor-pointer"
               >
                 <div className="flex items-center gap-3.5">
-                  <div className="bg-white/20 p-2 rounded-xl">
+                  <div className="bg-white/20 p-2.5 rounded-2xl">
                     <Map size={24} />
                   </div>
                   <span>Start Akshar Path</span>
@@ -1572,10 +1572,10 @@ export default function App() {
 
               <button 
                 onClick={() => setView('games')}
-                className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-extrabold text-lg py-4 px-6 rounded-2xl flex items-center justify-between shadow-glow-purple transition-all transform hover:-translate-y-1 active:translate-y-0"
+                className="btn-tactile-amber text-white font-extrabold text-lg py-4 px-6 rounded-3xl flex items-center justify-between shadow-lg cursor-pointer"
               >
                 <div className="flex items-center gap-3.5">
-                  <div className="bg-white/20 p-2 rounded-xl">
+                  <div className="bg-white/20 p-2.5 rounded-2xl">
                     <Gamepad2 size={24} />
                   </div>
                   <span>Interactive Game Zone</span>
@@ -1585,10 +1585,10 @@ export default function App() {
 
               <button 
                 onClick={() => setView('sandbox')}
-                className="bg-gradient-to-r from-rose-500 to-pink-600 hover:from-rose-400 hover:to-pink-500 text-white font-extrabold text-lg py-4 px-6 rounded-2xl flex items-center justify-between shadow-glow-rose transition-all transform hover:-translate-y-1 active:translate-y-0"
+                className="btn-tactile-rose text-white font-extrabold text-lg py-4 px-6 rounded-3xl flex items-center justify-between shadow-lg cursor-pointer"
               >
                 <div className="flex items-center gap-3.5">
-                  <div className="bg-white/20 p-2 rounded-xl">
+                  <div className="bg-white/20 p-2.5 rounded-2xl">
                     <Palette size={24} />
                   </div>
                   <span>Creative Sandbox</span>
@@ -1598,10 +1598,10 @@ export default function App() {
 
               <button 
                 onClick={() => setView('stickers')}
-                className="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-extrabold text-lg py-4 px-6 rounded-2xl flex items-center justify-between shadow-glow-emerald transition-all transform hover:-translate-y-1 active:translate-y-0"
+                className="btn-tactile-emerald text-white font-extrabold text-lg py-4 px-6 rounded-3xl flex items-center justify-between shadow-lg cursor-pointer"
               >
                 <div className="flex items-center gap-3.5">
-                  <div className="bg-white/20 p-2 rounded-xl">
+                  <div className="bg-white/20 p-2.5 rounded-2xl">
                     <Sparkles size={24} />
                   </div>
                   <span>Sticker Shop</span>
