@@ -20,7 +20,10 @@ import {
   Map,
   Smile,
   Gamepad2,
-  Download
+  Download,
+  Printer,
+  FileText,
+  CheckSquare
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { CURRICULUM } from './curriculum';
@@ -70,6 +73,16 @@ const STICKERS = [
   { id: 'st6', emoji: '🐼', label: 'Panda', cost: 300 },
   { id: 'st7', emoji: '🍉', label: 'Tarbuch (Watermelon)', cost: 350 },
   { id: 'st8', emoji: '🎈', label: 'Fuggo (Balloon)', cost: 400 }
+];
+
+const WORKSHEET_GROUPS = [
+  { id: 'all', name: 'All Letters (૩૪)', filter: () => true },
+  { id: 'guttural', name: 'Guttural / કંઠ્ય (ક-ઙ)', filter: (item) => ['ka', 'kha', 'ga', 'gha', 'nga'].includes(item.id) },
+  { id: 'palatal', name: 'Palatal / તાલવ્ય (ચ-ઞ)', filter: (item) => ['cha', 'chha', 'ja', 'jha', 'nya'].includes(item.id) },
+  { id: 'retroflex', name: 'Retroflex / મૂર્ધન્ય (ટ-ણ)', filter: (item) => ['ta', 'tha', 'da', 'dha', 'ana'].includes(item.id) },
+  { id: 'dental', name: 'Dental / દંત્ય (ત-ન)', filter: (item) => ['ta2', 'tha2', 'da2', 'dha2', 'na'].includes(item.id) },
+  { id: 'labial', name: 'Labial / ઓષ્ઠ્ય (પ-મ)', filter: (item) => ['pa', 'pha', 'ba', 'bha', 'ma'].includes(item.id) },
+  { id: 'sibilants', name: 'Semi-vowels & Sibilants (ય-જ્ઞ)', filter: (item) => ['ya', 'ra', 'la', 'va', 'sha', 'ssa', 'sa', 'ha', 'la2', 'ksha', 'gna'].includes(item.id) }
 ];
 
 // Helper to load curriculum with local overrides from localStorage
@@ -190,6 +203,12 @@ export default function App() {
 
   // Parent Lock Progression Toggle (Idea 2)
   const [parentUnlockAll, setParentUnlockAll] = useState(() => localStorage.getItem('guj_parent_unlock_all') === 'true');
+
+  // Printable Activity Worksheets States (Roadmap Feature 4)
+  const [worksheetMode, setWorksheetMode] = useState('single'); // 'single' | 'grid' | 'match'
+  const [selectedWorksheetLetter, setSelectedWorksheetLetter] = useState('ka');
+  const [worksheetGroup, setWorksheetGroup] = useState('all');
+  const [worksheetFromView, setWorksheetFromView] = useState('dashboard');
 
   const currentLesson = sessionCurriculum[currentLessonIndex];
 
@@ -1608,6 +1627,22 @@ export default function App() {
                 </div>
                 <ChevronRight size={22} />
               </button>
+
+              <button 
+                onClick={() => {
+                  setWorksheetFromView('home');
+                  setView('worksheets');
+                }}
+                className="btn-tactile-indigo text-white font-extrabold text-lg py-4 px-6 rounded-3xl flex items-center justify-between shadow-lg cursor-pointer"
+              >
+                <div className="flex items-center gap-3.5">
+                  <div className="bg-white/20 p-2.5 rounded-2xl">
+                    <Printer size={24} />
+                  </div>
+                  <span>Printable Worksheets</span>
+                </div>
+                <ChevronRight size={22} />
+              </button>
             </div>
 
             {/* PWA Promo Install Banner */}
@@ -1773,13 +1808,31 @@ export default function App() {
                   <span className="text-slate-400 font-bold text-lg">({currentLesson.english})</span>
                 </div>
                 
-                <button 
-                  onClick={handleLessonSpeech}
-                  className="bg-indigo-50 text-indigo-600 hover:bg-indigo-100 p-3 rounded-2xl transition shadow-sm"
-                  title="Listen Pronunciation"
-                >
-                  <Volume2 size={22} className="fill-indigo-100" />
-                </button>
+                <div className="flex items-center gap-2">
+                  <button 
+                    onClick={() => {
+                      setSelectedWorksheetLetter(currentLesson.id);
+                      setWorksheetMode('single');
+                      setWorksheetFromView('learn');
+                      setView('worksheets');
+                    }}
+                    className="bg-indigo-50 hover:bg-indigo-100 text-indigo-600 p-2.5 rounded-2xl transition shadow-sm flex items-center gap-1.5 font-bold text-xs"
+                    title="Print Practice Worksheet"
+                    aria-label="Print Practice Worksheet"
+                  >
+                    <Printer size={18} />
+                    <span className="hidden sm:inline">Sheet</span>
+                  </button>
+
+                  <button 
+                    onClick={handleLessonSpeech}
+                    className="bg-indigo-50 text-indigo-600 hover:bg-indigo-100 p-2.5 rounded-2xl transition shadow-sm flex items-center justify-center min-w-[44px] min-h-[44px]"
+                    title="Listen Pronunciation"
+                    aria-label="Listen Pronunciation"
+                  >
+                    <Volume2 size={20} className="fill-indigo-100" />
+                  </button>
+                </div>
               </div>
 
               {/* Word association card */}
@@ -2695,6 +2748,68 @@ export default function App() {
                 ))}
               </div>
 
+              {/* Printable Worksheets Studio Card */}
+              <div className="bg-gradient-to-r from-indigo-50/90 to-purple-50/90 border border-indigo-100 rounded-2xl p-5 flex flex-col gap-3.5">
+                <div className="flex items-center gap-3">
+                  <div className="bg-indigo-600 text-white w-11 h-11 rounded-2xl flex items-center justify-center shadow-md">
+                    <Printer size={22} />
+                  </div>
+                  <div>
+                    <h4 className="font-extrabold text-base text-slate-800">Printable Activity Worksheets</h4>
+                    <p className="text-slate-500 text-xs font-medium">Download & print handwriting practice sheets for offline study</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-3 gap-2">
+                  <button
+                    onClick={() => {
+                      setWorksheetMode('single');
+                      setWorksheetFromView('dashboard');
+                      setView('worksheets');
+                    }}
+                    className="bg-white hover:bg-slate-50 border border-indigo-100 rounded-xl p-2.5 flex flex-col items-center gap-1 text-center shadow-xs transition"
+                  >
+                    <FileText size={16} className="text-indigo-600" />
+                    <span className="text-xxs font-extrabold text-slate-700">Single Letter</span>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setWorksheetMode('grid');
+                      setWorksheetFromView('dashboard');
+                      setView('worksheets');
+                    }}
+                    className="bg-white hover:bg-slate-50 border border-indigo-100 rounded-xl p-2.5 flex flex-col items-center gap-1 text-center shadow-xs transition"
+                  >
+                    <Grid size={16} className="text-purple-600" />
+                    <span className="text-xxs font-extrabold text-slate-700">Kakko Grid</span>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setWorksheetMode('match');
+                      setWorksheetFromView('dashboard');
+                      setView('worksheets');
+                    }}
+                    className="bg-white hover:bg-slate-50 border border-indigo-100 rounded-xl p-2.5 flex flex-col items-center gap-1 text-center shadow-xs transition"
+                  >
+                    <CheckSquare size={16} className="text-emerald-600" />
+                    <span className="text-xxs font-extrabold text-slate-700">Match Sheet</span>
+                  </button>
+                </div>
+
+                <button
+                  onClick={() => {
+                    setWorksheetFromView('dashboard');
+                    setView('worksheets');
+                  }}
+                  className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs py-2.5 px-4 rounded-xl flex items-center justify-center gap-2 shadow-sm transition"
+                >
+                  <Printer size={15} />
+                  <span>Open Printable Studio</span>
+                </button>
+              </div>
+
               {/* Parents config settings */}
               <div className="bg-slate-50 border border-slate-100 rounded-2xl p-5 flex flex-col gap-4">
                 <h4 className="font-extrabold text-sm text-slate-700 uppercase tracking-wider">Parental Controls & Settings</h4>
@@ -2901,10 +3016,321 @@ export default function App() {
             </div>
           </div>
         )}
+
+        {view === 'worksheets' && (
+          <div className="flex-1 flex flex-col">
+            {/* Top Interactive Controls (Hidden during print) */}
+            <div className="no-print print-hide mb-4 flex flex-col gap-3">
+              <div className="flex justify-between items-center">
+                <button
+                  onClick={() => setView(worksheetFromView || 'dashboard')}
+                  className="font-bold text-slate-500 hover:text-slate-700 bg-white border border-slate-200 px-4 py-2 rounded-xl text-sm shadow-sm flex items-center gap-1.5"
+                >
+                  <span>← Back</span>
+                </button>
+                <h3 className="font-extrabold text-slate-800 text-lg flex items-center gap-2">
+                  <span>🖨️ Printable Worksheets</span>
+                </h3>
+                <button
+                  onClick={() => window.print()}
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold px-4 py-2 rounded-xl flex items-center gap-2 shadow-sm transition active:scale-95 text-sm"
+                  title="Print or Save as PDF"
+                >
+                  <Printer size={16} />
+                  <span>Print</span>
+                </button>
+              </div>
+
+              {/* Mode Selection Tabs */}
+              <div className="flex bg-slate-100 p-1 rounded-2xl gap-1">
+                <button
+                  onClick={() => setWorksheetMode('single')}
+                  className={`flex-1 py-2 px-2.5 rounded-xl font-extrabold text-xs transition-all flex items-center justify-center gap-1.5 ${worksheetMode === 'single' ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
+                >
+                  <FileText size={14} />
+                  <span>Single Letter</span>
+                </button>
+                <button
+                  onClick={() => setWorksheetMode('grid')}
+                  className={`flex-1 py-2 px-2.5 rounded-xl font-extrabold text-xs transition-all flex items-center justify-center gap-1.5 ${worksheetMode === 'grid' ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
+                >
+                  <Grid size={14} />
+                  <span>Kakko Grid</span>
+                </button>
+                <button
+                  onClick={() => setWorksheetMode('match')}
+                  className={`flex-1 py-2 px-2.5 rounded-xl font-extrabold text-xs transition-all flex items-center justify-center gap-1.5 ${worksheetMode === 'match' ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
+                >
+                  <CheckSquare size={14} />
+                  <span>Match Activity</span>
+                </button>
+              </div>
+
+              {/* Category & Letter Selection (For Single Letter and Match modes) */}
+              {worksheetMode !== 'grid' && (
+                <div className="bg-white border border-slate-100 rounded-2xl p-3 flex flex-col gap-2.5 shadow-xs">
+                  {/* Category Pills */}
+                  <div className="flex gap-1.5 overflow-x-auto no-scrollbar pb-1">
+                    {WORKSHEET_GROUPS.map(grp => (
+                      <button
+                        key={grp.id}
+                        onClick={() => setWorksheetGroup(grp.id)}
+                        className={`text-xxs font-bold px-2.5 py-1 rounded-full whitespace-nowrap transition ${worksheetGroup === grp.id ? 'bg-indigo-600 text-white shadow-xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+                      >
+                        {grp.name}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Letter Carousel (for Single mode) */}
+                  {worksheetMode === 'single' && (
+                    <div className="flex gap-1.5 overflow-x-auto no-scrollbar pt-1">
+                      {sessionCurriculum
+                        .filter(WORKSHEET_GROUPS.find(g => g.id === worksheetGroup)?.filter || (() => true))
+                        .map(item => (
+                          <button
+                            key={item.id}
+                            onClick={() => setSelectedWorksheetLetter(item.id)}
+                            className={`min-w-[40px] h-10 rounded-xl font-bold flex justify-center items-center border transition-all text-sm flex-shrink-0 ${selectedWorksheetLetter === item.id ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm scale-105' : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'}`}
+                          >
+                            <span className="font-gujarati">{item.letter}</span>
+                          </button>
+                        ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Printable Paper Area */}
+            {(() => {
+              const activeItem = sessionCurriculum.find(l => l.id === selectedWorksheetLetter) || sessionCurriculum[0];
+              
+              if (worksheetMode === 'single') {
+                return (
+                  <div id="printable-worksheet" className="worksheet-preview worksheet-printable-area p-6 bg-white border border-slate-200 rounded-3xl text-left flex flex-col gap-5 text-slate-900">
+                    {/* Header bar on sheet */}
+                    <div className="border-b-2 border-slate-800 pb-3 flex justify-between items-end">
+                      <div>
+                        <span className="text-xxs font-black tracking-widest uppercase text-indigo-700">Akshar Gujarati Learner • Handwriting Series</span>
+                        <h2 className="text-xl font-black text-slate-900 leading-tight">Kakko Tracing Worksheet: <span className="font-gujarati text-2xl">{activeItem.letter}</span> ({activeItem.english})</h2>
+                      </div>
+                      <div className="text-right text-xs font-bold text-slate-700">
+                        <div>Name: <span className="inline-block w-28 border-b border-slate-400 border-dashed"></span></div>
+                        <div className="mt-1">Date: <span className="inline-block w-20 border-b border-slate-400 border-dashed"></span></div>
+                      </div>
+                    </div>
+
+                    {/* Hero Letter & Visual Association Banner */}
+                    <div className="grid grid-cols-3 gap-3 bg-slate-50 border-2 border-slate-200 rounded-2xl p-4">
+                      {/* Left: Giant guided letter with numbered waypoints */}
+                      <div className="bg-white border border-slate-300 rounded-xl p-3 flex flex-col items-center justify-center relative shadow-xs">
+                        <span className="font-gujarati text-6xl text-slate-900 leading-none">{activeItem.letter}</span>
+                        <span className="text-xxs font-bold text-slate-500 mt-2">Stroke Guide</span>
+                      </div>
+
+                      {/* Middle: Phonics & Word Transliteration */}
+                      <div className="flex flex-col justify-center gap-1">
+                        <span className="text-xxs font-extrabold uppercase text-indigo-700 tracking-wider">Pronunciation</span>
+                        <span className="text-lg font-black text-slate-800">{activeItem.english}</span>
+                        <span className="text-xs text-slate-600 font-medium">"{PHONICS_GUIDE[activeItem.id]?.pron || ''}"</span>
+                        <div className="mt-1 bg-white px-2 py-1 rounded-lg border border-slate-200 inline-block w-fit">
+                          <span className="font-gujarati font-bold text-sm text-indigo-700 mr-1">{activeItem.word}</span>
+                          <span className="text-xs text-slate-500">({activeItem.wordEnglish})</span>
+                        </div>
+                      </div>
+
+                      {/* Right: Picture to Color */}
+                      <div className="bg-white border-2 border-dashed border-slate-300 rounded-xl p-2 flex flex-col items-center justify-center text-center">
+                        <span className="text-4xl">{activeItem.emoji}</span>
+                        <span className="text-xxs font-bold text-slate-400 mt-1">🎨 Color the picture!</span>
+                      </div>
+                    </div>
+
+                    {/* Handwriting Practice Lines */}
+                    <div className="flex flex-col gap-3">
+                      <h4 className="text-xs font-black uppercase tracking-wider text-slate-700">1. Step-by-Step Guided Strokes</h4>
+                      <div className="grid grid-cols-6 gap-2">
+                        <div className="tracing-box h-14 bg-indigo-50/50 border-indigo-200">
+                          <span className="font-gujarati text-2xl font-bold text-slate-900">{activeItem.letter}</span>
+                          <span className="absolute top-1 left-1.5 text-xxs font-bold text-indigo-600">Start</span>
+                        </div>
+                        {[1, 2, 3, 4, 5].map(i => (
+                          <div key={i} className="tracing-box h-14">
+                            <span className="font-dashed-gujarati text-2xl">{activeItem.letter}</span>
+                          </div>
+                        ))}
+                      </div>
+
+                      <h4 className="text-xs font-black uppercase tracking-wider text-slate-700 mt-2">2. Trace Over the Dashed Letters</h4>
+                      <div className="grid grid-cols-6 gap-2">
+                        {[1, 2, 3, 4, 5, 6].map(i => (
+                          <div key={i} className="tracing-box h-14">
+                            <span className="font-dashed-gujarati text-2xl">{activeItem.letter}</span>
+                          </div>
+                        ))}
+                      </div>
+
+                      <h4 className="text-xs font-black uppercase tracking-wider text-slate-700 mt-2">3. Write Independently with Starting Dots</h4>
+                      <div className="grid grid-cols-6 gap-2">
+                        <div className="tracing-box h-14">
+                          <span className="font-dashed-gujarati text-2xl">{activeItem.letter}</span>
+                        </div>
+                        <div className="tracing-box h-14">
+                          <span className="font-dashed-gujarati text-2xl">{activeItem.letter}</span>
+                        </div>
+                        {[1, 2, 3, 4].map(i => (
+                          <div key={i} className="tracing-box h-14 relative">
+                            <div className="w-1.5 h-1.5 rounded-full bg-rose-500 absolute top-2 left-2" />
+                          </div>
+                        ))}
+                      </div>
+
+                      <h4 className="text-xs font-black uppercase tracking-wider text-slate-700 mt-2">4. Vocabulary Word Writing</h4>
+                      <div className="border border-slate-300 rounded-xl p-3 bg-slate-50 flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <span className="text-2xl">{activeItem.emoji}</span>
+                          <div className="flex gap-2">
+                            <span className="font-dashed-gujarati text-xl">{activeItem.word}</span>
+                            <span className="font-dashed-gujarati text-xl">{activeItem.word}</span>
+                          </div>
+                        </div>
+                        <span className="text-xs font-bold text-slate-400">Write: ___________________</span>
+                      </div>
+                    </div>
+
+                    {/* Teacher / Parent Signature & Encouragement Footer */}
+                    <div className="mt-2 border-t border-slate-200 pt-3 flex justify-between items-center text-xs text-slate-600">
+                      <div>
+                        <span>Teacher / Parent Remarks: </span>
+                        <span className="inline-block w-48 border-b border-slate-400 border-dashed"></span>
+                      </div>
+                      <div className="flex items-center gap-1 font-bold text-amber-600">
+                        <span>Score: ⭐⭐⭐⭐⭐</span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              }
+
+              if (worksheetMode === 'grid') {
+                return (
+                  <div id="printable-worksheet" className="worksheet-preview worksheet-printable-area p-6 bg-white border border-slate-200 rounded-3xl text-left flex flex-col gap-4 text-slate-900">
+                    {/* Header */}
+                    <div className="border-b-2 border-slate-800 pb-3 flex justify-between items-end">
+                      <div>
+                        <span className="text-xxs font-black tracking-widest uppercase text-indigo-700">Akshar Gujarati Learner • Complete Alphabet Chart</span>
+                        <h2 className="text-xl font-black text-slate-900 leading-tight">Complete Kakko Tracing Sheet (ક થી જ્ઞ)</h2>
+                      </div>
+                      <div className="text-right text-xs font-bold text-slate-700">
+                        <div>Name: <span className="inline-block w-28 border-b border-slate-400 border-dashed"></span></div>
+                        <div className="mt-1">Date: <span className="inline-block w-20 border-b border-slate-400 border-dashed"></span></div>
+                      </div>
+                    </div>
+
+                    {/* 6x6 Alphabet Grid */}
+                    <div className="grid grid-cols-6 gap-2">
+                      {sessionCurriculum.map(item => (
+                        <div key={item.id} className="border border-slate-300 rounded-xl p-2 flex flex-col items-center justify-between text-center bg-white shadow-xs min-h-[76px]">
+                          <span className="text-xxs font-extrabold text-slate-500 leading-none">{item.english}</span>
+                          <span className="font-dashed-gujarati text-2xl my-0.5">{item.letter}</span>
+                          <span className="text-xxs text-slate-400 truncate max-w-full leading-none">{item.emoji} {item.word}</span>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Footer remarks */}
+                    <div className="mt-2 border-t border-slate-200 pt-3 flex justify-between items-center text-xs text-slate-600">
+                      <div>
+                        <span>Teacher / Parent Signature: </span>
+                        <span className="inline-block w-40 border-b border-slate-400 border-dashed"></span>
+                      </div>
+                      <div className="font-bold text-indigo-700">
+                        <span>શાબાશ! Well Done! ⭐⭐⭐⭐⭐</span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              }
+
+              if (worksheetMode === 'match') {
+                const groupFilter = WORKSHEET_GROUPS.find(g => g.id === worksheetGroup)?.filter || (() => true);
+                const filtered = sessionCurriculum.filter(groupFilter);
+                const list = filtered.length >= 6 ? filtered.slice(0, 6) : sessionCurriculum.slice(0, 6);
+                // Deterministic reverse shuffle for matching exercise
+                const shuffled = [...list].reverse();
+
+                return (
+                  <div id="printable-worksheet" className="worksheet-preview worksheet-printable-area p-6 bg-white border border-slate-200 rounded-3xl text-left flex flex-col gap-4 text-slate-900">
+                    {/* Header */}
+                    <div className="border-b-2 border-slate-800 pb-3 flex justify-between items-end">
+                      <div>
+                        <span className="text-xxs font-black tracking-widest uppercase text-indigo-700">Akshar Gujarati Learner • Activity Sheet</span>
+                        <h2 className="text-xl font-black text-slate-900 leading-tight">Match the Letter with Picture (અક્ષર અને ચિત્ર જોડો)</h2>
+                      </div>
+                      <div className="text-right text-xs font-bold text-slate-700">
+                        <div>Name: <span className="inline-block w-28 border-b border-slate-400 border-dashed"></span></div>
+                        <div className="mt-1">Date: <span className="inline-block w-20 border-b border-slate-400 border-dashed"></span></div>
+                      </div>
+                    </div>
+
+                    <p className="text-xs font-bold text-slate-600 bg-slate-50 p-2.5 rounded-xl border border-slate-200">
+                      ✏️ Instructions: Draw a pencil line connecting each Gujarati letter on the left to its matching picture and word on the right.
+                    </p>
+
+                    {/* Matching Columns */}
+                    <div className="grid grid-cols-2 gap-8 my-2">
+                      {/* Left column: Letters */}
+                      <div className="flex flex-col gap-3">
+                        {list.map(item => (
+                          <div key={item.id} className="border-2 border-slate-300 rounded-2xl p-3 flex items-center justify-between bg-white shadow-xs">
+                            <div className="flex items-center gap-3">
+                              <span className="font-gujarati text-2xl font-bold text-slate-900">{item.letter}</span>
+                              <span className="text-xs text-slate-400 font-bold">({item.english})</span>
+                            </div>
+                            <div className="w-4 h-4 rounded-full border-2 border-indigo-600 bg-white" />
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Right column: Shuffled Pictures */}
+                      <div className="flex flex-col gap-3">
+                        {shuffled.map(item => (
+                          <div key={item.id} className="border-2 border-slate-300 rounded-2xl p-3 flex items-center justify-between bg-white shadow-xs">
+                            <div className="w-4 h-4 rounded-full border-2 border-indigo-600 bg-white" />
+                            <div className="flex items-center gap-2.5 text-right">
+                              <div>
+                                <div className="font-gujarati text-sm font-bold text-slate-800">{item.word}</div>
+                                <div className="text-xxs text-slate-500 font-bold">{item.wordEnglish}</div>
+                              </div>
+                              <span className="text-3xl">{item.emoji}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Footer remarks */}
+                    <div className="mt-auto border-t border-slate-200 pt-3 flex justify-between items-center text-xs text-slate-600">
+                      <div>
+                        <span>Teacher / Parent Signature: </span>
+                        <span className="inline-block w-40 border-b border-slate-400 border-dashed"></span>
+                      </div>
+                      <div className="font-bold text-amber-600">
+                        <span>Score: _____ / {list.length} ⭐</span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              }
+              return null;
+            })()}
+          </div>
+        )}
       </main>
 
       {/* Footer Nav Bar */}
-      {view !== 'dashboard' && (
+      {view !== 'dashboard' && view !== 'worksheets' && (
         <nav 
           aria-label="Main Navigation" 
           className="mx-3 mb-2 rounded-2xl bg-white/90 backdrop-blur-xl border border-slate-200/80 shadow-xl px-2 py-1.5 flex justify-around items-center sticky bottom-2 z-30"

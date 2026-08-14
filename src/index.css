@@ -452,9 +452,105 @@ input {
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
-.no-scrollbar {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
+/* Printable Worksheet Styles & Print Media Rules */
+.worksheet-preview {
+  background: white;
+  border-radius: 20px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  border: 1px solid #e2e8f0;
+  color: #0f172a;
+}
+
+.tracing-box {
+  border: 1.5px solid #cbd5e1;
+  background-color: #ffffff;
+  border-radius: 12px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+}
+
+.tracing-line {
+  position: relative;
+  height: 64px;
+  border-bottom: 2px solid #64748b;
+  border-top: 2px solid #64748b;
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent,
+    transparent 29px,
+    #cbd5e1 29px,
+    #cbd5e1 31px,
+    transparent 31px,
+    transparent 62px
+  );
+}
+
+.font-dashed-gujarati {
+  font-family: 'Noto Sans Gujarati', sans-serif !important;
+  font-weight: 400 !important;
+  color: #94a3b8 !important;
+  opacity: 0.75;
+  letter-spacing: 0.05em;
+  -webkit-font-smoothing: antialiased;
+}
+
+@media print {
+  @page {
+    size: portrait;
+    margin: 8mm 10mm;
+  }
+  
+  /* Hide all non-printable app UI elements */
+  header,
+  nav,
+  .no-print,
+  button,
+  .kiosk-lock-overlay,
+  .pwa-install-banner,
+  .print-hide {
+    display: none !important;
+  }
+  
+  body, html {
+    background: white !important;
+    color: black !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    height: auto !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  
+  #root {
+    max-width: 100% !important;
+    width: 100% !important;
+    border: none !important;
+    box-shadow: none !important;
+    background: white !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+  
+  main {
+    padding: 0 !important;
+    background: white !important;
+    overflow: visible !important;
+  }
+  
+  .worksheet-printable-area {
+    display: block !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    background: white !important;
+    page-break-inside: avoid;
+  }
 }
 
 /* Fluent view slide transitions */
