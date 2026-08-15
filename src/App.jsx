@@ -3108,105 +3108,72 @@ export default function App() {
               
               if (worksheetMode === 'single') {
                 return (
-                  <div id="printable-worksheet" className="worksheet-preview worksheet-printable-area p-6 bg-white border border-slate-200 rounded-3xl text-left flex flex-col gap-5 text-slate-900">
-                    {/* Header bar on sheet */}
-                    <div className="border-b-2 border-slate-800 pb-3 flex justify-between items-end">
-                      <div>
-                        <span className="text-xxs font-black tracking-widest uppercase text-indigo-700">Akshar Gujarati Learner • Handwriting Series</span>
-                        <h2 className="text-xl font-black text-slate-900 leading-tight">Kakko Tracing Worksheet: <span className="font-gujarati text-2xl">{activeItem.letter}</span> ({activeItem.english})</h2>
-                      </div>
-                      <div className="text-right text-xs font-bold text-slate-700">
-                        <div>Name: <span className="inline-block w-28 border-b border-slate-400 border-dashed"></span></div>
-                        <div className="mt-1">Date: <span className="inline-block w-20 border-b border-slate-400 border-dashed"></span></div>
-                      </div>
-                    </div>
-
-                    {/* Hero Letter & Visual Association Banner */}
-                    <div className="grid grid-cols-3 gap-3 bg-slate-50 border-2 border-slate-200 rounded-2xl p-4">
-                      {/* Left: Giant guided letter with numbered waypoints */}
-                      <div className="bg-white border border-slate-300 rounded-xl p-3 flex flex-col items-center justify-center relative shadow-xs">
-                        <span className="font-gujarati text-6xl text-slate-900 leading-none">{activeItem.letter}</span>
-                        <span className="text-xxs font-bold text-slate-500 mt-2">Stroke Guide</span>
-                      </div>
-
-                      {/* Middle: Phonics & Word Transliteration */}
-                      <div className="flex flex-col justify-center gap-1">
-                        <span className="text-xxs font-extrabold uppercase text-indigo-700 tracking-wider">Pronunciation</span>
-                        <span className="text-lg font-black text-slate-800">{activeItem.english}</span>
-                        <span className="text-xs text-slate-600 font-medium">"{PHONICS_GUIDE[activeItem.id]?.pron || ''}"</span>
-                        <div className="mt-1 bg-white px-2 py-1 rounded-lg border border-slate-200 inline-block w-fit">
-                          <span className="font-gujarati font-bold text-sm text-indigo-700 mr-1">{activeItem.word}</span>
-                          <span className="text-xs text-slate-500">({activeItem.wordEnglish})</span>
-                        </div>
-                      </div>
-
-                      {/* Right: Picture to Color */}
-                      <div className="bg-white border-2 border-dashed border-slate-300 rounded-xl p-2 flex flex-col items-center justify-center text-center">
-                        <span className="text-4xl">{activeItem.emoji}</span>
-                        <span className="text-xxs font-bold text-slate-400 mt-1">🎨 Color the picture!</span>
+                  <div id="printable-worksheet" className="worksheet-a4-page text-slate-900 bg-white">
+                    {/* Header bar matching Gujarati Learner layout */}
+                    <div className="flex justify-between items-center pb-2 mb-2 border-b border-slate-300">
+                      <div className="w-10"></div>
+                      <h2 className="text-2xl font-black text-slate-900 tracking-tight text-center">
+                        Gujarati Letter <span className="uppercase text-indigo-800">{activeItem.english}</span> Activity Sheet
+                      </h2>
+                      <div className="bg-slate-100 border border-slate-300 rounded-full w-9 h-9 flex items-center justify-center font-gujarati text-lg font-bold text-slate-700 shadow-xs">
+                        {activeItem.letter}
                       </div>
                     </div>
 
-                    {/* Handwriting Practice Lines */}
-                    <div className="flex flex-col gap-3">
-                      <h4 className="text-xs font-black uppercase tracking-wider text-slate-700">1. Step-by-Step Guided Strokes</h4>
-                      <div className="grid grid-cols-6 gap-2">
-                        <div className="tracing-box h-14 bg-indigo-50/50 border-indigo-200">
-                          <span className="font-gujarati text-2xl font-bold text-slate-900">{activeItem.letter}</span>
-                          <span className="absolute top-1 left-1.5 text-xxs font-bold text-indigo-600">Start</span>
-                        </div>
-                        {[1, 2, 3, 4, 5].map(i => (
-                          <div key={i} className="tracing-box h-14">
-                            <span className="font-dashed-gujarati text-2xl">{activeItem.letter}</span>
-                          </div>
-                        ))}
+                    {/* Section 1: Color Activity */}
+                    <div className="flex items-stretch gap-3 my-1">
+                      <div className="worksheet-vertical-label text-slate-900 text-sm font-black py-4 w-7 flex items-center justify-center">
+                        Color Activity
                       </div>
-
-                      <h4 className="text-xs font-black uppercase tracking-wider text-slate-700 mt-2">2. Trace Over the Dashed Letters</h4>
-                      <div className="grid grid-cols-6 gap-2">
-                        {[1, 2, 3, 4, 5, 6].map(i => (
-                          <div key={i} className="tracing-box h-14">
-                            <span className="font-dashed-gujarati text-2xl">{activeItem.letter}</span>
+                      <div className="grid grid-cols-2 gap-3.5 flex-1">
+                        {/* Box 1 */}
+                        <div className="color-activity-box">
+                          <div className="w-full text-right font-black text-2xl text-slate-900 tracking-wide pr-1">
+                            {activeItem.english.toUpperCase()}
                           </div>
-                        ))}
-                      </div>
-
-                      <h4 className="text-xs font-black uppercase tracking-wider text-slate-700 mt-2">3. Write Independently with Starting Dots</h4>
-                      <div className="grid grid-cols-6 gap-2">
-                        <div className="tracing-box h-14">
-                          <span className="font-dashed-gujarati text-2xl">{activeItem.letter}</span>
-                        </div>
-                        <div className="tracing-box h-14">
-                          <span className="font-dashed-gujarati text-2xl">{activeItem.letter}</span>
-                        </div>
-                        {[1, 2, 3, 4].map(i => (
-                          <div key={i} className="tracing-box h-14 relative">
-                            <div className="w-1.5 h-1.5 rounded-full bg-rose-500 absolute top-2 left-2" />
-                          </div>
-                        ))}
-                      </div>
-
-                      <h4 className="text-xs font-black uppercase tracking-wider text-slate-700 mt-2">4. Vocabulary Word Writing</h4>
-                      <div className="border border-slate-300 rounded-xl p-3 bg-slate-50 flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <span className="text-2xl">{activeItem.emoji}</span>
-                          <div className="flex gap-2">
-                            <span className="font-dashed-gujarati text-xl">{activeItem.word}</span>
-                            <span className="font-dashed-gujarati text-xl">{activeItem.word}</span>
+                          <div className="my-auto py-2 flex items-center justify-center">
+                            <span className="hollow-gujarati-char">{activeItem.letter}</span>
                           </div>
                         </div>
-                        <span className="text-xs font-bold text-slate-400">Write: ___________________</span>
+
+                        {/* Box 2 */}
+                        <div className="color-activity-box">
+                          <div className="w-full text-right font-black text-2xl text-slate-900 tracking-wide pr-1">
+                            {activeItem.english.toUpperCase()}
+                          </div>
+                          <div className="my-auto py-2 flex items-center justify-center">
+                            <span className="hollow-gujarati-char">{activeItem.letter}</span>
+                          </div>
+                        </div>
                       </div>
                     </div>
 
-                    {/* Teacher / Parent Signature & Encouragement Footer */}
-                    <div className="mt-2 border-t border-slate-200 pt-3 flex justify-between items-center text-xs text-slate-600">
-                      <div>
-                        <span>Teacher / Parent Remarks: </span>
-                        <span className="inline-block w-48 border-b border-slate-400 border-dashed"></span>
+                    {/* Section 2: Tracing Activity */}
+                    <div className="flex items-stretch gap-3 my-1">
+                      <div className="worksheet-vertical-label text-slate-900 text-sm font-black py-4 w-7 flex items-center justify-center">
+                        Tracing Activity
                       </div>
-                      <div className="flex items-center gap-1 font-bold text-amber-600">
-                        <span>Score: ⭐⭐⭐⭐⭐</span>
+                      <div className="grid grid-cols-4 gap-2.5 flex-1">
+                        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(i => (
+                          <div key={i} className="tracing-cell">
+                            <span className="tracing-gujarati-char">{activeItem.letter}</span>
+                            {i === 1 && (
+                              <span className="absolute top-1 left-2 text-xxs font-extrabold text-slate-500">1 ➔</span>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Section 3: Educational Footer */}
+                    <div className="border-t border-slate-300 pt-2 mt-auto flex flex-col gap-1 text-center text-xs text-slate-700">
+                      <div className="flex justify-between items-center text-xs font-bold text-slate-800 px-2">
+                        <span>Name: <span className="inline-block w-36 border-b border-slate-400"></span></span>
+                        <span>Date: <span className="inline-block w-24 border-b border-slate-400"></span></span>
+                        <span>Word: <strong className="font-gujarati text-sm text-indigo-700">{activeItem.word}</strong> ({activeItem.wordEnglish} {activeItem.emoji})</span>
+                      </div>
+                      <div className="text-xxs text-slate-500 font-semibold mt-1">
+                        Akshar Gujarati Learner • Free Printable Handwriting Practice • https://level1gujclass.vercel.app
                       </div>
                     </div>
                   </div>
@@ -3215,35 +3182,35 @@ export default function App() {
 
               if (worksheetMode === 'grid') {
                 return (
-                  <div id="printable-worksheet" className="worksheet-preview worksheet-printable-area p-6 bg-white border border-slate-200 rounded-3xl text-left flex flex-col gap-4 text-slate-900">
+                  <div id="printable-worksheet" className="worksheet-a4-page text-slate-900 bg-white">
                     {/* Header */}
-                    <div className="border-b-2 border-slate-800 pb-3 flex justify-between items-end">
-                      <div>
-                        <span className="text-xxs font-black tracking-widest uppercase text-indigo-700">Akshar Gujarati Learner • Complete Alphabet Chart</span>
-                        <h2 className="text-xl font-black text-slate-900 leading-tight">Complete Kakko Tracing Sheet (ક થી જ્ઞ)</h2>
+                    <div className="flex justify-between items-center pb-2 mb-2 border-b border-slate-300">
+                      <div className="flex-1 text-center">
+                        <h2 className="text-2xl font-black text-slate-900 tracking-tight">Complete Kakko Tracing Sheet (ક થી જ્ઞ)</h2>
+                        <span className="text-xxs font-bold text-slate-500 uppercase tracking-wider">All 34 Gujarati Consonants</span>
                       </div>
                       <div className="text-right text-xs font-bold text-slate-700">
-                        <div>Name: <span className="inline-block w-28 border-b border-slate-400 border-dashed"></span></div>
-                        <div className="mt-1">Date: <span className="inline-block w-20 border-b border-slate-400 border-dashed"></span></div>
+                        <div>Name: <span className="inline-block w-24 border-b border-slate-400"></span></div>
+                        <div className="mt-1">Date: <span className="inline-block w-16 border-b border-slate-400"></span></div>
                       </div>
                     </div>
 
                     {/* 6x6 Alphabet Grid */}
-                    <div className="grid grid-cols-6 gap-2">
+                    <div className="grid grid-cols-6 gap-2 my-1">
                       {sessionCurriculum.map(item => (
-                        <div key={item.id} className="border border-slate-300 rounded-xl p-2 flex flex-col items-center justify-between text-center bg-white shadow-xs min-h-[76px]">
+                        <div key={item.id} className="border border-slate-300 rounded-xl p-1.5 flex flex-col items-center justify-between text-center bg-white shadow-2xs min-h-[70px]">
                           <span className="text-xxs font-extrabold text-slate-500 leading-none">{item.english}</span>
-                          <span className="font-dashed-gujarati text-2xl my-0.5">{item.letter}</span>
-                          <span className="text-xxs text-slate-400 truncate max-w-full leading-none">{item.emoji} {item.word}</span>
+                          <span className="tracing-gujarati-char text-3xl my-0.5" style={{ fontSize: '32px' }}>{item.letter}</span>
+                          <span className="text-xxs text-slate-400 truncate max-w-full leading-none font-bold">{item.emoji} {item.word}</span>
                         </div>
                       ))}
                     </div>
 
                     {/* Footer remarks */}
-                    <div className="mt-2 border-t border-slate-200 pt-3 flex justify-between items-center text-xs text-slate-600">
+                    <div className="mt-auto border-t border-slate-300 pt-2 flex justify-between items-center text-xs text-slate-600">
                       <div>
                         <span>Teacher / Parent Signature: </span>
-                        <span className="inline-block w-40 border-b border-slate-400 border-dashed"></span>
+                        <span className="inline-block w-36 border-b border-slate-400"></span>
                       </div>
                       <div className="font-bold text-indigo-700">
                         <span>શાબાશ! Well Done! ⭐⭐⭐⭐⭐</span>
@@ -3261,21 +3228,21 @@ export default function App() {
                 const shuffled = [...list].reverse();
 
                 return (
-                  <div id="printable-worksheet" className="worksheet-preview worksheet-printable-area p-6 bg-white border border-slate-200 rounded-3xl text-left flex flex-col gap-4 text-slate-900">
+                  <div id="printable-worksheet" className="worksheet-a4-page text-slate-900 bg-white">
                     {/* Header */}
-                    <div className="border-b-2 border-slate-800 pb-3 flex justify-between items-end">
-                      <div>
-                        <span className="text-xxs font-black tracking-widest uppercase text-indigo-700">Akshar Gujarati Learner • Activity Sheet</span>
-                        <h2 className="text-xl font-black text-slate-900 leading-tight">Match the Letter with Picture (અક્ષર અને ચિત્ર જોડો)</h2>
+                    <div className="flex justify-between items-center pb-2 mb-2 border-b border-slate-300">
+                      <div className="flex-1 text-center">
+                        <h2 className="text-2xl font-black text-slate-900 tracking-tight">Match the Letter with Picture (અક્ષર અને ચિત્ર જોડો)</h2>
+                        <span className="text-xxs font-bold text-slate-500 uppercase tracking-wider">Akshar Activity Series</span>
                       </div>
                       <div className="text-right text-xs font-bold text-slate-700">
-                        <div>Name: <span className="inline-block w-28 border-b border-slate-400 border-dashed"></span></div>
-                        <div className="mt-1">Date: <span className="inline-block w-20 border-b border-slate-400 border-dashed"></span></div>
+                        <div>Name: <span className="inline-block w-24 border-b border-slate-400"></span></div>
+                        <div className="mt-1">Date: <span className="inline-block w-16 border-b border-slate-400"></span></div>
                       </div>
                     </div>
 
-                    <p className="text-xs font-bold text-slate-600 bg-slate-50 p-2.5 rounded-xl border border-slate-200">
-                      ✏️ Instructions: Draw a pencil line connecting each Gujarati letter on the left to its matching picture and word on the right.
+                    <p className="text-xs font-bold text-slate-700 bg-slate-50 p-2 rounded-xl border border-slate-200 text-center">
+                      ✏️ Instructions: Draw a pencil line connecting each Gujarati letter on the left to its matching picture on the right.
                     </p>
 
                     {/* Matching Columns */}

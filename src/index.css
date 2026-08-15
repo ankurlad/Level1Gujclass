@@ -452,54 +452,91 @@ input {
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
-/* Printable Worksheet Styles & Print Media Rules */
-.worksheet-preview {
+/* Gujarati Learner Style Activity Sheet Styles */
+.worksheet-a4-page {
   background: white;
+  width: 100%;
+  max-width: 780px;
+  margin: 0 auto;
+  padding: 24px;
+  color: #000000;
+  box-sizing: border-box;
+  font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   border-radius: 20px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
   border: 1px solid #e2e8f0;
+}
+
+.worksheet-vertical-label {
+  writing-mode: vertical-lr;
+  transform: rotate(180deg);
+  text-align: center;
+  font-weight: 800;
+  font-size: 15px;
   color: #0f172a;
+  letter-spacing: 0.04em;
+  text-transform: none;
+  user-select: none;
 }
 
-.tracing-box {
-  border: 1.5px solid #cbd5e1;
+.color-activity-box {
+  border: 2.5px solid #000000;
+  border-radius: 28px;
   background-color: #ffffff;
-  border-radius: 12px;
+  padding: 16px 20px;
   display: flex;
-  justify-content: center;
+  flex-direction: column;
   align-items: center;
+  justify-content: space-between;
+  min-height: 180px;
   position: relative;
 }
 
-.tracing-line {
-  position: relative;
-  height: 64px;
-  border-bottom: 2px solid #64748b;
-  border-top: 2px solid #64748b;
-  background: repeating-linear-gradient(
-    to bottom,
-    transparent,
-    transparent 29px,
-    #cbd5e1 29px,
-    #cbd5e1 31px,
-    transparent 31px,
-    transparent 62px
-  );
+.hollow-gujarati-char {
+  font-family: 'Noto Sans Gujarati', sans-serif !important;
+  font-weight: 800 !important;
+  font-size: 110px !important;
+  line-height: 1 !important;
+  color: #ffffff !important;
+  -webkit-text-stroke: 2.5px #000000 !important;
+  text-stroke: 2.5px #000000 !important;
+  filter: none !important;
+  text-shadow: none !important;
+  font-synthesis: none !important;
+  user-select: none;
+  display: inline-block;
 }
 
-.font-dashed-gujarati {
+.tracing-gujarati-char {
   font-family: 'Noto Sans Gujarati', sans-serif !important;
   font-weight: 400 !important;
-  color: #94a3b8 !important;
-  opacity: 0.75;
-  letter-spacing: 0.05em;
-  -webkit-font-smoothing: antialiased;
+  font-size: 64px !important;
+  line-height: 1 !important;
+  color: #64748b !important;
+  opacity: 0.75 !important;
+  letter-spacing: normal !important;
+  filter: none !important;
+  text-shadow: none !important;
+  font-synthesis: none !important;
+  user-select: none;
+}
+
+.tracing-cell {
+  border: 1.5px dashed #94a3b8;
+  border-radius: 16px;
+  background: #ffffff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 84px;
+  position: relative;
 }
 
 @media print {
   @page {
-    size: portrait;
-    margin: 8mm 10mm;
+    size: A4 portrait;
+    margin: 6mm 8mm;
   }
   
   /* Hide all non-printable app UI elements */
@@ -519,7 +556,7 @@ input {
     margin: 0 !important;
     padding: 0 !important;
     width: 100% !important;
-    height: auto !important;
+    height: 100% !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
@@ -540,16 +577,21 @@ input {
     overflow: visible !important;
   }
   
-  .worksheet-printable-area {
-    display: block !important;
-    width: 100% !important;
+  .worksheet-a4-page {
+    padding: 5mm 6mm !important;
     max-width: 100% !important;
+    width: 100% !important;
     border: none !important;
     box-shadow: none !important;
-    padding: 0 !important;
-    margin: 0 !important;
-    background: white !important;
-    page-break-inside: avoid;
+    page-break-inside: avoid !important;
+    page-break-after: avoid !important;
+    page-break-before: avoid !important;
+    height: 100vh !important;
+    max-height: 285mm !important;
+    box-sizing: border-box !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
   }
 }
 
