@@ -65,6 +65,7 @@ const PHONICS_GUIDE = {
   ksha: { phonic: "ksha", pron: "ksh as in action" },
   gna: { phonic: "gna", pron: "gya as in gyan (nasalized)" }
 };
+
 export default function TraceView() {
   const {
     view,
@@ -568,5 +569,6 @@ export default function TraceView() {
           </button>
         </div>
       </div>
-    </div>  );
+    </div>
+  );
 }

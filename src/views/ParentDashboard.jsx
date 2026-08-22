@@ -451,5 +451,6 @@ export default function ParentDashboard() {
           </button>
         </div>
       </div>
-    </div>  );
+    </div>
+  );
 }

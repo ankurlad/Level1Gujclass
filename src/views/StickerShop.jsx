@@ -81,5 +81,6 @@ export default function StickerShop() {
           })}
         </div>
       </div>
-    </div>  );
+    </div>
+  );
 }

@@ -1,13 +1,27 @@
-import { readFileSync } from 'node:fs'
+import { readdirSync, readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 
 const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8')
 const css = readFileSync(new URL('../src/index.css', import.meta.url), 'utf8')
-const app = readFileSync(new URL('../src/App.jsx', import.meta.url), 'utf8')
+
+// Every file that renders a control. Before PR 7 that was App.jsx alone; the
+// split moved the markup into src/views and src/components, so the guard below
+// reads the directory rather than a fixed list — a view added later is covered
+// without anyone remembering to add it here.
+const markup = ['src', 'src/views', 'src/components']
+  .flatMap((dir) => {
+    const base = new URL(`../${dir}/`, import.meta.url)
+    return readdirSync(base, { withFileTypes: true })
+      .filter((entry) => entry.isFile() && entry.name.endsWith('.jsx'))
+      .map((entry) => ({
+        name: `${dir}/${entry.name}`,
+        source: readFileSync(new URL(entry.name, base), 'utf8'),
+      }))
+  })
 
 // WCAG 2.2 AA target size. The floor lives in one base-layer rule in index.css
 // rather than on every control, so the two guards below are: the rule exists,
-// and nothing in App.jsx undercuts it with a smaller arbitrary min-* utility
+// and nothing in the markup undercuts it with a smaller arbitrary min-* utility
 // (min-width/min-height beat width/height, but a smaller min-* wins outright).
 const TARGET_PX = 44
 
@@ -39,10 +53,12 @@ describe('touch targets (WCAG 2.2 AA target size)', () => {
     expect(css).toMatch(new RegExp(`input\\s*\\{[\\s\\S]*?min-height:\\s*${TARGET_PX}px`))
   })
 
-  it('App.jsx never overrides that floor downwards', () => {
-    const undersized = [...app.matchAll(/min-[wh]-\[(\d+)px\]/g)].filter(
-      (m) => Number(m[1]) < TARGET_PX,
+  it('no view or component overrides that floor downwards', () => {
+    const undersized = markup.flatMap(({ name, source }) =>
+      [...source.matchAll(/min-[wh]-\[(\d+)px\]/g)]
+        .filter((m) => Number(m[1]) < TARGET_PX)
+        .map((m) => `${name}: ${m[0]}`),
     )
-    expect(undersized.map((m) => m[0])).toEqual([])
+    expect(undersized).toEqual([])
   })
 })
