@@ -10,6 +10,10 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
+      // The icons live in public/ and globPatterns already matches **/*.png.
+      // Leaving this on listed each of them twice — same revision, so workbox
+      // deduped at install, but the reported precache size counted both.
+      includeManifestIcons: false,
       workbox: {
         // woff2 is not in the workbox default globPatterns; without it the
         // self-hosted fonts would miss the precache and the trace guide would
@@ -81,25 +85,42 @@ export default defineConfig({
         ]
       },
       manifest: {
-        name: 'Akshar Gujarati Learner',
-        short_name: 'Gujarati Kid',
-        description: 'PWA for Kids to Learn and Trace Gujarati Alphabets',
+        id: '/',
+        name: 'Akshar PWA',
+        short_name: 'Akshar',
+        description:
+          'Trace the 34 Gujarati consonants stroke by stroke, then practise them in matching, quiz, phonics and memory games. Works fully offline.',
+        start_url: '/',
+        scope: '/',
         theme_color: '#4f46e5',
         background_color: '#f8fafc',
         display: 'standalone',
         orientation: 'portrait',
+        // Three real files at the sizes they claim, generated from
+        // src/assets/icon-source.jpg by scripts/generate-icons.sh. Before this
+        // both entries pointed at one 1024x1024 JPEG named icon.png and both
+        // declared 'any maskable', which asks a launcher to crop a full-bleed
+        // square — the mark lost its corners under every circle mask.
         icons: [
           {
-            src: 'icon.png',
+            src: 'icons/icon-192.png',
             sizes: '192x192',
             type: 'image/png',
-            purpose: 'any maskable'
+            purpose: 'any'
           },
           {
-            src: 'icon.png',
+            src: 'icons/icon-512.png',
             sizes: '512x512',
             type: 'image/png',
-            purpose: 'any maskable'
+            purpose: 'any'
+          },
+          {
+            // The same art at 80% on the background teal, so the safe zone a
+            // mask is allowed to crop is padding.
+            src: 'icons/icon-maskable-512.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'maskable'
           }
         ]
       }

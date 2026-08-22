@@ -2,7 +2,10 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/png" href="/icon.png" />
+    <link rel="icon" type="image/png" href="/icons/icon-192.png" />
+    <!-- iOS ignores the manifest's icons entirely; without this the home
+         screen gets a screenshot of the page. -->
+    <link rel="apple-touch-icon" href="/icons/icon-192.png" />
     <!-- No maximum-scale / user-scalable=no: blocking pinch-zoom is a WCAG 1.4.4
          (Resize Text) failure. viewport-fit=cover stays for the safe-area insets. -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
