@@ -1960,10 +1960,10 @@ export default function App() {
                 </div>
                 <button
                   onClick={() => speak(currentLesson.letter)}
-                  className="bg-amber-500 hover:bg-amber-600 text-white p-2.5 rounded-xl shadow-sm transition flex-shrink-0"
+                  className="bg-amber-500 hover:bg-amber-600 text-ink p-2.5 rounded-xl shadow-sm transition flex-shrink-0"
                   title="Listen Pronunciation"
                 >
-                  <Volume2 size={16} className="fill-white" />
+                  <Volume2 size={16} className="fill-ink" />
                 </button>
               </div>
 
@@ -1993,7 +1993,7 @@ export default function App() {
                   
                   let dotClass = "bg-white border-slate-300 text-slate-500";
                   if (editorMode && editorActive) {
-                    dotClass = "bg-amber-500 border-amber-600 text-white scale-105 shadow z-20 animate-pulse cursor-move select-none";
+                    dotClass = "bg-amber-500 border-amber-600 text-ink scale-105 shadow z-20 animate-pulse cursor-move select-none";
                   } else if (isCompleted) {
                     dotClass = "bg-emerald-500 border-emerald-600 text-white scale-90";
                   } else if (isNext) {
@@ -2038,13 +2038,13 @@ export default function App() {
                     <div className="flex gap-2 font-sans">
                       <button
                         onClick={() => setEditorActive(true)}
-                        className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold border transition ${editorActive ? 'bg-amber-600 border-amber-600 text-white shadow-sm' : 'bg-white border-amber-200 text-amber-700'}`}
+                        className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold border transition ${editorActive ? 'bg-amber-600 border-amber-600 text-ink shadow-sm' : 'bg-white border-amber-200 text-amber-700'}`}
                       >
                         Editor Active
                       </button>
                       <button
                         onClick={() => setEditorActive(false)}
-                        className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold border transition ${!editorActive ? 'bg-amber-600 border-amber-600 text-white shadow-sm' : 'bg-white border-amber-200 text-amber-700'}`}
+                        className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold border transition ${!editorActive ? 'bg-amber-600 border-amber-600 text-ink shadow-sm' : 'bg-white border-amber-200 text-amber-700'}`}
                       >
                         Test Tracing
                       </button>
@@ -2059,7 +2059,7 @@ export default function App() {
                           setEditorRecordMode(false);
                           playSound('waypoint');
                         }}
-                        className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold border transition ${!editorRecordMode ? 'bg-amber-600 border-amber-600 text-white shadow-sm' : 'bg-white border-amber-200 text-amber-700 hover:bg-amber-50'}`}
+                        className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold border transition ${!editorRecordMode ? 'bg-amber-600 border-amber-600 text-ink shadow-sm' : 'bg-white border-amber-200 text-amber-700 hover:bg-amber-50'}`}
                       >
                         👆 Manual Click
                       </button>
@@ -2248,12 +2248,12 @@ export default function App() {
               {/* Phonics Listen & Tap */}
               <button
                 onClick={startPhonicsGame}
-                className="bg-gradient-to-tr from-amber-400 to-amber-500 text-white p-5 rounded-3xl shadow-lg border border-amber-300 flex flex-col items-center gap-3 transition-transform hover:-translate-y-1 active:translate-y-0"
+                className="bg-gradient-to-tr from-amber-400 to-amber-500 text-ink p-5 rounded-3xl shadow-lg border border-amber-300 flex flex-col items-center gap-3 transition-transform hover:-translate-y-1 active:translate-y-0"
               >
                 <div className="w-12 h-12 bg-white/20 rounded-2xl flex justify-center items-center text-3xl">👂</div>
                 <div className="flex flex-col">
                   <span className="font-extrabold text-sm leading-tight">Listen & Tap</span>
-                  <span className="text-white/80 font-bold text-xxs mt-1">Phonics sound quiz</span>
+                  <span className="text-ink/80 font-bold text-xxs mt-1">Phonics sound quiz</span>
                 </div>
               </button>
 
@@ -2763,7 +2763,7 @@ export default function App() {
                         <button
                           onClick={() => buySticker(sticker)}
                           disabled={!canAfford}
-                          className={`w-full py-2.5 px-3 rounded-xl font-bold text-xs mt-2 transition shadow-sm font-sans ${canAfford ? 'bg-amber-500 hover:bg-amber-600 text-white shadow-amber-500/10' : 'bg-slate-200 text-slate-500 cursor-not-allowed'}`}
+                          className={`w-full py-2.5 px-3 rounded-xl font-bold text-xs mt-2 transition shadow-sm font-sans ${canAfford ? 'bg-amber-500 hover:bg-amber-600 text-ink shadow-amber-500/10' : 'bg-slate-200 text-slate-500 cursor-not-allowed'}`}
                         >
                           Buy for {sticker.cost} Pts
                         </button>
