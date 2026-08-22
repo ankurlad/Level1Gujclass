@@ -350,6 +350,7 @@ export default function App() {
       // theme colours: the pixel test below keys off the exact RGB distance
       // between them, and drawTraceGuide paints the visible canvas with the
       // same pair. Retheming either one moves every snapped waypoint.
+      // oxlint-disable-next-line theme/no-raw-hex
       tempCtx.fillStyle = '#f8fafc';
       tempCtx.fillRect(0, 0, CANVAS_W, CANVAS_H);
 
@@ -636,6 +637,7 @@ export default function App() {
     ctx.clearRect(0, 0, CANVAS_W, CANVAS_H);
 
     // Background Grid paper style. Calibration constants — see snapToCenterline.
+    // oxlint-disable-next-line theme/no-raw-hex
     ctx.fillStyle = '#f8fafc';
     ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
 
