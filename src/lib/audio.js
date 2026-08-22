@@ -134,6 +134,10 @@ let player = null;
 
 const playClip = (url, text) => {
   if (typeof Audio === 'undefined') return false;
+  // The previous speak() may have fallen back and still be talking — a blocked
+  // first tap, say. Stop it for the same reason the element below is rewound:
+  // one voice at a time, whichever path produced it.
+  if ('speechSynthesis' in window) window.speechSynthesis.cancel();
   if (!player) player = new Audio();
   player.pause();
   player.currentTime = 0;
