@@ -106,10 +106,26 @@ PR 9 — CI + README (CI DONE in PR 0; README still owed)
     other work so later PRs are verifiable. Fold the lint/build/test harness into the earliest
     feasible PR and use it to verify each subsequent one.
 
-PR 10 — Recorded audio
+PR 10 — Recorded audio (DONE)
   - gu-IN voices are missing on most devices, so the oscillator fallback is what kids actually
     hear. Ship 34 recorded letter clips (gu-IN), precached by the service worker, with the
     oscillator fallback retained.
+  - Shipped: 75 clips in src/assets/audio (898 KB), one voice — gu-IN-DhwaniNeural via
+    edge-tts. 34 letter_<id> (the bare syllable), 34 lesson_<id> ('<letter>. <word>.', the
+    line TraceView reads on open) and 7 phrase_<key> (the fixed lines the games and the
+    sandbox say). Letters and lesson lines at -10% rate; phrases at the default.
+  - src/lib/audio.js gains a pure exported resolveClip(text) -> URL | null, mapping built at
+    module load from an eager import.meta.glob of the folder plus curriculum.js, so no id is
+    written twice. speak() plays the clip through one reused HTMLAudioElement (paused and
+    rewound first, so a second tap replaces rather than layers) and otherwise runs the
+    unchanged speechSynthesis path. Unmatched text, a missing file and a refused play() all
+    end there: nothing can leave a letter silent. playSound (the oscillator SFX) is untouched.
+  - mp3 is in the workbox globPatterns — the clips are hashed build output, so precache is
+    correct and never stale. Precache is now 91 entries / 1.82 MB.
+  - scripts/tts-generate.sh regenerates the set from scratch (own venv, edge-tts, ids read
+    out of curriculum.js). The seven phrase strings live in both the script and PHRASE_CLIPS
+    in audio.js: change a spoken line in a view and it must change in both, or that line
+    quietly drops back to the synthesizer.
 
 PR 11 — Parent gate (PIN hashing DONE in PR 4; first-run setup UX owed)
   - Hash the PIN; remove the 1234 default in favor of forced first-run setup; remove the math

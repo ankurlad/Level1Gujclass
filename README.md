@@ -84,12 +84,13 @@ The app is deployed to Vercel; a push to `main` publishes it. From the phone:
 3. Launch it from the home screen. It runs standalone, portrait, and works with the network
    off from that point on.
 
-The service worker precaches the shell (JS, CSS, HTML), the icons and the four self-hosted
-woff2 font subsets. Three runtime rules sit behind that precache:
+The service worker precaches the shell (JS, CSS, HTML), the icons, the four self-hosted
+woff2 font subsets and the 75 recorded audio clips — 91 entries, 1.8 MB. Three runtime
+rules sit behind that precache:
 
 - **`/assets/`** — CacheFirst for a year, 50 entries. Hashed build output: a hit is never
-  stale, so the network is never worth asking. This is what will hold the recorded letter
-  audio when it ships.
+  stale, so the network is never worth asking. The precache already owns the JS, the CSS
+  and the audio, so what is left for this rule is the images.
 - **`fonts.googleapis.com` / `fonts.gstatic.com`** — CacheFirst, as a safety net only.
   Nothing in the app should ever reach Google; if a stylesheet regresses, this keeps the
   request from breaking the app offline.
@@ -114,6 +115,8 @@ src/
                    the waypoint array for each.
   index.css        The single palette: a Tailwind v4 @theme block of semantic tokens,
                    plus safe-area rules, the 44px touch-target floor and keyframes.
+  assets/audio/    75 recorded gu-IN clips: 34 letters, 34 lesson lines, 7 phrases.
+                   Bundled (hashed and precached), not served as-is from public/.
   components/      Chrome that is on screen whatever the view is: header, bottom nav,
                    parent gate, install and update cards.
   hooks/           useLocalStorage (namespacing + migration), usePwaInstall,
@@ -193,21 +196,40 @@ waypoints are calibrated against have to be available offline. **Do not re-subse
 re-encode `noto-sans-gujarati-gujarati.woff2`** — the coordinates in `src/curriculum.js` are
 calibrated against exactly what that file renders at 220px.
 
-### Letter audio (not shipped yet)
+### Letter audio
 
-Today the app speaks a letter through the Web Speech API with `lang: 'gu-IN'`, and falls
-back to a Web Audio oscillator when no Gujarati voice is installed (`src/lib/audio.js`).
-Most devices have no `gu-IN` voice, so the oscillator is what children actually hear. PR 10
-in `IMPROVEMENTS.md` replaces this with 34 recorded clips; `scripts/tts-generate.sh` is
-**not in the repo yet** and lands with that PR. The recipe it will run, if you need to
-generate or regenerate the clips before then:
+The Gujarati the app speaks is **recorded**, not synthesized. 75 clips in
+`src/assets/audio/` (898 KB), all one voice — **`gu-IN-DhwaniNeural`**, Microsoft's Gujarati
+neural voice, via `edge-tts`:
 
-```bash
-pip install edge-tts
+| Clips | Name | Text |
+| --- | --- | --- |
+| 34 | `letter_<id>.mp3` | the bare syllable — `ક` |
+| 34 | `lesson_<id>.mp3` | `<letter>. <word>.` — the line TraceView reads when a lesson opens |
+| 7 | `phrase_<key>.mp3` | the fixed lines the games and the sandbox say |
 
-# One clip per letter, into the folder the /assets/ runtime cache rule covers.
-edge-tts --voice gu-IN-DhwaniNeural --text 'ક' --write-media ka.mp3
-```
+Letters and lesson lines are recorded at `-10%` rate, because a 6-year-old is tracing along
+with them; the phrases run at the default.
+
+`speak(text)` in `src/lib/audio.js` resolves the text to a clip first and only then reaches
+for the Web Speech API. `resolveClip(text)` is pure and exported: it builds its map at
+module load from an eager `import.meta.glob` of the folder and from `src/curriculum.js`, so
+the ids are never written twice. A text that matches nothing returns `null` — and `null`, a
+missing file, and a `play()` the browser refuses all fall through to `speechSynthesis` with
+`lang: 'gu-IN'`, which falls through to the Web Audio oscillator when the device has no
+Gujarati voice. **No branch can leave a letter silent**, which matters because most devices
+have no `gu-IN` voice at all — before this, the oscillator was what children actually heard.
+
+The clips are hashed build output, so they are **precached** (`mp3` is in the workbox
+`globPatterns`): the letters speak on a device that has been offline since install.
+
+`bash scripts/tts-generate.sh` regenerates all 75 from scratch — it makes its own `.tts-venv`,
+installs `edge-tts`, reads the ids and words out of `curriculum.js`, and writes the same
+filenames back into `src/assets/audio/`. Needs `node` and `python3`. The seven phrase strings
+live in the script *and* in `PHRASE_CLIPS` in `src/lib/audio.js`; change a spoken line in a
+view and it has to change in both, or that line quietly drops back to the synthesizer.
+`npm test` guards the rest: `tests/audio.test.js` asserts every letter and every lesson line
+in the curriculum resolves to a clip.
 
 `gu-IN-DhwaniNeural` (female) and `gu-IN-NiranjanNeural` (male) are the two Gujarati voices
 edge-tts offers; `edge-tts --list-voices | grep gu-IN` confirms them. Loop the 34 entries in
