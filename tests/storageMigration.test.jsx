@@ -93,7 +93,7 @@ describe('v0 -> v1 storage migration, end to end', () => {
   it('rewrites every key under the guj: namespace and drops the old ones', async () => {
     const unmount = await mountApp()
 
-    expect(localStorage.getItem('guj:version')).toBe('1')
+    expect(localStorage.getItem('guj:version')).toBe('2')
     expect(localStorage.getItem('guj:points')).toBe('250')
     expect(localStorage.getItem('guj:progress')).toBe(V0_STORE.guj_progress)
     expect(localStorage.getItem('guj:stickers')).toBe('["lion","panda"]')
@@ -104,7 +104,12 @@ describe('v0 -> v1 storage migration, end to end', () => {
     expect(localStorage.getItem('guj:install_dismissed')).toBe('true')
     expect(localStorage.getItem('guj:gate_type')).toBe('"pin"')
     expect(localStorage.getItem('guj:parent_unlock_all')).toBe('true')
-    expect(localStorage.getItem('guj:custom_waypoints_ka')).toBe(V0_STORE.guj_custom_waypoints_ka)
+    // Two hops in one mount: the override is adopted under the namespaced key
+    // and its pixel coordinates are converted to the 0-100 path space.
+    expect(JSON.parse(localStorage.getItem('guj:custom_waypoints_ka'))).toEqual([
+      { x: 26.32, y: 31.25, label: '1' },
+      { x: 52.63, y: 62.5, label: '2' },
+    ])
 
     for (const key of Object.keys(V0_STORE)) {
       expect(localStorage.getItem(key), key).toBeNull()
@@ -138,6 +143,67 @@ describe('v0 -> v1 storage migration, end to end', () => {
     expect(localStorage.getItem('guj:parent_pin_hash')).toBe('null')
     const dump = Object.keys(localStorage).map((k) => localStorage.getItem(k)).join('|')
     expect(dump).not.toContain('1234')
+
+    unmount()
+  })
+})
+
+// A v1 install is already namespaced; the only thing that moved in v2 is what a
+// waypoint coordinate means. ક here is the shipped letter's first two points as
+// they were stored in pixels.
+describe('v1 -> v2 waypoint coordinate migration, end to end', () => {
+  beforeEach(() => {
+    localStorage.clear()
+    localStorage.setItem('guj:version', '1')
+    localStorage.setItem('guj:points', '250')
+  })
+
+  it('converts a pixel override to path space and restamps the version', async () => {
+    localStorage.setItem(
+      'guj:custom_waypoints_ka',
+      JSON.stringify([
+        { x: 201, y: 87, label: '1' },
+        { x: 235, y: 137, label: '2', moveTo: true },
+      ]),
+    )
+    const unmount = await mountApp()
+
+    expect(localStorage.getItem('guj:version')).toBe('2')
+    expect(JSON.parse(localStorage.getItem('guj:custom_waypoints_ka'))).toEqual([
+      { x: 52.89, y: 27.19, label: '1' },
+      { x: 61.84, y: 42.81, label: '2', moveTo: true },
+    ])
+
+    unmount()
+  })
+
+  it('leaves an override that is already path space untouched', async () => {
+    const v2 = [
+      { x: 52.89, y: 27.19, label: '1' },
+      { x: 61.84, y: 42.81, label: '2', moveTo: true },
+    ]
+    localStorage.setItem('guj:custom_waypoints_ka', JSON.stringify(v2))
+    const unmount = await mountApp()
+
+    expect(JSON.parse(localStorage.getItem('guj:custom_waypoints_ka'))).toEqual(v2)
+
+    unmount()
+  })
+
+  it('converts each customised letter independently', async () => {
+    localStorage.setItem('guj:custom_waypoints_ka', JSON.stringify([{ x: 190, y: 160, label: '1' }]))
+    localStorage.setItem('guj:custom_waypoints_ma', JSON.stringify([{ x: 50, y: 40, label: '1' }]))
+    const unmount = await mountApp()
+
+    expect(JSON.parse(localStorage.getItem('guj:custom_waypoints_ka'))).toEqual([
+      { x: 50, y: 50, label: '1' },
+    ])
+    // Nothing past 100, so this one is read as path space and left alone —
+    // the documented blind spot of shape-based detection, and unreachable for
+    // a real letterform (the guide glyph is set at 220px).
+    expect(JSON.parse(localStorage.getItem('guj:custom_waypoints_ma'))).toEqual([
+      { x: 50, y: 40, label: '1' },
+    ])
 
     unmount()
   })

@@ -59,6 +59,13 @@ export const isLegacyPixelWaypoints = (waypoints) =>
   waypoints.some((wp) => wp && (wp.x > PATH_MAX || wp.y > PATH_MAX));
 
 // Rewrites pixel waypoints into the path space, leaving labels and moveTo flags
-// (and key order, for a readable export) exactly as they were.
+// (and key order, for a readable export) exactly as they were. Unguarded: a
+// value already in path space would be divided a second time, which is why the
+// read path goes through normalizeWaypoints instead.
 export const toPathSpaceWaypoints = (waypoints) =>
   waypoints.map((wp) => ({ ...wp, x: canvasToPathX(wp.x), y: canvasToPathY(wp.y) }));
+
+// The v1 -> v2 read path. Returns the argument itself when there is nothing to
+// do, so a caller can tell whether it needs to persist the result by identity.
+export const normalizeWaypoints = (waypoints) =>
+  isLegacyPixelWaypoints(waypoints) ? toPathSpaceWaypoints(waypoints) : waypoints;

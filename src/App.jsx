@@ -34,10 +34,9 @@ import {
   CANVAS_W,
   canvasToPath,
   canvasToPathX,
-  isLegacyPixelWaypoints,
+  normalizeWaypoints,
   pathToCanvasX,
-  pathToCanvasY,
-  toPathSpaceWaypoints
+  pathToCanvasY
 } from './lib/waypoints';
 
 // Colours live in one place: the `@theme` block in src/index.css, where each
@@ -199,11 +198,12 @@ const toBoolean = (value) => value === true || value === 'true';
 const readWaypointOverride = (lessonId) => {
   const saved = readStored(waypointsKey(lessonId), null);
   if (!Array.isArray(saved)) return null;
-  if (!isLegacyPixelWaypoints(saved)) return saved;
 
-  const migrated = toPathSpaceWaypoints(saved);
-  writeStored(waypointsKey(lessonId), migrated);
-  return migrated;
+  const normalized = normalizeWaypoints(saved);
+  // Identity, not deep equality: normalizeWaypoints hands back the same array
+  // when there was nothing to convert.
+  if (normalized !== saved) writeStored(waypointsKey(lessonId), normalized);
+  return normalized;
 };
 
 // Helper to load curriculum with local overrides from device storage
