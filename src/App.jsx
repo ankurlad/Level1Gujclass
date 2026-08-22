@@ -27,6 +27,58 @@ import {
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { CURRICULUM } from './curriculum';
+
+// Logical drawing space for the tracing and sandbox canvases. Waypoint
+// coordinates in curriculum.js, hit-test radii and brush widths are all in
+// these units; the backing store is a devicePixelRatio-scaled multiple of it.
+const CANVAS_W = 380;
+const CANVAS_H = 320;
+
+// Size a canvas' backing store to its rendered size times the device pixel
+// ratio, then map the 2D context back onto the CANVAS_W x CANVAS_H logical
+// space. Without this the fixed 380x320 backing store is stretched by CSS on
+// every 2x/3x phone and the trace guide renders blurry. Returns the context.
+const setupCanvasScaling = (canvas) => {
+  const rect = canvas.getBoundingClientRect();
+  const dpr = window.devicePixelRatio || 1;
+  // Before layout has run the rect is 0x0; fall back to the logical size.
+  const backingW = Math.max(1, Math.round((rect.width || CANVAS_W) * dpr));
+  const backingH = Math.max(1, Math.round((rect.height || CANVAS_H) * dpr));
+
+  // Assigning width/height resets all context state, so only touch it on change.
+  if (canvas.width !== backingW || canvas.height !== backingH) {
+    canvas.width = backingW;
+    canvas.height = backingH;
+  }
+
+  const ctx = canvas.getContext('2d');
+  // setTransform is absolute, so re-running this never compounds the scale.
+  ctx.setTransform(backingW / CANVAS_W, 0, 0, backingH / CANVAS_H, 0, 0);
+  return ctx;
+};
+
+// Pointer/touch position in the logical canvas space, independent of both the
+// CSS size the canvas was laid out at and the backing store resolution.
+const eventToCanvasCoords = (canvas, e) => {
+  const rect = canvas.getBoundingClientRect();
+
+  let clientX = e.clientX;
+  let clientY = e.clientY;
+
+  if (e.touches && e.touches.length > 0) {
+    clientX = e.touches[0].clientX;
+    clientY = e.touches[0].clientY;
+  } else if (e.changedTouches && e.changedTouches.length > 0) {
+    clientX = e.changedTouches[0].clientX;
+    clientY = e.changedTouches[0].clientY;
+  }
+
+  return {
+    x: ((clientX - rect.left) / rect.width) * CANVAS_W,
+    y: ((clientY - rect.top) / rect.height) * CANVAS_H
+  };
+};
+
 const PHONICS_GUIDE = {
   ka: { phonic: "ka", pron: "k as in cup" },
   kha: { phonic: "kha", pron: "kh as in Khan (aspirated)" },
@@ -256,23 +308,25 @@ export default function App() {
 
   const snapToCenterline = (x, y) => {
     try {
+      // Offscreen probe in the logical space — no DPR scaling, the result is a
+      // logical coordinate either way.
       const tempCanvas = document.createElement('canvas');
-      tempCanvas.width = 380;
-      tempCanvas.height = 320;
+      tempCanvas.width = CANVAS_W;
+      tempCanvas.height = CANVAS_H;
       const tempCtx = tempCanvas.getContext('2d');
-      
+
       // Draw background
       tempCtx.fillStyle = '#f8fafc';
-      tempCtx.fillRect(0, 0, 380, 320);
-      
+      tempCtx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+
       // Draw letter text exactly like the main canvas
       tempCtx.font = '220px "Noto Sans Gujarati", "Baloo Bhai 2", sans-serif';
       tempCtx.fillStyle = 'rgba(226, 232, 240, 0.95)';
       tempCtx.textAlign = 'center';
       tempCtx.textBaseline = 'middle';
-      tempCtx.fillText(currentLesson.letter, 190, 170); // Center is 190, 170
-      
-      const imgData = tempCtx.getImageData(0, 0, 380, 320).data;
+      tempCtx.fillText(currentLesson.letter, CANVAS_W / 2, CANVAS_H / 2 + 10);
+
+      const imgData = tempCtx.getImageData(0, 0, CANVAS_W, CANVAS_H).data;
       
       let sumX = 0;
       let sumY = 0;
@@ -286,8 +340,8 @@ export default function App() {
         for (let dy = -radius; dy <= radius; dy++) {
           const px = ix + dx;
           const py = iy + dy;
-          if (px >= 0 && px < 380 && py >= 0 && py < 320) {
-            const pixelIndex = (py * 380 + px) * 4;
+          if (px >= 0 && px < CANVAS_W && py >= 0 && py < CANVAS_H) {
+            const pixelIndex = (py * CANVAS_W + px) * 4;
             const r = imgData[pixelIndex];
             const g = imgData[pixelIndex + 1];
             const b = imgData[pixelIndex + 2];
@@ -316,8 +370,8 @@ export default function App() {
 
   const updateWaypointPosition = (index, x, y) => {
     const snapped = snapToCenterline(x, y);
-    const clampedX = Math.max(0, Math.min(380, snapped.x));
-    const clampedY = Math.max(0, Math.min(320, snapped.y));
+    const clampedX = Math.max(0, Math.min(CANVAS_W, snapped.x));
+    const clampedY = Math.max(0, Math.min(CANVAS_H, snapped.y));
     
     setEditorWaypoints(prev => {
       const updated = [...prev];
@@ -538,24 +592,25 @@ export default function App() {
     }
   }, [view, currentLessonIndex, editorWaypoints]);
 
-  const initCanvas = () => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    
+  // Repaint the background, guide letter and dashed waypoint path. Kept apart
+  // from initCanvas so a resize can restore the guide without also resetting
+  // the child's waypoint progress.
+  const drawTraceGuide = (canvas) => {
+    const ctx = setupCanvasScaling(canvas);
+
     // Clear canvas
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    
+    ctx.clearRect(0, 0, CANVAS_W, CANVAS_H);
+
     // Background Grid paper style
     ctx.fillStyle = '#f8fafc';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    
+    ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+
     // Guide letter in huge light grey font
     ctx.font = '220px "Noto Sans Gujarati", "Baloo Bhai 2", sans-serif';
     ctx.fillStyle = 'rgba(226, 232, 240, 0.95)';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(currentLesson.letter, canvas.width / 2, canvas.height / 2 + 10);
+    ctx.fillText(currentLesson.letter, CANVAS_W / 2, CANVAS_H / 2 + 10);
 
     // Draw dashed guide paths connecting waypoints (respecting moveTo skips)
     if (currentLesson.waypoints && currentLesson.waypoints.length > 1) {
@@ -575,31 +630,54 @@ export default function App() {
       ctx.stroke();
       ctx.setLineDash([]);
     }
-    
+  };
+
+  const initCanvas = () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    drawTraceGuide(canvas);
     setCompletedWaypoints([]);
     setTraceStartTime(performance.now());
   };
 
+  // Rotating the device or zooming changes the backing store resolution, which
+  // blanks the canvas. Re-scale and repaint the guide, but keep the waypoints
+  // the child has already hit.
+  useEffect(() => {
+    if (view !== 'learn') return;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    let lastW = canvas.width;
+    let lastH = canvas.height;
+
+    const handleResize = () => {
+      const target = canvasRef.current;
+      if (!target) return;
+      const rect = target.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+      const w = Math.max(1, Math.round((rect.width || CANVAS_W) * dpr));
+      const h = Math.max(1, Math.round((rect.height || CANVAS_H) * dpr));
+      // Layout can settle without the resolution moving; leave the ink alone.
+      if (w === lastW && h === lastH) return;
+      lastW = w;
+      lastH = h;
+      drawTraceGuide(target);
+    };
+
+    const observer = new ResizeObserver(handleResize);
+    observer.observe(canvas);
+    window.addEventListener('resize', handleResize);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('resize', handleResize);
+    };
+  }, [view, currentLessonIndex, editorWaypoints, editorMode, editorActive]);
+
   const getCoords = (e) => {
     const canvas = canvasRef.current;
     if (!canvas) return { x: 0, y: 0 };
-    const rect = canvas.getBoundingClientRect();
-    
-    let clientX = e.clientX;
-    let clientY = e.clientY;
-    
-    if (e.touches && e.touches.length > 0) {
-      clientX = e.touches[0].clientX;
-      clientY = e.touches[0].clientY;
-    } else if (e.changedTouches && e.changedTouches.length > 0) {
-      clientX = e.changedTouches[0].clientX;
-      clientY = e.changedTouches[0].clientY;
-    }
-    
-    return {
-      x: ((clientX - rect.left) / rect.width) * canvas.width,
-      y: ((clientY - rect.top) / rect.height) * canvas.height
-    };
+    return eventToCanvasCoords(canvas, e);
   };
 
   // Click to place coordinates inside Waypoint Editor mode
@@ -1330,24 +1408,19 @@ export default function App() {
   const initSandboxCanvas = () => {
     const canvas = sandboxCanvasRef.current;
     if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const ctx = setupCanvasScaling(canvas);
+    ctx.clearRect(0, 0, CANVAS_W, CANVAS_H);
     ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
   };
 
   const startSandboxDrawing = (e) => {
     e.preventDefault();
     const canvas = sandboxCanvasRef.current;
     if (!canvas) return;
-    
-    const rect = canvas.getBoundingClientRect();
-    const clientX = e.touches ? (e.touches[0] ? e.touches[0].clientX : e.changedTouches[0].clientX) : e.clientX;
-    const clientY = e.touches ? (e.touches[0] ? e.touches[0].clientY : e.changedTouches[0].clientY) : e.clientY;
-    
-    const x = ((clientX - rect.left) / rect.width) * canvas.width;
-    const y = ((clientY - rect.top) / rect.height) * canvas.height;
-    
+
+    const { x, y } = eventToCanvasCoords(canvas, e);
+
     if (sandboxTool === 'stamp') {
       const ctx = canvas.getContext('2d');
       ctx.font = '44px sans-serif';
@@ -1375,14 +1448,9 @@ export default function App() {
     e.preventDefault();
     const canvas = sandboxCanvasRef.current;
     if (!canvas) return;
-    
-    const rect = canvas.getBoundingClientRect();
-    const clientX = e.touches ? (e.touches[0] ? e.touches[0].clientX : e.changedTouches[0].clientX) : e.clientX;
-    const clientY = e.touches ? (e.touches[0] ? e.touches[0].clientY : e.changedTouches[0].clientY) : e.clientY;
-    
-    const x = ((clientX - rect.left) / rect.width) * canvas.width;
-    const y = ((clientY - rect.top) / rect.height) * canvas.height;
-    
+
+    const { x, y } = eventToCanvasCoords(canvas, e);
+
     const ctx = canvas.getContext('2d');
     ctx.lineTo(x, y);
     ctx.stroke();
@@ -1868,8 +1936,8 @@ export default function App() {
               >
                 <canvas
                   ref={canvasRef}
-                  width={380}
-                  height={320}
+                  width={CANVAS_W}
+                  height={CANVAS_H}
                   onMouseDown={startDrawing}
                   onMouseMove={draw}
                   onMouseUp={stopDrawing}
@@ -1902,8 +1970,8 @@ export default function App() {
                       key={idx}
                       style={{
                         position: 'absolute',
-                        left: `${(wp.x / 380) * 100}%`,
-                        top: `${(wp.y / 320) * 100}%`,
+                        left: `${(wp.x / CANVAS_W) * 100}%`,
+                        top: `${(wp.y / CANVAS_H) * 100}%`,
                         transform: 'translate(-50%, -50%)',
                         ...strokeStyle
                       }}
@@ -2509,8 +2577,8 @@ export default function App() {
               >
                 <canvas
                   ref={sandboxCanvasRef}
-                  width={380}
-                  height={320}
+                  width={CANVAS_W}
+                  height={CANVAS_H}
                   onMouseDown={startSandboxDrawing}
                   onMouseMove={drawSandbox}
                   onMouseUp={stopSandboxDrawing}
