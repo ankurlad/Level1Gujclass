@@ -1,3 +1,5 @@
+@import 'tailwindcss';
+
 /* Self-hosted fonts — the app is offline-first, so there is no runtime call to
    fonts.googleapis.com / fonts.gstatic.com. The woff2 files in /public/fonts are
    the same variable-font binaries Google Fonts served for this family set, kept
@@ -61,537 +63,424 @@
   unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
 
-:root {
-  --primary: #4f46e5;
-  --primary-light: rgba(79, 70, 229, 0.08);
-  --primary-hover: #4338ca;
-  --secondary: #f43f5e;
-  --secondary-light: rgba(244, 63, 94, 0.08);
-  --success: #10b981;
-  --success-light: rgba(16, 185, 129, 0.08);
-  --warning: #f59e0b;
-  --warning-light: rgba(245, 158, 11, 0.08);
-  --info: #06b6d4;
-  --info-light: rgba(6, 182, 212, 0.08);
-  --bg-app: rgba(248, 250, 252, 0.75);
-  --card-bg: rgba(255, 255, 255, 0.85);
-  --text-main: #0f172a;
-  --text-muted: #475569;
-  --border-color: rgba(241, 245, 249, 0.6);
-  
-  font-family: 'Outfit', 'Baloo Bhai 2', 'Noto Sans Gujarati', 'Fredoka', system-ui, -apple-system, sans-serif;
-  background-color: #f1f5f9;
-  color: var(--text-main);
+/* The single source of truth for the palette, type scale and radii. Every
+   token below is both a CSS custom property on :root and a Tailwind utility
+   (`--color-primary` -> `bg-primary`/`text-primary`/`border-primary`), so CSS,
+   JSX classes and the canvas code in App.jsx all read the same object. `static`
+   keeps every variable in the output even when only JS reads it.
+
+   The colour values are the ones the app already shipped, promoted from the
+   old dead `:root` block and from the hexes that were inlined in JSX:
+     primary  #4f46e5  was --primary          (indigo-600)
+     reward   #f59e0b  was --warning          (amber-500,   points/stickers)
+     success  #10b981  was --success          (emerald-500, completed traces)
+     danger   #f43f5e  was --secondary        (rose-500,    wrong answers)
+     accent   #a855f7  brush swatch + gradients (purple-500)
+   The -tint / -hover / -shade steps are the neighbouring slots on the same
+   Tailwind ramp; they were already in the file as the tactile-button gradient
+   and lip colours. */
+@theme static {
+  --font-sans: 'Outfit', 'Baloo Bhai 2', 'Noto Sans Gujarati', 'Fredoka', system-ui, -apple-system,
+    sans-serif;
+
+  --color-primary: #4f46e5;
+  --color-primary-tint: #6366f1;
+  --color-primary-hover: #4338ca;
+  --color-primary-shade: #3730a3;
+
+  --color-reward: #f59e0b;
+  --color-reward-hover: #d97706;
+  --color-reward-shade: #b45309;
+
+  --color-success: #10b981;
+  --color-success-hover: #059669;
+  --color-success-shade: #047857;
+
+  --color-danger: #f43f5e;
+  --color-danger-hover: #e11d48;
+  --color-danger-shade: #be123c;
+
+  --color-accent: #a855f7;
+
+  --color-ink: #0f172a;
+  /* v4's preflight resets every border to `currentcolor`; the hand-rolled
+     `.border` shorthand carried this slate-200/60 hairline instead. It is a
+     token so the base-layer reset below has something to point at. */
+  --color-hairline: rgba(226, 232, 240, 0.6);
+
+  /* Trace-guide dashed path. Decorative only — the centreline snap probe in
+     App.jsx reads its own offscreen canvas, not this. */
+  --color-trace-path: rgba(99, 102, 241, 0.15);
+  --color-trace-path-editor: rgba(245, 158, 11, 0.45);
+  --color-sandbox-surface: #ffffff;
+
+  /* The hand-rolled scale ran ~4% larger than stock Tailwind at every step.
+     Keeping it means the migration does not resize all 300-odd pieces of text.
+     `xxs` is new to the scale but was already a hand-rolled class. */
+  --text-xxs: 0.65rem;
+  --text-xs: 0.78rem;
+  --text-sm: 0.88rem;
+  --text-base: 1rem;
+  --text-lg: 1.15rem;
+  --text-xl: 1.28rem;
+  --text-2xl: 1.55rem;
+  --text-3xl: 1.95rem;
+  --text-4xl: 2.35rem;
+  --text-5xl: 3.15rem;
+  --text-6xl: 4rem;
+
+  /* Also carried over verbatim — every card in the app is rounded-2xl/3xl. */
+  --radius-lg: 10px;
+  --radius-xl: 14px;
+  --radius-2xl: 18px;
+  --radius-3xl: 26px;
+
+  --animate-float: float 3s ease-in-out infinite;
+  --animate-bounce-slow: bounce-slow 2.4s ease-in-out infinite;
+  --animate-fluent-slide-in: fluentSlideIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-.font-gujarati {
-  font-family: 'Noto Sans Gujarati', sans-serif !important;
-  font-weight: 500 !important;
-  font-synthesis: none !important;
-  -webkit-font-synthesis: none !important;
-  -webkit-font-smoothing: antialiased !important;
-  -moz-osx-font-smoothing: grayscale !important;
-  text-rendering: geometricPrecision !important;
-  text-shadow: none !important;
-  filter: none !important;
-  letter-spacing: normal !important;
-  stroke: none !important;
-  -webkit-text-stroke: 0px !important;
-}
-
-body {
-  margin: 0;
-  padding: 0;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 100vh;
-  box-sizing: border-box;
-  background: radial-gradient(circle at 15% 15%, rgba(99, 102, 241, 0.14) 0%, transparent 45%),
-              radial-gradient(circle at 85% 85%, rgba(168, 85, 247, 0.1) 0%, transparent 45%),
-              radial-gradient(circle at 85% 15%, rgba(244, 63, 94, 0.08) 0%, transparent 45%),
-              radial-gradient(circle at 15% 85%, rgba(16, 185, 129, 0.08) 0%, transparent 45%);
-  background-color: #eef2ff;
-  background-attachment: fixed;
-}
-
-#root {
-  width: 100%;
-  max-width: 480px;
-  min-height: 100vh;
-  padding-left: env(safe-area-inset-left, 0px);
-  padding-right: env(safe-area-inset-right, 0px);
-  background: rgba(255, 255, 255, 0.98);
-  backdrop-filter: blur(28px);
-  -webkit-backdrop-filter: blur(28px);
-  border-left: 1px solid rgba(226, 232, 240, 0.8);
-  border-right: 1px solid rgba(226, 232, 240, 0.8);
-  box-shadow: 0 20px 60px -10px rgba(99, 102, 241, 0.15), 0 0 30px rgba(0, 0, 0, 0.03);
-  display: flex;
-  flex-direction: column;
-  position: relative;
-  overflow-x: hidden;
-}
-
-/* Flex utilities */
-.app-container {
-  display: flex;
-  flex-direction: column;
-  min-height: 100vh;
-  box-sizing: border-box;
-}
-.flex { display: flex; }
-.flex-col { flex-direction: column; }
-.flex-1 { flex: 1 1 0%; }
-.flex-shrink-0 { flex-shrink: 0; }
-.flex-wrap { flex-wrap: wrap; }
-.items-center { align-items: center; }
-.justify-between { justify-content: space-between; }
-.justify-center { justify-content: center; }
-.justify-around { justify-content: space-around; }
-.gap-1 { gap: 4px; }
-.gap-1\.5 { gap: 6px; }
-.gap-2 { gap: 8px; }
-.gap-3 { gap: 12px; }
-.gap-4 { gap: 16px; }
-.gap-10 { gap: 10px; }
-
-/* Grid utilities */
-.grid { display: grid; }
-.grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-.grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-
-/* Sizing */
-.w-full { width: 100%; }
-.w-9 { width: 36px; }
-.h-9 { height: 36px; }
-.w-10 { width: 40px; }
-.h-10 { height: 40px; }
-.w-12 { width: 48px; }
-.h-12 { height: 48px; }
-.w-16 { width: 64px; }
-.h-16 { height: 64px; }
-.w-20 { width: 80px; }
-.h-20 { height: 80px; }
-.w-24 { width: 96px; }
-.h-24 { height: 96px; }
-.w-28 { width: 112px; }
-.h-28 { height: 112px; }
-.w-32 { width: 128px; }
-.h-32 { height: 128px; }
-.max-w-sm { max-width: 24rem; }
-.aspect-\[4\/3\] { aspect-ratio: 4 / 3; }
-.max-w-\[400px\] { max-width: 400px; }
-.max-w-\[380px\] { max-width: 380px; }
-
-/* Spacing */
-.p-3 { padding: 12px; }
-.p-4 { padding: 16px; }
-.p-5 { padding: 20px; }
-.p-6 { padding: 24px; }
-.px-2 { padding-left: 8px; padding-right: 8px; }
-.px-2\.5 { padding-left: 10px; padding-right: 10px; }
-.px-3 { padding-left: 12px; padding-right: 12px; }
-.px-3\.5 { padding-left: 14px; padding-right: 14px; }
-.px-4 { padding-left: 16px; padding-right: 16px; }
-.px-6 { padding-left: 24px; padding-right: 24px; }
-.py-1\.5 { padding-top: 6px; padding-bottom: 6px; }
-.py-2 { padding-top: 8px; padding-bottom: 8px; }
-.py-2\.5 { padding-top: 10px; padding-bottom: 10px; }
-.py-3 { padding-top: 12px; padding-bottom: 12px; }
-.py-3\.5 { padding-top: 14px; padding-bottom: 14px; }
-.py-4 { padding-top: 16px; padding-bottom: 16px; }
-.pb-1 { padding-bottom: 4px; }
-.pb-4 { padding-bottom: 16px; }
-.pt-3 { padding-top: 12px; }
-.pt-6 { padding-top: 24px; }
-.mt-1 { margin-top: 4px; }
-.mt-3 { margin-top: 12px; }
-.mt-4 { margin-top: 16px; }
-.mt-6 { margin-top: 24px; }
-.mt-8 { margin-top: 32px; }
-.mt-12 { margin-top: 48px; }
-.mt-auto { margin-top: auto; }
-.mb-1 { margin-bottom: 4px; }
-.mb-2 { margin-bottom: 8px; }
-.mb-3 { margin-bottom: 12px; }
-.mb-4 { margin-bottom: 16px; }
-.mb-6 { margin-bottom: 24px; }
-.mb-8 { margin-bottom: 32px; }
-.mx-auto { margin-left: auto; margin-right: auto; }
-.mx-4 { margin-left: 16px; margin-right: 16px; }
-
-/* Translucent Glass backgrounds */
-.bg-white { 
-  background-color: rgba(255, 255, 255, 0.85); 
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-}
-.bg-slate-50 { 
-  background-color: rgba(248, 250, 252, 0.75); 
-  backdrop-filter: blur(16px);
-}
-.bg-slate-100 { background-color: rgba(241, 245, 249, 0.85); }
-.bg-indigo-600 { background-color: #6366f1; }
-.bg-indigo-50 { background-color: rgba(224, 231, 255, 0.85); }
-.bg-indigo-50\/50 { background-color: rgba(224, 231, 255, 0.45); }
-.bg-rose-50 { background-color: rgba(254, 228, 230, 0.85); }
-.bg-rose-50\/50 { background-color: rgba(254, 228, 230, 0.45); }
-.bg-rose-500 { background-color: #f43f5e; }
-.bg-emerald-50 { background-color: rgba(209, 250, 229, 0.85); }
-.bg-emerald-50\/50 { background-color: rgba(209, 250, 229, 0.45); }
-.bg-emerald-100 { background-color: rgba(209, 250, 229, 0.85); }
-.bg-emerald-500 { background-color: #10b981; }
-.bg-amber-50 { background-color: rgba(254, 243, 199, 0.85); }
-.bg-amber-50\/60 { background-color: rgba(254, 243, 199, 0.6); }
-.bg-amber-500 { background-color: #f59e0b; }
-.bg-purple-500 { background-color: #a855f7; }
-.bg-gradient-to-tr { background-image: linear-gradient(to top right, #6366f1, #f43f5e); }
-.bg-gradient-to-r { background-image: linear-gradient(to right, #4338ca, #6366f1); }
-
-/* Text colors */
-.text-white { color: #ffffff; }
-.text-slate-400 { color: #64748b; } /* WCAG AA 4.5:1 compliance */
-.text-slate-500 { color: #64748b; }
-.text-slate-600 { color: #475569; }
-.text-slate-700 { color: #334155; }
-.text-slate-800 { color: #1e293b; }
-.text-indigo-600 { color: #6366f1; }
-.text-indigo-700 { color: #4338ca; }
-.text-indigo-600\/80 { color: rgba(99, 102, 241, 0.8); }
-.text-rose-500 { color: #f43f5e; }
-.text-rose-600 { color: #e11d48; }
-.text-rose-700 { color: #be123c; }
-.text-emerald-600 { color: #059669; }
-.text-emerald-700 { color: #047857; }
-.text-amber-500 { color: #f59e0b; }
-.text-amber-700 { color: #b45309; }
-.text-amber-800 { color: #92400e; }
-.text-amber-600 { color: #d97706; }
-.bg-clip-text { -webkit-background-clip: text; background-clip: text; }
-.text-transparent { color: transparent; }
-
-/* Font Weights */
-.font-bold { font-weight: 700; }
-.font-extrabold { font-weight: 800; }
-.font-black { font-weight: 900; }
-.font-medium { font-weight: 500; }
-.font-semibold { font-weight: 600; }
-
-/* Font Sizes */
-.text-xxs { font-size: 0.65rem; }
-.text-xs { font-size: 0.78rem; }
-.text-sm { font-size: 0.88rem; }
-.text-base { font-size: 1rem; }
-.text-lg { font-size: 1.15rem; }
-.text-xl { font-size: 1.28rem; }
-.text-2xl { font-size: 1.55rem; }
-.text-3xl { font-size: 1.95rem; }
-.text-4xl { font-size: 2.35rem; }
-.text-5xl { font-size: 3.15rem; }
-.text-6xl { font-size: 4rem; }
-
-/* Fluent Borders */
-.border { border: 1px solid rgba(226, 232, 240, 0.6); }
-.border-b { border-bottom: 1px solid rgba(226, 232, 240, 0.6); }
-.border-t { border-top: 1px solid rgba(226, 232, 240, 0.6); }
-.border-2 { border-width: 2px; }
-.border-3 { border-width: 3px; }
-.border-4 { border-width: 4px; }
-.border-slate-100 { border-color: rgba(241, 245, 249, 0.6); }
-.border-slate-200 { border-color: rgba(226, 232, 240, 0.7); }
-.border-slate-300 { border-color: rgba(203, 213, 225, 0.7); }
-.border-indigo-50 { border-color: rgba(224, 231, 255, 0.6); }
-.border-indigo-200 { border-color: rgba(199, 210, 254, 0.6); }
-.border-indigo-600 { border-color: #4f46e5; }
-.border-amber-200 { border-color: rgba(253, 230, 138, 0.6); }
-.border-amber-300 { border-color: rgba(252, 211, 77, 0.7); }
-.border-emerald-200 { border-color: rgba(167, 243, 208, 0.6); }
-.border-emerald-600 { border-color: #059669; }
-.border-rose-200 { border-color: rgba(254, 205, 211, 0.6); }
-.border-rose-500 { border-color: #f43f5e; }
-
-/* Border Radius */
-.rounded-lg { border-radius: 10px; }
-.rounded-xl { border-radius: 14px; }
-.rounded-2xl { border-radius: 18px; }
-.rounded-3xl { border-radius: 26px; }
-.rounded-full { border-radius: 9999px; }
-
-/* Shadows & Vibrant Ambient Glows */
-.shadow-sm { box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04); }
-.shadow-md { box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.06), 0 8px 16px -6px rgba(15, 23, 42, 0.04); }
-.shadow-lg { box-shadow: 0 20px 30px -8px rgba(99, 102, 241, 0.18), 0 4px 12px -2px rgba(99, 102, 241, 0.08); }
-.shadow-2xl { box-shadow: 0 30px 60px -15px rgba(15, 23, 42, 0.18); }
-.shadow-inner { box-shadow: inset 0 2px 6px 0 rgba(15, 23, 42, 0.06); }
-.shadow-amber-50\/10 { box-shadow: 0 8px 20px rgba(245, 158, 11, 0.2); }
-
-.glass-card {
-  background: rgba(255, 255, 255, 0.88);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.95);
-  box-shadow: 0 12px 32px -6px rgba(99, 102, 241, 0.12), 0 4px 12px -2px rgba(15, 23, 42, 0.04);
-}
-
-/* Kids 3D Tactile Push Buttons */
-.btn-tactile-indigo {
-  background: linear-gradient(135deg, #6366f1, #4f46e5);
-  box-shadow: 0 5px 0 #3730a3, 0 10px 20px -5px rgba(99, 102, 241, 0.4);
-  border-radius: 22px;
-  transition: all 0.12s ease;
-}
-.btn-tactile-indigo:active {
-  transform: translateY(4px) !important;
-  box-shadow: 0 1px 0 #3730a3, 0 4px 10px -2px rgba(99, 102, 241, 0.3) !important;
-}
-
-.btn-tactile-amber {
-  background: linear-gradient(135deg, #f59e0b, #d97706);
-  box-shadow: 0 5px 0 #b45309, 0 10px 20px -5px rgba(245, 158, 11, 0.4);
-  border-radius: 22px;
-  transition: all 0.12s ease;
-}
-.btn-tactile-amber:active {
-  transform: translateY(4px) !important;
-  box-shadow: 0 1px 0 #b45309, 0 4px 10px -2px rgba(245, 158, 11, 0.3) !important;
-}
-
-.btn-tactile-rose {
-  background: linear-gradient(135deg, #f43f5e, #e11d48);
-  box-shadow: 0 5px 0 #be123c, 0 10px 20px -5px rgba(244, 63, 94, 0.4);
-  border-radius: 22px;
-  transition: all 0.12s ease;
-}
-.btn-tactile-rose:active {
-  transform: translateY(4px) !important;
-  box-shadow: 0 1px 0 #be123c, 0 4px 10px -2px rgba(244, 63, 94, 0.3) !important;
-}
-
-.btn-tactile-emerald {
-  background: linear-gradient(135deg, #10b981, #059669);
-  box-shadow: 0 5px 0 #047857, 0 10px 20px -5px rgba(16, 185, 129, 0.4);
-  border-radius: 22px;
-  transition: all 0.12s ease;
-}
-.btn-tactile-emerald:active {
-  transform: translateY(4px) !important;
-  box-shadow: 0 1px 0 #047857, 0 4px 10px -2px rgba(16, 185, 129, 0.3) !important;
-}
-
-.bg-kids-pattern {
-  background-color: #faf8ff !important;
-  background-image: radial-gradient(rgba(99, 102, 241, 0.18) 1.2px, transparent 1.2px), radial-gradient(rgba(244, 63, 94, 0.18) 1.2px, #faf8ff 1.2px) !important;
-  background-size: 20px 20px !important;
-  background-position: 0 0, 10px 10px !important;
-}
-
-.shadow-glow-indigo { box-shadow: 0 12px 28px -4px rgba(99, 102, 241, 0.35); }
-.shadow-glow-purple { box-shadow: 0 12px 28px -4px rgba(168, 85, 247, 0.35); }
-.shadow-glow-rose { box-shadow: 0 12px 28px -4px rgba(244, 63, 94, 0.35); }
-.shadow-glow-emerald { box-shadow: 0 12px 28px -4px rgba(16, 185, 129, 0.35); }
-.shadow-glow-amber { box-shadow: 0 12px 28px -4px rgba(245, 158, 11, 0.35); }
-
-/* Layout & Position */
-.relative { position: relative; }
-.absolute { position: absolute; }
-.sticky { position: sticky; }
-.top-0 { top: 0; }
-.bottom-0 { bottom: 0; }
-.z-10 { z-index: 10; }
-.z-20 { z-index: 20; }
-.z-30 { z-index: 30; }
-.z-50 { z-index: 50; }
-.fixed { position: fixed; }
-.inset-0 { top: 0; right: 0; bottom: 0; left: 0; }
-.overflow-hidden { overflow: hidden; }
-.overflow-y-auto { overflow-y: auto; }
-.cursor-pointer { cursor: pointer; }
-.cursor-crosshair { cursor: pointer; }
-.touch-none { touch-action: none; }
-.col-span-2 { grid-column: span 2 / span 2; }
-.aspect-square { aspect-ratio: 1 / 1; }
-
-/* Interactive Transitions & Animations */
-.transition { transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1); }
-.transition-all { transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1); }
-.transform { transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1); }
-.hover\:-translate-y-0\.5:hover { transform: translateY(-2px); }
-.active\:translate-y-0:active { transform: translateY(0); }
-
-.italic { font-style: italic; }
-.text-center { text-align: center; }
-.text-left { text-align: left; }
-.grayscale { filter: grayscale(100%); }
-.opacity-60 { opacity: 0.6; }
-.opacity-40 { opacity: 0.4; }
-.drop-shadow { filter: drop-shadow(0 6px 12px rgba(0,0,0,0.06)); }
-
-/* Custom animations */
 @keyframes float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-4px); }
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
 }
+
 @keyframes bounce-slow {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-6px); }
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
 }
+
 @keyframes pulse-glow {
-  0%, 100% { transform: scale(1); opacity: 0.85; box-shadow: 0 0 0 rgba(99, 102, 241, 0); }
-  50% { transform: scale(1.1); opacity: 1; box-shadow: 0 0 16px rgba(99, 102, 241, 0.5); }
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.85;
+    box-shadow: 0 0 0 rgba(79, 70, 229, 0);
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 1;
+    box-shadow: 0 0 16px color-mix(in srgb, var(--color-primary) 50%, transparent);
+  }
 }
 
-.animate-float { animation: float 3s ease-in-out infinite; }
-.animate-bounce-slow { animation: bounce-slow 2.4s ease-in-out infinite; }
-.pulse-glow-dot { animation: pulse-glow 1.8s infinite ease-in-out; }
-
-button,
-select,
-textarea,
-a,
-input[type="button"],
-input[type="submit"],
-[role="button"] {
-  min-width: 44px;
-  min-height: 44px;
-  box-sizing: border-box;
-  touch-action: manipulation;
-  border: none;
-  outline: none;
-  background: transparent;
-  cursor: pointer;
-}
-button:hover {
-  transform: translateY(-1.5px);
-  filter: brightness(1.05);
-}
-button:active {
-  transform: translateY(0.5px) scale(0.97);
+@keyframes fluentSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
-:focus {
-  outline: none;
+/* `border-3` is not on Tailwind's border-width scale (0/2/4/8) but the JSX uses
+   it for the thick outlines on quiz answers and PIN inputs. */
+@utility border-3 {
+  border-width: 3px;
 }
 
-:focus-visible {
-  outline: 3px solid rgba(99, 102, 241, 0.6) !important;
-  outline-offset: 2px !important;
-  border-radius: 12px;
+@layer base {
+  /* Restore the pre-v4 default border colour. Without this, the 62 bare
+     `border` / `border-b` / `border-t` classes in App.jsx would paint
+     `currentcolor` — near-black text colour — instead of a hairline. */
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-hairline);
+  }
+
+  html {
+    background-color: #f1f5f9;
+    color: var(--color-ink);
+  }
+
+  body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background:
+      radial-gradient(circle at 15% 15%, color-mix(in srgb, var(--color-primary-tint) 14%, transparent) 0%, transparent 45%),
+      radial-gradient(circle at 85% 85%, color-mix(in srgb, var(--color-accent) 10%, transparent) 0%, transparent 45%),
+      radial-gradient(circle at 85% 15%, color-mix(in srgb, var(--color-danger) 8%, transparent) 0%, transparent 45%),
+      radial-gradient(circle at 15% 85%, color-mix(in srgb, var(--color-success) 8%, transparent) 0%, transparent 45%);
+    background-color: #eef2ff;
+    background-attachment: fixed;
+  }
+
+  #root {
+    width: 100%;
+    max-width: 480px;
+    min-height: 100vh;
+    padding-left: env(safe-area-inset-left, 0px);
+    padding-right: env(safe-area-inset-right, 0px);
+    background: rgba(255, 255, 255, 0.98);
+    backdrop-filter: blur(28px);
+    -webkit-backdrop-filter: blur(28px);
+    border-left: 1px solid rgba(226, 232, 240, 0.8);
+    border-right: 1px solid rgba(226, 232, 240, 0.8);
+    box-shadow:
+      0 20px 60px -10px color-mix(in srgb, var(--color-primary-tint) 15%, transparent),
+      0 0 30px rgba(0, 0, 0, 0.03);
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    overflow-x: hidden;
+  }
+
+  /* WCAG 2.2 AA target size. Preflight already strips the UA border and
+     background, so this rule only carries the 44px floor and the pointer. */
+  button,
+  select,
+  textarea,
+  a,
+  input[type='button'],
+  input[type='submit'],
+  [role='button'] {
+    min-width: 44px;
+    min-height: 44px;
+    touch-action: manipulation;
+    cursor: pointer;
+  }
+
+  button:hover {
+    transform: translateY(-1.5px);
+    filter: brightness(1.05);
+  }
+
+  button:active {
+    transform: translateY(0.5px) scale(0.97);
+  }
+
+  input {
+    transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+    min-height: 44px;
+  }
+
+  :focus {
+    outline: none;
+  }
+
+  :focus-visible {
+    outline: 3px solid color-mix(in srgb, var(--color-primary-tint) 60%, transparent) !important;
+    outline-offset: 2px !important;
+    border-radius: 12px;
+  }
+
+  /* Safe-area insets for the notch and the home indicator. */
+  header {
+    padding-top: max(12px, env(safe-area-inset-top));
+  }
+
+  nav {
+    padding-bottom: max(12px, env(safe-area-inset-bottom));
+  }
 }
 
-header {
-  padding-top: max(12px, env(safe-area-inset-top));
+@layer components {
+  /* The tracing guide glyph. Waypoints in curriculum.js are calibrated against
+     these exact letterforms, so nothing here may change: no synthesised weight,
+     no smoothing filter, no letter-spacing, no stroke. */
+  .font-gujarati {
+    font-family: 'Noto Sans Gujarati', sans-serif !important;
+    font-weight: 500 !important;
+    font-synthesis: none !important;
+    -webkit-font-synthesis: none !important;
+    -webkit-font-smoothing: antialiased !important;
+    -moz-osx-font-smoothing: grayscale !important;
+    text-rendering: geometricPrecision !important;
+    text-shadow: none !important;
+    filter: none !important;
+    letter-spacing: normal !important;
+    stroke: none !important;
+    -webkit-text-stroke: 0px !important;
+  }
+
+  /* Kids 3D tactile push buttons. The radius comes from the rounded-* utility
+     on the element itself. */
+  .btn-tactile-indigo,
+  .btn-tactile-amber,
+  .btn-tactile-rose,
+  .btn-tactile-emerald {
+    transition: all 0.12s ease;
+    background: linear-gradient(135deg, var(--btn-tactile-from), var(--btn-tactile-to));
+    box-shadow:
+      0 5px 0 var(--btn-tactile-lip),
+      0 10px 20px -5px color-mix(in srgb, var(--btn-tactile-from) 40%, transparent);
+  }
+
+  .btn-tactile-indigo:active,
+  .btn-tactile-amber:active,
+  .btn-tactile-rose:active,
+  .btn-tactile-emerald:active {
+    transform: translateY(4px) !important;
+    box-shadow:
+      0 1px 0 var(--btn-tactile-lip),
+      0 4px 10px -2px color-mix(in srgb, var(--btn-tactile-from) 30%, transparent) !important;
+  }
+
+  .btn-tactile-indigo {
+    --btn-tactile-from: var(--color-primary-tint);
+    --btn-tactile-to: var(--color-primary);
+    --btn-tactile-lip: var(--color-primary-shade);
+  }
+
+  .btn-tactile-amber {
+    --btn-tactile-from: var(--color-reward);
+    --btn-tactile-to: var(--color-reward-hover);
+    --btn-tactile-lip: var(--color-reward-shade);
+  }
+
+  .btn-tactile-rose {
+    --btn-tactile-from: var(--color-danger);
+    --btn-tactile-to: var(--color-danger-hover);
+    --btn-tactile-lip: var(--color-danger-shade);
+  }
+
+  .btn-tactile-emerald {
+    --btn-tactile-from: var(--color-success);
+    --btn-tactile-to: var(--color-success-hover);
+    --btn-tactile-lip: var(--color-success-shade);
+  }
+
+  .bg-kids-pattern {
+    background-color: #faf8ff;
+    background-image:
+      radial-gradient(color-mix(in srgb, var(--color-primary-tint) 18%, transparent) 1.2px, transparent 1.2px),
+      radial-gradient(color-mix(in srgb, var(--color-danger) 18%, transparent) 1.2px, #faf8ff 1.2px);
+    background-size: 20px 20px;
+    background-position:
+      0 0,
+      10px 10px;
+  }
+
+  /* The "you are here" waypoint dot on the trace canvas. */
+  .pulse-glow-dot {
+    animation: pulse-glow 1.8s infinite ease-in-out;
+  }
+
+  .kiosk-lock-overlay {
+    position: fixed;
+    inset: 0;
+    background-color: rgba(15, 23, 42, 0.94);
+    backdrop-filter: blur(12px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+    color: white;
+    padding: 20px;
+    text-align: center;
+  }
+
+  .no-scrollbar {
+    scrollbar-width: none;
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Printable activity sheets. Deliberately ink-on-paper: fixed black hairlines
+     and white fills rather than theme tokens, because these surfaces are
+     designed for a monochrome printer, not the screen palette. */
+  .worksheet-a4-page {
+    background: white;
+    width: 100%;
+    max-width: 780px;
+    margin: 0 auto;
+    padding: 24px;
+    color: #000000;
+    font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    border-radius: 20px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    border: 1px solid #e2e8f0;
+  }
+
+  .worksheet-vertical-label {
+    writing-mode: vertical-lr;
+    transform: rotate(180deg);
+    text-align: center;
+    font-weight: 800;
+    font-size: 15px;
+    color: var(--color-ink);
+    letter-spacing: 0.04em;
+    text-transform: none;
+    user-select: none;
+  }
+
+  .color-activity-box {
+    border: 2.5px solid #000000;
+    border-radius: 28px;
+    background-color: #ffffff;
+    padding: 16px 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 180px;
+    position: relative;
+  }
+
+  .hollow-gujarati-char {
+    font-family: 'Noto Sans Gujarati', sans-serif !important;
+    font-weight: 800 !important;
+    font-size: 110px !important;
+    line-height: 1 !important;
+    color: #ffffff !important;
+    -webkit-text-stroke: 2.5px #000000 !important;
+    text-stroke: 2.5px #000000 !important;
+    filter: none !important;
+    text-shadow: none !important;
+    font-synthesis: none !important;
+    user-select: none;
+    display: inline-block;
+  }
+
+  .tracing-gujarati-char {
+    font-family: 'Noto Sans Gujarati', sans-serif !important;
+    font-weight: 400 !important;
+    font-size: 64px !important;
+    line-height: 1 !important;
+    color: #64748b !important;
+    opacity: 0.75 !important;
+    letter-spacing: normal !important;
+    filter: none !important;
+    text-shadow: none !important;
+    font-synthesis: none !important;
+    user-select: none;
+  }
+
+  .tracing-cell {
+    border: 1.5px dashed #94a3b8;
+    border-radius: 16px;
+    background: #ffffff;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 84px;
+    position: relative;
+  }
 }
 
-nav {
-  padding-bottom: max(12px, env(safe-area-inset-bottom));
-}
-
-input {
-  font-family: 'Outfit', sans-serif;
-  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
-  min-height: 44px;
-}
-
-.kiosk-lock-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(15, 23, 42, 0.94);
-  backdrop-filter: blur(12px);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 9999;
-  color: white;
-  padding: 20px;
-  text-align: center;
-}
-
-.no-scrollbar::-webkit-scrollbar {
-  display: none;
-}
-/* Gujarati Learner Style Activity Sheet Styles */
-.worksheet-a4-page {
-  background: white;
-  width: 100%;
-  max-width: 780px;
-  margin: 0 auto;
-  padding: 24px;
-  color: #000000;
-  box-sizing: border-box;
-  font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  border-radius: 20px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-  border: 1px solid #e2e8f0;
-}
-
-.worksheet-vertical-label {
-  writing-mode: vertical-lr;
-  transform: rotate(180deg);
-  text-align: center;
-  font-weight: 800;
-  font-size: 15px;
-  color: #0f172a;
-  letter-spacing: 0.04em;
-  text-transform: none;
-  user-select: none;
-}
-
-.color-activity-box {
-  border: 2.5px solid #000000;
-  border-radius: 28px;
-  background-color: #ffffff;
-  padding: 16px 20px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: space-between;
-  min-height: 180px;
-  position: relative;
-}
-
-.hollow-gujarati-char {
-  font-family: 'Noto Sans Gujarati', sans-serif !important;
-  font-weight: 800 !important;
-  font-size: 110px !important;
-  line-height: 1 !important;
-  color: #ffffff !important;
-  -webkit-text-stroke: 2.5px #000000 !important;
-  text-stroke: 2.5px #000000 !important;
-  filter: none !important;
-  text-shadow: none !important;
-  font-synthesis: none !important;
-  user-select: none;
-  display: inline-block;
-}
-
-.tracing-gujarati-char {
-  font-family: 'Noto Sans Gujarati', sans-serif !important;
-  font-weight: 400 !important;
-  font-size: 64px !important;
-  line-height: 1 !important;
-  color: #64748b !important;
-  opacity: 0.75 !important;
-  letter-spacing: normal !important;
-  filter: none !important;
-  text-shadow: none !important;
-  font-synthesis: none !important;
-  user-select: none;
-}
-
-.tracing-cell {
-  border: 1.5px dashed #94a3b8;
-  border-radius: 16px;
-  background: #ffffff;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-height: 84px;
-  position: relative;
+/* Fluent view slide transitions */
+main > div {
+  animation: var(--animate-fluent-slide-in);
 }
 
 @media print {
@@ -599,7 +488,7 @@ input {
     size: A4 portrait;
     margin: 6mm 8mm;
   }
-  
+
   /* Hide all non-printable app UI elements */
   header,
   nav,
@@ -610,8 +499,9 @@ input {
   .print-hide {
     display: none !important;
   }
-  
-  body, html {
+
+  body,
+  html {
     background: white !important;
     color: black !important;
     margin: 0 !important;
@@ -621,7 +511,7 @@ input {
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
-  
+
   #root {
     max-width: 100% !important;
     width: 100% !important;
@@ -631,13 +521,13 @@ input {
     padding: 0 !important;
     margin: 0 !important;
   }
-  
+
   main {
     padding: 0 !important;
     background: white !important;
     overflow: visible !important;
   }
-  
+
   .worksheet-a4-page {
     padding: 5mm 6mm !important;
     max-width: 100% !important;
@@ -654,13 +544,4 @@ input {
     flex-direction: column !important;
     justify-content: space-between !important;
   }
-}
-
-/* Fluent view slide transitions */
-main > div {
-  animation: fluentSlideIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-@keyframes fluentSlideIn {
-  from { opacity: 0; transform: translateY(12px) scale(0.985); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
 }
