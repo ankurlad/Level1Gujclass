@@ -72,12 +72,15 @@ Built with React 19, Vite, and Workbox PWA technology, the application operates 
 
 ### 5.1 Mobile Layout & Safe-Area Support
 - **Viewport Fit**: Enforced `viewport-fit=cover` in `index.html`.
+- **Zoom**: The viewport meta carries only `width=device-width, initial-scale=1.0, viewport-fit=cover`.
+  `maximum-scale` and `user-scalable=no` must never be reintroduced — pinch-zoom is WCAG 1.4.4.
 - **Notch Padding**: Dynamic padding using CSS `env(safe-area-inset-top)` on sticky headers, `env(safe-area-inset-bottom)` on navigation bars, and `env(safe-area-inset-left/right)` on `#root`.
 - **Responsive Bounds**: Bounded mobile container (`max-width: 480px`) centered on tablet and desktop screens.
 
 ### 5.2 Accessibility (WCAG 2.2 AA)
-- **Touch Target Minimums**: All buttons, links, inputs, and interactive elements strictly meet `44x44px` minimum sizing.
+- **Touch Target Minimums**: All buttons, links, inputs, and interactive elements strictly meet `44x44px` minimum sizing. The floor is a single base-layer rule in `index.css` (`min-width`/`min-height: 44px` on `button, select, textarea, a, input`), so no control has to opt in; a `min-w-*`/`min-h-*` utility below 44px is the only thing that can undercut it.
 - **Color Contrast**: All text elements maintain a minimum contrast ratio of `4.5:1` against background surfaces (muted text is `text-slate-500`; `slate-400` is never used for text, it does not clear 4.5:1 on white).
+- **Light Fills Take Dark Labels**: `--color-reward`/amber and `--color-success`/emerald are too light for a white label at any step on their ramps (2.15:1 and 2.54:1), so those surfaces carry `text-ink` instead. Indigo, rose and purple keep white labels at the 600/700 steps. `pink-500` only clears 3:1, so it is limited to large text (the app logo glyph).
 - **Focus Indicators**: Visible `:focus-visible` outline rings (`3px` of `--color-primary-tint` at 60%, `offset 2px`).
 - **Semantic HTML**: Structural hierarchy using `<header>`, `<main>`, `<nav aria-label="Main Navigation">`, and explicit `aria-label` / `aria-current` states.
 
