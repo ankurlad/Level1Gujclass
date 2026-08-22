@@ -52,3 +52,11 @@ export const eventToCanvasCoords = (canvas, e) => {
     y: ((clientY - rect.top) / rect.height) * CANVAS_H
   };
 };
+
+// The same thing off a ref, for the handlers that run before the canvas is
+// mounted (or after it is gone) and have always read 0,0 in that case.
+export const canvasRefCoords = (ref, e) => {
+  const canvas = ref.current;
+  if (!canvas) return { x: 0, y: 0 };
+  return eventToCanvasCoords(canvas, e);
+};

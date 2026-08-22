@@ -24,9 +24,10 @@ import {
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { CURRICULUM } from './curriculum';
-import { removeStored, writeStored } from './hooks/useLocalStorage';
+import { removeStored } from './hooks/useLocalStorage';
+import { useWaypointEditor } from './hooks/useWaypointEditor';
 import { speak } from './lib/audio';
-import { eventToCanvasCoords, setupCanvasScaling } from './lib/canvas';
+import { canvasRefCoords, eventToCanvasCoords, setupCanvasScaling } from './lib/canvas';
 import { readWaypointOverride, waypointsKey } from './lib/curriculumStorage';
 import { createPinRecord, verifyPin } from './lib/parentPin';
 import { STICKERS } from './lib/stickers';
@@ -34,14 +35,13 @@ import { BRUSH_TOKENS, themeColor } from './lib/theme';
 import {
   CANVAS_H,
   CANVAS_W,
-  canvasToPath,
-  canvasToPathX,
   canvasToPathXRaw,
   canvasToPathYRaw,
   pathToCanvasX,
   pathToCanvasY
 } from './lib/waypoints';
 import { AppStoreProvider, useAppStore } from './store/appStore';
+import WaypointEditor from './views/WaypointEditor';
 
 const PHONICS_GUIDE = {
   ka: { phonic: "ka", pron: "k as in cup" },
@@ -141,26 +141,29 @@ function AppShell() {
   const setShowParentLock = (open) => { if (!open) dispatch({ type: 'gate/cancel' }); };
   const setParentLockTarget = (target) => dispatch({ type: 'gate/request', target });
 
-  const [saveStatus, setSaveStatus] = useState(''); // Visual save feedback
-
   // Canvas Drawing & Styling Customizations
   const canvasRef = useRef(null);
   const lastPointRef = useRef(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [traceStartTime, setTraceStartTime] = useState(null);
 
-  // Waypoint Editor Mode States
-  const [editorActive, setEditorActive] = useState(false);
-  const [editorWaypoints, setEditorWaypoints] = useState([]);
-  const [editorMoveTo, setEditorMoveTo] = useState(false);
+  // The waypoint builder: its state, its canvas operations and its exports.
+  const editor = useWaypointEditor({ canvasRef });
+  const {
+    editorActive,
+    editorWaypoints,
+    editorRecordMode,
+    handleWaypointMouseDown,
+    handleWaypointTouchStart,
+    handleCanvasClick,
+    startRecordedStroke,
+    recordWaypoint
+  } = editor;
 
   // PWA Install States & Handlers
   const [installPrompt, setInstallPrompt] = useState(null);
   const [showInstallModal, setShowInstallModal] = useState(false);
   const [isStandalone, setIsStandalone] = useState(false);
-  const [editorRecordMode, setEditorRecordMode] = useState(false);
-  const [draggedWaypointIndex, setDraggedWaypointIndex] = useState(null);
-  const [isDraggingWaypoint, setIsDraggingWaypoint] = useState(false);
 
   // Quiz Mode States
   const [quizIndex, setQuizIndex] = useState(0);
@@ -198,153 +201,6 @@ function AppShell() {
   const [sandboxIsDrawing, setSandboxIsDrawing] = useState(false);
   const sandboxCanvasRef = useRef(null);
   const sandboxLastPointRef = useRef(null);
-
-  // Keep developer editor waypoints synced when letter changes
-  useEffect(() => {
-    if (currentLesson) {
-      setEditorWaypoints(currentLesson.waypoints || []);
-      setEditorMoveTo(false);
-      setSaveStatus('');
-    }
-  }, [currentLessonIndex]);
-
-  // Pulls a logical-pixel point onto the centre of mass of the guide glyph
-  // under it. In and out are both logical pixels: the probe below is a pixel
-  // grid, so conversion to the path space happens in the callers.
-  const snapToCenterline = (x, y) => {
-    try {
-      // Offscreen probe in the logical space — no DPR scaling, the result is a
-      // logical coordinate either way.
-      const tempCanvas = document.createElement('canvas');
-      tempCanvas.width = CANVAS_W;
-      tempCanvas.height = CANVAS_H;
-      const tempCtx = tempCanvas.getContext('2d');
-
-      // Draw background. These two greys are snap calibration constants, not
-      // theme colours: the pixel test below keys off the exact RGB distance
-      // between them, and drawTraceGuide paints the visible canvas with the
-      // same pair. Retheming either one moves every snapped waypoint.
-      // oxlint-disable-next-line theme/no-raw-hex
-      tempCtx.fillStyle = '#f8fafc';
-      tempCtx.fillRect(0, 0, CANVAS_W, CANVAS_H);
-
-      // Draw letter text exactly like the main canvas
-      tempCtx.font = '220px "Noto Sans Gujarati", "Baloo Bhai 2", sans-serif';
-      tempCtx.fillStyle = 'rgba(226, 232, 240, 0.95)';
-      tempCtx.textAlign = 'center';
-      tempCtx.textBaseline = 'middle';
-      tempCtx.fillText(currentLesson.letter, CANVAS_W / 2, CANVAS_H / 2 + 10);
-
-      const imgData = tempCtx.getImageData(0, 0, CANVAS_W, CANVAS_H).data;
-      
-      let sumX = 0;
-      let sumY = 0;
-      let count = 0;
-      const radius = 22; // 22px search radius
-      
-      const ix = Math.round(x);
-      const iy = Math.round(y);
-      
-      for (let dx = -radius; dx <= radius; dx++) {
-        for (let dy = -radius; dy <= radius; dy++) {
-          const px = ix + dx;
-          const py = iy + dy;
-          if (px >= 0 && px < CANVAS_W && py >= 0 && py < CANVAS_H) {
-            const pixelIndex = (py * CANVAS_W + px) * 4;
-            const r = imgData[pixelIndex];
-            const g = imgData[pixelIndex + 1];
-            const b = imgData[pixelIndex + 2];
-            
-            // The background is 248, 250, 252. The letter is darker: 226, 232, 240
-            if (r < 240 && g < 240 && b < 240) {
-              sumX += px;
-              sumY += py;
-              count++;
-            }
-          }
-        }
-      }
-      
-      if (count > 0) {
-        return {
-          x: Math.round(sumX / count),
-          y: Math.round(sumY / count)
-        };
-      }
-    } catch (e) {
-      console.error("Centerline snapping failed", e);
-    }
-    return { x, y };
-  };
-
-  // x/y arrive as logical pixels from the drag listener; canvasToPath clamps to
-  // the box and rounds, so what lands in state is already storable.
-  const updateWaypointPosition = (index, x, y) => {
-    const point = canvasToPath(snapToCenterline(x, y));
-
-    setEditorWaypoints(prev => {
-      const updated = [...prev];
-      updated[index] = {
-        ...updated[index],
-        x: point.x,
-        y: point.y
-      };
-      
-      setSessionCurriculum(prevCurriculum => {
-        const newCurriculum = [...prevCurriculum];
-        newCurriculum[currentLessonIndex] = {
-          ...newCurriculum[currentLessonIndex],
-          waypoints: updated
-        };
-        return newCurriculum;
-      });
-      
-      return updated;
-    });
-  };
-
-  const handleWaypointMouseDown = (e, idx) => {
-    if (!editorMode || !editorActive) return;
-    e.stopPropagation();
-    e.preventDefault();
-    setDraggedWaypointIndex(idx);
-    setIsDraggingWaypoint(true);
-  };
-
-  const handleWaypointTouchStart = (e, idx) => {
-    if (!editorMode || !editorActive) return;
-    e.stopPropagation();
-    setDraggedWaypointIndex(idx);
-    setIsDraggingWaypoint(true);
-  };
-
-  // Dragging event listener for moving waypoints
-  useEffect(() => {
-    if (!isDraggingWaypoint || draggedWaypointIndex === null) return;
-    
-    const handleDragMove = (e) => {
-      if (e.cancelable) e.preventDefault();
-      const { x, y } = getCoords(e);
-      updateWaypointPosition(draggedWaypointIndex, x, y);
-    };
-    
-    const handleDragEnd = () => {
-      setIsDraggingWaypoint(false);
-      setDraggedWaypointIndex(null);
-    };
-    
-    window.addEventListener('mousemove', handleDragMove);
-    window.addEventListener('mouseup', handleDragEnd);
-    window.addEventListener('touchmove', handleDragMove, { passive: false });
-    window.addEventListener('touchend', handleDragEnd);
-    
-    return () => {
-      window.removeEventListener('mousemove', handleDragMove);
-      window.removeEventListener('mouseup', handleDragEnd);
-      window.removeEventListener('touchmove', handleDragMove);
-      window.removeEventListener('touchend', handleDragEnd);
-    };
-  }, [isDraggingWaypoint, draggedWaypointIndex]);
 
   // Listen to installation prompt event, appinstalled, and check standalone display mode
   useEffect(() => {
@@ -505,44 +361,7 @@ function AppShell() {
     };
   }, [view, currentLessonIndex, editorWaypoints, editorMode, editorActive]);
 
-  const getCoords = (e) => {
-    const canvas = canvasRef.current;
-    if (!canvas) return { x: 0, y: 0 };
-    return eventToCanvasCoords(canvas, e);
-  };
-
-  // Click to place coordinates inside Waypoint Editor mode
-  const handleCanvasClick = (e) => {
-    if (!editorMode || !editorActive) return;
-    const { x, y } = getCoords(e);
-    const snapped = canvasToPath(snapToCenterline(x, y));
-
-    setEditorWaypoints(prev => {
-      const newPoint = {
-        x: snapped.x,
-        y: snapped.y,
-        label: (prev.length + 1).toString()
-      };
-      if (editorMoveTo) {
-        newPoint.moveTo = true;
-        setEditorMoveTo(false); // Reset
-      }
-      const updated = [...prev, newPoint];
-      
-      setSessionCurriculum(prevCurriculum => {
-        const newCurriculum = [...prevCurriculum];
-        newCurriculum[currentLessonIndex] = {
-          ...newCurriculum[currentLessonIndex],
-          waypoints: updated
-        };
-        return newCurriculum;
-      });
-      
-      return updated;
-    });
-    
-    playSound('waypoint');
-  };
+  const getCoords = (e) => canvasRefCoords(canvasRef, e);
 
   const startDrawing = (e) => {
     e.preventDefault();
@@ -551,30 +370,7 @@ function AppShell() {
     if (editorMode && editorActive) {
       if (editorRecordMode) {
         // Record path drawing mode
-        const snapped = canvasToPath(snapToCenterline(x, y));
-
-        setEditorWaypoints(prev => {
-          const newPoint = {
-            x: snapped.x,
-            y: snapped.y,
-            label: (prev.length + 1).toString()
-          };
-          if (prev.length > 0) {
-            newPoint.moveTo = true;
-          }
-          const updated = [...prev, newPoint];
-          
-          setSessionCurriculum(prevCurriculum => {
-            const newCurriculum = [...prevCurriculum];
-            newCurriculum[currentLessonIndex] = {
-              ...newCurriculum[currentLessonIndex],
-              waypoints: updated
-            };
-            return newCurriculum;
-          });
-          
-          return updated;
-        });
+        startRecordedStroke(x, y);
 
         // Save the unsnapped coordinates for relative distance checks!
         lastPointRef.current = { x, y };
@@ -619,27 +415,7 @@ function AppShell() {
         const dist = Math.hypot(x - lastPoint.x, y - lastPoint.y);
         // Spacing downsampling threshold (35px) between unsnapped points
         if (dist >= 35) {
-          const snapped = canvasToPath(snapToCenterline(x, y));
-
-          setEditorWaypoints(prev => {
-            const newPoint = {
-              x: snapped.x,
-              y: snapped.y,
-              label: (prev.length + 1).toString()
-            };
-            const updated = [...prev, newPoint];
-            
-            setSessionCurriculum(prevCurriculum => {
-              const newCurriculum = [...prevCurriculum];
-              newCurriculum[currentLessonIndex] = {
-                ...newCurriculum[currentLessonIndex],
-                waypoints: updated
-              };
-              return newCurriculum;
-            });
-            
-            return updated;
-          });
+          recordWaypoint(x, y);
 
           // Save the unsnapped coordinates for relative distance checks!
           lastPointRef.current = { x, y };
@@ -724,20 +500,6 @@ function AppShell() {
     }, 1500);
   };
 
-  // Save waypoints to device memory
-  const handleEditorSave = () => {
-    writeStored(waypointsKey(currentLesson.id), editorWaypoints);
-
-    // Update local state curriculum
-    const updatedCurriculum = [...sessionCurriculum];
-    updatedCurriculum[currentLessonIndex].waypoints = editorWaypoints;
-    setSessionCurriculum(updatedCurriculum);
-    
-    playSound('success');
-    setSaveStatus('Saved to device memory! 💾');
-    setTimeout(() => setSaveStatus(''), 3000);
-  };
-
   // Revert all customized coordinates back to default database settings
   const clearAllCustomWaypoints = () => {
     if (confirm("Are you sure you want to revert all custom-drawn letter waypoints back to default? This cannot be undone!")) {
@@ -748,42 +510,6 @@ function AppShell() {
       setSessionCurriculum(CURRICULUM);
       playSound('success');
       alert("All waypoints successfully reverted to default! 🔄");
-    }
-  };
-
-  // Helper to serialize a waypoint array with one coordinate object per line
-  // (matching curriculum.js formatting). Coordinates go out in the same 0-100
-  // path space they are held in, so the block pastes straight into
-  // curriculum.js and a file exported here re-imports without rescaling.
-  const stringifyWaypointsArray = (arr) => {
-    if (!arr || arr.length === 0) return "[]";
-    const lines = arr.map(wp => {
-      const parts = [];
-      parts.push(`"x": ${wp.x}`);
-      parts.push(`"y": ${wp.y}`);
-      parts.push(`"label": "${wp.label}"`);
-      if (wp.moveTo) {
-        parts.push(`"moveTo": true`);
-      }
-      return `  { ${parts.join(', ')} }`;
-    });
-    return `[\n${lines.join(',\n')}\n]`;
-  };
-
-  // Export current letter waypoints as single JSON file
-  const exportCurrentLetterWaypoints = () => {
-    try {
-      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(stringifyWaypointsArray(editorWaypoints));
-      const downloadAnchor = document.createElement('a');
-      downloadAnchor.setAttribute("href", dataStr);
-      downloadAnchor.setAttribute("download", `waypoints_${currentLesson.id}.json`);
-      document.body.appendChild(downloadAnchor);
-      downloadAnchor.click();
-      downloadAnchor.remove();
-      playSound('success');
-    } catch (e) {
-      console.error("Export current waypoints failed", e);
-      alert("Failed to export waypoints.");
     }
   };
 
@@ -830,116 +556,6 @@ function AppShell() {
     } catch (e) {
       console.error("Export all waypoints failed", e);
       alert("Failed to export all waypoints.");
-    }
-  };
-
-  // Waypoint Editor Controls
-  const handleEditorUndo = () => {
-    if (editorWaypoints.length === 0) return;
-    const updated = editorWaypoints.slice(0, -1);
-    setEditorWaypoints(updated);
-
-    const newCurriculum = [...sessionCurriculum];
-    newCurriculum[currentLessonIndex] = {
-      ...newCurriculum[currentLessonIndex],
-      waypoints: updated
-    };
-    setSessionCurriculum(newCurriculum);
-  };
-
-  const handleEditorClear = () => {
-    setEditorWaypoints([]);
-
-    const newCurriculum = [...sessionCurriculum];
-    newCurriculum[currentLessonIndex] = {
-      ...newCurriculum[currentLessonIndex],
-      waypoints: []
-    };
-    setSessionCurriculum(newCurriculum);
-  };
-
-  const handleEditorReset = () => {
-    // Clear item specific stored override
-    removeStored(waypointsKey(currentLesson.id));
-    
-    const originalWaypoints = CURRICULUM[currentLessonIndex].waypoints;
-    setEditorWaypoints(originalWaypoints);
-
-    const newCurriculum = [...sessionCurriculum];
-    newCurriculum[currentLessonIndex] = {
-      ...newCurriculum[currentLessonIndex],
-      waypoints: originalWaypoints
-    };
-    setSessionCurriculum(newCurriculum);
-    
-    playSound('success');
-    setSaveStatus('Reset to default! 🔄');
-    setTimeout(() => setSaveStatus(''), 3000);
-  };
-
-  // Auto-centers coordinates horizontally based on letter strokes for points 1-10
-  const handleAutoCenterRows = () => {
-    if (editorWaypoints.length === 0) return;
-
-    try {
-      const wps = editorWaypoints.map(wp => ({ ...wp }));
-      const letter = currentLesson.letter;
-      // The probe is a pixel raster, so it runs in the logical canvas size and
-      // each waypoint crosses into pixels and back per row.
-      const canvasWidth = CANVAS_W;
-      const canvasHeight = CANVAS_H;
-
-      const tempCanvas = document.createElement('canvas');
-      tempCanvas.width = canvasWidth;
-      tempCanvas.height = canvasHeight;
-      const tempCtx = tempCanvas.getContext('2d');
-      
-      tempCtx.font = '220px "Baloo Bhai 2", "Noto Sans Gujarati", sans-serif';
-      tempCtx.fillStyle = 'black';
-      tempCtx.textAlign = 'center';
-      tempCtx.textBaseline = 'middle';
-      tempCtx.fillText(letter, canvasWidth / 2, canvasHeight / 2 + 10);
-      
-      wps.forEach(point => {
-        const labelNum = parseInt(point.label);
-        if (labelNum >= 1 && labelNum <= 10) {
-          const y = Math.floor(pathToCanvasY(point.y));
-          const imageData = tempCtx.getImageData(0, y, canvasWidth, 1).data;
-          
-          let minX = -1;
-          let maxX = -1;
-          const alphaThreshold = 10;
-          
-          for (let x = 0; x < canvasWidth; x++) {
-            const alphaIndex = (x * 4) + 3;
-            const alpha = imageData[alphaIndex];
-            if (alpha > alphaThreshold) {
-              if (minX === -1) minX = x;
-              maxX = x;
-            }
-          }
-          
-          if (minX !== -1 && maxX !== -1) {
-            point.x = canvasToPathX((minX + maxX) / 2);
-          }
-        }
-      });
-      
-      setEditorWaypoints(wps);
-      
-      const newCurriculum = [...sessionCurriculum];
-      newCurriculum[currentLessonIndex] = {
-        ...newCurriculum[currentLessonIndex],
-        waypoints: wps
-      };
-      setSessionCurriculum(newCurriculum);
-      
-      playSound('success');
-      setSaveStatus('Auto-centered rows! ⚖️');
-      setTimeout(() => setSaveStatus(''), 3000);
-    } catch (e) {
-      console.error("Auto centering failed", e);
-      alert("Failed to auto-center waypoints.");
     }
   };
 
@@ -1857,151 +1473,7 @@ function AppShell() {
 
               {/* Developer Waypoint Editor Section */}
               {editorMode && (
-                <div className="w-full mt-3 p-4 bg-amber-50/60 border border-amber-200 rounded-2xl text-left">
-                  <div className="flex flex-col gap-2 mb-3">
-                    <span className="font-extrabold text-sm text-amber-800 flex items-center gap-1.5 justify-between">
-                      <span>🔧 Waypoint Builder Tool</span>
-                      {saveStatus && <span className="text-xs bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-md animate-pulse">{saveStatus}</span>}
-                    </span>
-                    
-                    {/* Editor Active Toggle */}
-                    <div className="flex gap-2 font-sans">
-                      <button
-                        onClick={() => setEditorActive(true)}
-                        className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold border transition ${editorActive ? 'bg-amber-600 border-amber-600 text-ink shadow-sm' : 'bg-white border-amber-200 text-amber-700'}`}
-                      >
-                        Editor Active
-                      </button>
-                      <button
-                        onClick={() => setEditorActive(false)}
-                        className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold border transition ${!editorActive ? 'bg-amber-600 border-amber-600 text-ink shadow-sm' : 'bg-white border-amber-200 text-amber-700'}`}
-                      >
-                        Test Tracing
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Waypoint placement mode toggle */}
-                  {editorActive && (
-                    <div className="flex gap-2 mb-3 font-sans">
-                      <button
-                        onClick={() => {
-                          setEditorRecordMode(false);
-                          playSound('waypoint');
-                        }}
-                        className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold border transition ${!editorRecordMode ? 'bg-amber-600 border-amber-600 text-ink shadow-sm' : 'bg-white border-amber-200 text-amber-700 hover:bg-amber-50'}`}
-                      >
-                        👆 Manual Click
-                      </button>
-                      <button
-                        onClick={() => {
-                          setEditorRecordMode(true);
-                          playSound('waypoint');
-                        }}
-                        className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold border transition flex justify-center items-center gap-1.5 ${editorRecordMode ? 'bg-rose-600 border-rose-600 text-white shadow-sm animate-pulse' : 'bg-white border-amber-200 text-amber-700 hover:bg-amber-50'}`}
-                      >
-                        <span className="w-2.5 h-2.5 rounded-full bg-rose-500 border border-white inline-block flex-shrink-0 animate-ping" />
-                        Draw to Record
-                      </button>
-                    </div>
-                  )}
-
-                  {editorActive ? (
-                    <div className="bg-slate-100/50 p-2.5 rounded-xl border border-slate-200/50 mb-3 text-xs text-slate-700 font-medium">
-                      {editorRecordMode ? (
-                        <p className="text-rose-700">
-                          🔴 <strong>Record Mode:</strong> Draw directly on the canvas guidelines to trace the letter shape. Waypoints will generate automatically under your touch path.
-                        </p>
-                      ) : (
-                        <p className="text-amber-800">
-                          👉 <strong>Manual Click Mode:</strong> Click or tap directly on the canvas grid above to place coordinates point-by-point.
-                        </p>
-                      )}
-                    </div>
-                  ) : (
-                    <p className="text-xs text-amber-700 font-medium mb-3">
-                      ✍️ Test tracing your custom waypoints using the brush below.
-                    </p>
-                  )}
-
-                  {/* Editor Buttons */}
-                  <div className="grid grid-cols-2 gap-2 mb-3 font-sans">
-                    {!editorRecordMode ? (
-                      <button
-                        onClick={() => setEditorMoveTo(!editorMoveTo)}
-                        className={`py-2.5 px-3 rounded-xl text-xs font-bold border transition flex justify-center items-center ${editorMoveTo ? 'bg-indigo-600 border-indigo-600 text-white shadow-sm animate-pulse' : 'bg-amber-100 border-amber-300 text-amber-800'}`}
-                      >
-                        {editorMoveTo ? '✏️ New Stroke Ready' : '✨ Start New Stroke'}
-                      </button>
-                    ) : (
-                      <button
-                        onClick={() => {
-                          handleEditorClear();
-                          initCanvas();
-                        }}
-                        className="bg-rose-50 border border-rose-200 text-rose-700 hover:bg-rose-100 py-2.5 rounded-xl text-xs font-bold transition flex justify-center items-center gap-1"
-                      >
-                        🔄 Start New Record
-                      </button>
-                    )}
-                    <button
-                      onClick={handleEditorUndo}
-                      className="bg-white border border-amber-300 text-amber-700 hover:bg-amber-100 py-2.5 rounded-xl text-xs font-bold transition"
-                    >
-                      Undo Point
-                    </button>
-                    <button
-                      onClick={handleEditorClear}
-                      className="bg-white border border-amber-300 text-amber-700 hover:bg-amber-100 py-2.5 rounded-xl text-xs font-bold transition"
-                    >
-                      Clear All
-                    </button>
-                    <button
-                      onClick={handleEditorReset}
-                      className="bg-white border border-amber-300 text-amber-700 hover:bg-amber-100 py-2.5 rounded-xl text-xs font-bold transition"
-                    >
-                      Reset Default
-                    </button>
-                    <button
-                      onClick={handleAutoCenterRows}
-                      className="bg-white border border-amber-300 text-amber-700 hover:bg-amber-100 py-2.5 rounded-xl text-xs font-bold transition col-span-2 flex justify-center items-center gap-1.5"
-                      title="Auto-center horizontal coordinates 1-10 on letter strokes"
-                    >
-                      ⚖️ Auto-Center Rows
-                    </button>
-                  </div>
-
-                  {/* Device Storage Persistence Save Button */}
-                  <div className="flex gap-2 mb-4">
-                    <button
-                      onClick={handleEditorSave}
-                      className="flex-1 bg-emerald-700 hover:bg-emerald-800 text-white font-extrabold py-3 px-2 rounded-xl text-xs flex justify-center items-center gap-1.5 transition shadow font-sans"
-                    >
-                      💾 Save Waypoints
-                    </button>
-                    <button
-                      onClick={exportCurrentLetterWaypoints}
-                      className="flex-1 bg-indigo-500 hover:bg-indigo-600 text-white font-extrabold py-3 px-2 rounded-xl text-xs flex justify-center items-center gap-1.5 transition shadow font-sans animate-pulse"
-                      title="Download waypoints for this alphabet as a JSON file"
-                    >
-                      📥 Export Letter
-                    </button>
-                  </div>
-
-                  {/* JSON Code Copy block */}
-                  <div className="font-sans">
-                    <label className="text-xxs font-extrabold text-amber-800 uppercase tracking-wider block mb-1">
-                      Live Waypoints JSON Code:
-                    </label>
-                    <textarea
-                      readOnly
-                      value={stringifyWaypointsArray(editorWaypoints)}
-                      className="w-full h-32 font-mono text-xxs border-2 border-amber-200 p-2 rounded-xl bg-white focus:outline-none focus:border-amber-400 select-all cursor-pointer"
-                      onClick={(e) => e.target.select()}
-                      title="Click to select all"
-                    />
-                  </div>
-                </div>
+                <WaypointEditor editor={editor} initCanvas={initCanvas} />
               )}
 
               {/* Kid friendly Brush toolbar */}
