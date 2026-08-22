@@ -28,6 +28,7 @@ import {
 import confetti from 'canvas-confetti';
 import { CURRICULUM } from './curriculum';
 import { readStored, removeStored, useLocalStorage, writeStored } from './hooks/useLocalStorage';
+import { createPinRecord, takeLegacyPlaintextPin, verifyPin } from './lib/parentPin';
 
 // Logical drawing space for the tracing and sandbox canvases. Waypoint
 // coordinates in curriculum.js, hit-test radii and brush widths are all in
@@ -245,7 +246,10 @@ export default function App() {
 
   // Parent Gate & Security Configurations
   const [gateType, setGateType] = useLocalStorage('gate_type', 'math'); // math | pin
-  const [parentPasscode, setParentPasscode] = useState(() => localStorage.getItem('guj_parent_pin') || '1234');
+  // The salted digest of the passcode, or null when no passcode has been set.
+  // There is deliberately no default: a PIN every install shares is not a gate,
+  // so the first parent to reach the PIN prompt chooses one.
+  const [parentPinRecord, setParentPinRecord] = useLocalStorage('parent_pin_hash', null);
   const [tempPasscode, setTempPasscode] = useState('');
   
   const [showParentLock, setShowParentLock] = useState(false);
@@ -286,12 +290,27 @@ export default function App() {
 
   const currentLesson = sessionCurriculum[currentLessonIndex];
 
-  // The nine states above persist themselves: useLocalStorage mirrors each one
-  // to its `guj:` key, which is what the block of sync effects here used to do
-  // one key at a time. The parent passcode is the exception below.
+  // The states above persist themselves: useLocalStorage mirrors each one to
+  // its `guj:` key, which is what the block of sync effects here used to do one
+  // key at a time.
+
+  // v0 kept the passcode in cleartext. Evict it on the first render after the
+  // update — takeLegacyPlaintextPin deletes it synchronously, so the plaintext
+  // is gone from storage before the digest that replaces it exists.
   useEffect(() => {
-    localStorage.setItem('guj_parent_pin', parentPasscode);
-  }, [parentPasscode]);
+    const plaintext = takeLegacyPlaintextPin();
+    if (plaintext === null) return;
+
+    let cancelled = false;
+    createPinRecord(plaintext)
+      .then((record) => { if (!cancelled) setParentPinRecord(record); })
+      .catch((e) => {
+        // The PIN is unrecoverable at this point, which is the right trade: the
+        // parent re-sets it at the next prompt, and no cleartext survives.
+        console.error('Could not hash the stored parent passcode', e);
+      });
+    return () => { cancelled = true; };
+  }, [setParentPinRecord]);
 
   // Keep developer editor waypoints synced when letter changes
   useEffect(() => {
@@ -1114,13 +1133,17 @@ export default function App() {
     setLockAnswer('');
   };
 
-  const handleParentLockVerify = (e) => {
+  const openParentView = () => {
+    setShowParentLock(false);
+    setView(parentLockTarget);
+    setLockAnswer('');
+  };
+
+  const handleParentLockVerify = async (e) => {
     e.preventDefault();
     if (gateType === 'math') {
       if (parseInt(lockAnswer, 10) === lockQuestion.a) {
-        setShowParentLock(false);
-        setView(parentLockTarget);
-        setLockAnswer('');
+        openParentView();
         return;
       }
       playSound('wrong');
@@ -1129,10 +1152,38 @@ export default function App() {
       return;
     }
 
-    if (lockAnswer === parentPasscode) {
-      setShowParentLock(false);
-      setView(parentLockTarget);
-      setLockAnswer('');
+    // First run on the PIN gate: there is no stored passcode to check against,
+    // so whatever is typed here becomes it. PR 11 gives this its own screen
+    // with a confirmation field; this keeps the gate usable without shipping a
+    // passcode that is the same on every install.
+    if (!parentPinRecord) {
+      if (!/^\d{4}$/.test(lockAnswer)) {
+        playSound('wrong');
+        alert("Choose a 4-digit passcode for this section.");
+        return;
+      }
+      try {
+        setParentPinRecord(await createPinRecord(lockAnswer));
+      } catch (err) {
+        console.error('Could not hash the parent passcode', err);
+        alert("This device cannot store a passcode securely. Use the math gate instead.");
+        return;
+      }
+      openParentView();
+      return;
+    }
+
+    let matches = false;
+    try {
+      matches = await verifyPin(lockAnswer, parentPinRecord);
+    } catch (err) {
+      console.error('Could not check the parent passcode', err);
+      alert("This device cannot check the passcode. Use the math gate instead.");
+      return;
+    }
+
+    if (matches) {
+      openParentView();
       return;
     }
 
@@ -1535,7 +1586,11 @@ export default function App() {
               <h3 className="text-2xl font-bold">Parents Section</h3>
             </div>
             <p className="text-slate-600 mb-4 font-medium text-lg">
-              {gateType === 'math' ? 'Solve this math sum to verify:' : 'Enter your 4-digit passcode:'}
+              {gateType === 'math'
+                ? 'Solve this math sum to verify:'
+                : parentPinRecord
+                  ? 'Enter your 4-digit passcode:'
+                  : 'Choose a 4-digit passcode to protect this section:'}
             </p>
             
             <form onSubmit={handleParentLockVerify}>
@@ -1549,7 +1604,7 @@ export default function App() {
                 maxLength={gateType === 'pin' ? 4 : undefined}
                 value={lockAnswer} 
                 onChange={(e) => setLockAnswer(e.target.value)}
-                placeholder={gateType === 'math' ? 'Enter answer' : 'Enter PIN'}
+                placeholder={gateType === 'math' ? 'Enter answer' : (parentPinRecord ? 'Enter PIN' : 'Set a PIN')}
                 className="w-full border-3 border-slate-200 focus:border-indigo-500 focus:outline-none rounded-xl px-4 py-3 text-center text-xl font-bold mb-6"
                 autoFocus
               />
@@ -2908,20 +2963,28 @@ export default function App() {
                       />
                       <button
                         type="button"
-                        onClick={() => {
-                          if (tempPasscode.length === 4) {
-                            setParentPasscode(tempPasscode);
-                            alert(`Passcode saved: ${tempPasscode}`);
-                            setTempPasscode('');
-                          } else {
+                        onClick={async () => {
+                          if (tempPasscode.length !== 4) {
                             alert("Passcode must be exactly 4 digits.");
+                            return;
                           }
+                          try {
+                            setParentPinRecord(await createPinRecord(tempPasscode));
+                          } catch (err) {
+                            console.error('Could not hash the parent passcode', err);
+                            alert("This device cannot store a passcode securely.");
+                            return;
+                          }
+                          setTempPasscode('');
+                          alert("Passcode saved.");
                         }}
                         className="bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs py-2 px-3.5 rounded-xl transition"
                       >
                         Save PIN
                       </button>
-                      <span className="text-xs text-slate-500">Active: {parentPasscode}</span>
+                      {/* Only the digest is stored, so there is no passcode to
+                          echo back here — just whether one is set. */}
+                      <span className="text-xs text-slate-500">{parentPinRecord ? 'Active: ••••' : 'Not set yet'}</span>
                     </div>
                   </div>
                 )}
