@@ -1,0 +1,25 @@
+Self-hosted web fonts
+=====================
+
+These woff2 files are served from this app's own origin so that the PWA has no
+runtime dependency on fonts.googleapis.com or fonts.gstatic.com. Each file is an
+unmodified subset binary as published by Google Fonts (variable weight axis).
+
+  noto-sans-gujarati-gujarati.woff2  Noto Sans Gujarati v27, gujarati subset
+  noto-sans-gujarati-latin.woff2     Noto Sans Gujarati v27, latin subset
+  baloo-bhai-2-gujarati.woff2        Baloo Bhai 2 v30, gujarati subset
+  baloo-bhai-2-latin.woff2           Baloo Bhai 2 v30, latin subset
+  outfit-latin.woff2                 Outfit v15, latin subset
+  fredoka-latin.woff2                Fredoka v17, latin subset
+
+All four families are licensed under the SIL Open Font License, Version 1.1:
+https://openfontlicense.org/
+
+  Noto Sans Gujarati  Copyright 2022 The Noto Project Authors
+  Baloo Bhai 2        Copyright 2020 The Baloo Bhai 2 Project Authors
+  Outfit              Copyright 2021 The Outfit Project Authors
+  Fredoka             Copyright 2021 The Fredoka Project Authors
+
+Do not re-subset or re-encode noto-sans-gujarati-gujarati.woff2. The waypoint
+coordinates in src/curriculum.js are calibrated against the exact letterforms
+this file renders at 220px in the tracing canvas.

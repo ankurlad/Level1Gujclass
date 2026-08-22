@@ -8,6 +8,12 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
+      workbox: {
+        // woff2 is not in the workbox default globPatterns; without it the
+        // self-hosted fonts would miss the precache and the trace guide would
+        // fall back to a system font offline.
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}']
+      },
       manifest: {
         name: 'Akshar Gujarati Learner',
         short_name: 'Gujarati Kid',
