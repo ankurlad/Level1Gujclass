@@ -1753,13 +1753,13 @@ export default function App() {
 
             {/* PWA Promo Install Banner */}
             {!isStandalone && !installDismissed && (
-              <div className="mt-6 mx-auto bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-500 max-w-sm rounded-3xl p-5 border border-indigo-400/30 shadow-lg flex flex-col gap-3 text-left text-white animate-float relative">
+              <div className="mt-6 mx-auto bg-gradient-to-r from-indigo-600 to-purple-600 max-w-sm rounded-3xl p-5 border border-indigo-400/30 shadow-lg flex flex-col gap-3 text-left text-white animate-float relative">
                 <button
                   onClick={() => {
                     setInstallDismissed(true);
                     localStorage.setItem('guj_install_dismissed', 'true');
                   }}
-                  className="absolute top-2 right-2 text-white/70 hover:text-white p-1 rounded-full text-xs min-h-[44px] min-w-[44px] flex items-center justify-center"
+                  className="absolute top-2 right-2 text-white p-1 rounded-full text-xs min-h-[44px] min-w-[44px] flex items-center justify-center"
                   aria-label="Dismiss install card"
                   title="Dismiss"
                 >
@@ -1771,7 +1771,7 @@ export default function App() {
                   </div>
                   <div>
                     <h4 className="font-extrabold text-base">Install Akshar App</h4>
-                    <p className="text-white/80 text-xs font-medium">Practice Kakko offline anytime directly on your device screen.</p>
+                    <p className="text-white text-xs font-medium">Practice Kakko offline anytime directly on your device screen.</p>
                   </div>
                 </div>
                 <button
@@ -1834,7 +1834,7 @@ export default function App() {
                     stoneStyle = "bg-indigo-600 border-indigo-700 text-white scale-110 shadow-lg shadow-indigo-600/30 animate-bounce-slow cursor-pointer ring-4 ring-indigo-100";
                     badgeIcon = <Sparkles size={12} className="text-white" />;
                   } else if (isCompleted) {
-                    stoneStyle = "bg-emerald-500 border-emerald-600 text-white shadow-md cursor-pointer hover:bg-emerald-600";
+                    stoneStyle = "bg-emerald-700 border-emerald-800 text-white shadow-md cursor-pointer hover:bg-emerald-800";
                     badgeIcon = <CheckCircle size={12} className="text-white" />;
                   }
                   
@@ -1995,7 +1995,7 @@ export default function App() {
                   if (editorMode && editorActive) {
                     dotClass = "bg-amber-500 border-amber-600 text-ink scale-105 shadow z-20 animate-pulse cursor-move select-none";
                   } else if (isCompleted) {
-                    dotClass = "bg-emerald-500 border-emerald-600 text-white scale-90";
+                    dotClass = "bg-emerald-700 border-emerald-800 text-white scale-90";
                   } else if (isNext) {
                     dotClass = "bg-indigo-600 border-indigo-700 text-white pulse-glow-dot scale-110 z-10";
                   }
@@ -2145,7 +2145,7 @@ export default function App() {
                   <div className="flex gap-2 mb-4">
                     <button
                       onClick={handleEditorSave}
-                      className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white font-extrabold py-3 px-2 rounded-xl text-xs flex justify-center items-center gap-1.5 transition shadow font-sans"
+                      className="flex-1 bg-emerald-700 hover:bg-emerald-800 text-white font-extrabold py-3 px-2 rounded-xl text-xs flex justify-center items-center gap-1.5 transition shadow font-sans"
                     >
                       💾 Save Waypoints
                     </button>
@@ -2229,7 +2229,7 @@ export default function App() {
                 </button>
                 <button
                   onClick={handleLessonSpeech}
-                  className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white font-extrabold py-3.5 px-4 rounded-2xl flex justify-center items-center gap-2 transition shadow-lg shadow-emerald-500/20"
+                  className="flex-1 bg-emerald-700 hover:bg-emerald-800 text-white font-extrabold py-3.5 px-4 rounded-2xl flex justify-center items-center gap-2 transition shadow-lg shadow-emerald-500/20"
                 >
                   <Volume2 size={18} />
                   <span>Speak</span>
@@ -2260,36 +2260,36 @@ export default function App() {
               {/* Memory Match */}
               <button
                 onClick={startMemoryMatch}
-                className="bg-gradient-to-tr from-rose-400 to-rose-500 text-white p-5 rounded-3xl shadow-lg border border-rose-300 flex flex-col items-center gap-3 transition-transform hover:-translate-y-1 active:translate-y-0"
+                className="bg-gradient-to-tr from-rose-600 to-rose-700 text-white p-5 rounded-3xl shadow-lg border border-rose-500 flex flex-col items-center gap-3 transition-transform hover:-translate-y-1 active:translate-y-0"
               >
                 <div className="w-12 h-12 bg-white/20 rounded-2xl flex justify-center items-center text-3xl">🎴</div>
                 <div className="flex flex-col">
                   <span className="font-extrabold text-sm leading-tight">Memory Match</span>
-                  <span className="text-white/80 font-bold text-xxs mt-1">Flip and match cards</span>
+                  <span className="text-white font-bold text-xxs mt-1">Flip and match cards</span>
                 </div>
               </button>
 
               {/* Picture Match */}
               <button
                 onClick={startMatchGame}
-                className="bg-gradient-to-tr from-purple-400 to-purple-500 text-white p-5 rounded-3xl shadow-lg border border-purple-300 flex flex-col items-center gap-3 transition-transform hover:-translate-y-1 active:translate-y-0"
+                className="bg-gradient-to-tr from-purple-600 to-purple-700 text-white p-5 rounded-3xl shadow-lg border border-purple-500 flex flex-col items-center gap-3 transition-transform hover:-translate-y-1 active:translate-y-0"
               >
                 <div className="w-12 h-12 bg-white/20 rounded-2xl flex justify-center items-center text-3xl">🖼️</div>
                 <div className="flex flex-col">
                   <span className="font-extrabold text-sm leading-tight">Picture Match</span>
-                  <span className="text-white/80 font-bold text-xxs mt-1">Find the matching image</span>
+                  <span className="text-white font-bold text-xxs mt-1">Find the matching image</span>
                 </div>
               </button>
 
               {/* Translate Quiz */}
               <button
                 onClick={startQuiz}
-                className="bg-gradient-to-tr from-indigo-400 to-indigo-500 text-white p-5 rounded-3xl shadow-lg border border-indigo-300 flex flex-col items-center gap-3 transition-transform hover:-translate-y-1 active:translate-y-0"
+                className="bg-gradient-to-tr from-indigo-500 to-indigo-600 text-white p-5 rounded-3xl shadow-lg border border-indigo-400 flex flex-col items-center gap-3 transition-transform hover:-translate-y-1 active:translate-y-0"
               >
                 <div className="w-12 h-12 bg-white/20 rounded-2xl flex justify-center items-center text-3xl">📝</div>
                 <div className="flex flex-col">
                   <span className="font-extrabold text-sm leading-tight">Translate Quiz</span>
-                  <span className="text-white/80 font-bold text-xxs mt-1">Sound translation test</span>
+                  <span className="text-white font-bold text-xxs mt-1">Sound translation test</span>
                 </div>
               </button>
             </div>
@@ -2425,7 +2425,7 @@ export default function App() {
               {memoryCards.every(c => c.isMatched) && (
                 <button
                   onClick={startMemoryMatch}
-                  className="w-full mt-4 bg-emerald-500 hover:bg-emerald-600 text-white font-extrabold py-3 px-4 rounded-xl text-sm transition shadow font-sans"
+                  className="w-full mt-4 bg-emerald-700 hover:bg-emerald-800 text-white font-extrabold py-3 px-4 rounded-xl text-sm transition shadow font-sans"
                 >
                   🎉 Play Again!
                 </button>
@@ -2962,7 +2962,7 @@ export default function App() {
                             alert("Passcode must be exactly 4 digits.");
                           }
                         }}
-                        className="bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs py-2 px-3.5 rounded-xl transition"
+                        className="bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs py-2 px-3.5 rounded-xl transition"
                       >
                         Save PIN
                       </button>
