@@ -39,7 +39,7 @@ describe('CURRICULUM', () => {
       })
 
       it('has a slug id and a latin transliteration', () => {
-        // ids are used as localStorage key suffixes (guj_custom_waypoints_<id>)
+        // ids are used as storage key suffixes (guj:custom_waypoints_<id>)
         // and as React keys, so they must stay url/storage safe.
         expect(lesson.id).toMatch(/^[a-z][a-z0-9]*$/)
         expect(lesson.english).toMatch(/^[A-Za-z]+$/)

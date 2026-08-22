@@ -27,7 +27,7 @@ import {
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { CURRICULUM } from './curriculum';
-import { readStored, useLocalStorage } from './hooks/useLocalStorage';
+import { readStored, removeStored, useLocalStorage, writeStored } from './hooks/useLocalStorage';
 
 // Logical drawing space for the tracing and sandbox canvases. Waypoint
 // coordinates in curriculum.js, hit-test radii and brush widths are all in
@@ -889,10 +889,10 @@ export default function App() {
     }, 1500);
   };
 
-  // Save waypoints to Local Storage device memory
+  // Save waypoints to device memory
   const handleEditorSave = () => {
-    localStorage.setItem(`guj_custom_waypoints_${currentLesson.id}`, JSON.stringify(editorWaypoints));
-    
+    writeStored(waypointsKey(currentLesson.id), editorWaypoints);
+
     // Update local state curriculum
     const updatedCurriculum = [...sessionCurriculum];
     updatedCurriculum[currentLessonIndex].waypoints = editorWaypoints;
@@ -907,7 +907,7 @@ export default function App() {
   const clearAllCustomWaypoints = () => {
     if (confirm("Are you sure you want to revert all custom-drawn letter waypoints back to default? This cannot be undone!")) {
       sessionCurriculum.forEach(item => {
-        localStorage.removeItem(`guj_custom_waypoints_${item.id}`);
+        removeStored(waypointsKey(item.id));
       });
       // Load standard curriculum back
       setSessionCurriculum(CURRICULUM);
@@ -953,15 +953,8 @@ export default function App() {
   const exportAllCustomWaypoints = () => {
     try {
       const fullCurriculumExport = sessionCurriculum.map(item => {
-        const saved = localStorage.getItem(`guj_custom_waypoints_${item.id}`);
-        if (saved) {
-          try {
-            return { ...item, waypoints: JSON.parse(saved) };
-          } catch (e) {
-            console.error("Failed to parse saved waypoints for " + item.id, e);
-          }
-        }
-        return item;
+        const saved = readStored(waypointsKey(item.id), null);
+        return Array.isArray(saved) ? { ...item, waypoints: saved } : item;
       });
 
       const stringifyFullCurriculum = (curriculumArray) => {
@@ -1028,8 +1021,8 @@ export default function App() {
   };
 
   const handleEditorReset = () => {
-    // Clear item specific localstorage override
-    localStorage.removeItem(`guj_custom_waypoints_${currentLesson.id}`);
+    // Clear item specific stored override
+    removeStored(waypointsKey(currentLesson.id));
     
     const originalWaypoints = CURRICULUM[currentLessonIndex].waypoints;
     setEditorWaypoints(originalWaypoints);
