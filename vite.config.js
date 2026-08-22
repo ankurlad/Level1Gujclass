@@ -21,8 +21,11 @@ export default defineConfig({
       workbox: {
         // woff2 is not in the workbox default globPatterns; without it the
         // self-hosted fonts would miss the precache and the trace guide would
-        // fall back to a system font offline.
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+        // fall back to a system font offline. mp3 is the 75 recorded clips
+        // (~900 KB): hashed build output, so precaching is a one-time cost that
+        // never goes stale, and it is what makes the letters speak on a device
+        // that has never been online since install.
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2,mp3}'],
         // The precache already answers every navigation offline. Serving it
         // cache-first is what makes a shipped fix invisible for a whole extra
         // load, so the shell is fetched network-first instead and only falls
@@ -32,9 +35,9 @@ export default defineConfig({
           {
             // Hashed build output. The filename changes when the bytes change,
             // so a hit is never stale and the network is never worth asking.
-            // The precache route is registered first and already owns the js
-            // and css; this covers everything under /assets/ that globPatterns
-            // does not match — images today, recorded audio at PR 10.
+            // The precache route is registered first and already owns the js,
+            // the css and (since PR 10) the mp3s; this covers what is left
+            // under /assets/ that globPatterns does not match — images.
             urlPattern: ({ url, sameOrigin }) => sameOrigin && url.pathname.startsWith('/assets/'),
             handler: 'CacheFirst',
             options: {
