@@ -68,7 +68,6 @@ const initialSession = () => ({
   // There is no "unlocked for the session" flag: the gate has always
   // re-challenged on every entry and this PR does not change that.
   gateTarget: null,
-  tempPasscode: '',
   worksheetMode: 'single', // 'single' | 'grid' | 'match'
   selectedWorksheetLetter: 'ka',
   worksheetGroup: 'all',
@@ -99,16 +98,13 @@ function reducer(state, action) {
       return { ...state, completedWaypoints: action.completedWaypoints };
 
     case 'gate/request':
-      return { ...state, gateTarget: action.target, tempPasscode: '' };
+      return { ...state, gateTarget: action.target };
 
     case 'gate/cancel':
       return { ...state, gateTarget: null };
 
     case 'gate/open':
       return { ...state, view: state.gateTarget, gateTarget: null };
-
-    case 'gate/setTempPasscode':
-      return { ...state, tempPasscode: action.tempPasscode };
 
     case 'worksheets/open':
       return {

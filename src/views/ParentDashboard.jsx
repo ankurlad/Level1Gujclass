@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import {
   CheckSquare,
   FileText,
@@ -8,7 +9,7 @@ import {
 } from 'lucide-react';
 import { removeStored } from '../hooks/useLocalStorage';
 import { readWaypointOverride, waypointsKey } from '../lib/curriculumStorage';
-import { createPinRecord } from '../lib/parentPin';
+import { createPinRecord, verifyPin } from '../lib/parentPin';
 import { STICKERS } from '../lib/stickers';
 import { CURRICULUM } from '../curriculum';
 import { useAppStore } from '../store/appStore';
@@ -20,6 +21,13 @@ import { useAppStore } from '../store/appStore';
 // curriculum-wide waypoint operations) and the reset. Everything it changes is
 // persisted state, so it changes it through the store; the passcode it sets
 // goes through src/lib/parentPin.js and only the digest is ever held.
+//
+// The passcode manager below is the one part with steps, and every one of them
+// is local state: which flow is open, what has been typed into it, whether the
+// current passcode has been proved. None of it outlives the visit, so none of
+// it belongs in the store — the store keeps the digest and nothing else.
+const PIN_PATTERN = /^\d{4}$/;
+
 export default function ParentDashboard() {
   const {
     sessionCurriculum,
@@ -31,13 +39,104 @@ export default function ParentDashboard() {
     parentUnlockAll, setParentUnlockAll,
     gateType, setGateType,
     parentPinRecord, setParentPinRecord,
-    tempPasscode,
     dispatch,
     setView,
     playSound
   } = useAppStore();
 
-  const setTempPasscode = (value) => dispatch({ type: 'gate/setTempPasscode', tempPasscode: value });
+  // null | 'set' | 'change' | 'remove'. 'change' and 'remove' both start on the
+  // current passcode and only move on once verifyPin has accepted it: removing
+  // the passcode is a management action, not a way past the gate.
+  const [pinFlow, setPinFlow] = useState(null);
+  const [currentProved, setCurrentProved] = useState(false);
+  const [currentEntry, setCurrentEntry] = useState('');
+  const [newEntry, setNewEntry] = useState('');
+  const [confirmEntry, setConfirmEntry] = useState('');
+  const [pinNotice, setPinNotice] = useState(null);
+
+  const digits = (value) => value.replace(/\D/g, '').slice(0, 4);
+
+  const notify = (tone, message) => setPinNotice({ tone, message });
+
+  const closePinFlow = (notice) => {
+    setPinFlow(null);
+    setCurrentProved(false);
+    setCurrentEntry('');
+    setNewEntry('');
+    setConfirmEntry('');
+    setPinNotice(notice ?? null);
+  };
+
+  const openPinFlow = (flow) => {
+    setPinFlow(flow);
+    setCurrentProved(false);
+    setCurrentEntry('');
+    setNewEntry('');
+    setConfirmEntry('');
+    setPinNotice(null);
+  };
+
+  // Step one of both 'change' and 'remove': prove the passcode already stored.
+  const submitCurrentPasscode = async () => {
+    let matches = false;
+    try {
+      matches = await verifyPin(currentEntry, parentPinRecord);
+    } catch (err) {
+      console.error('Could not check the parent passcode', err);
+      notify('error', 'This device cannot check the passcode — it needs https or localhost.');
+      return;
+    }
+
+    if (!matches) {
+      playSound('wrong');
+      notify('error', 'That is not the current passcode.');
+      setCurrentEntry('');
+      return;
+    }
+
+    if (pinFlow === 'remove') {
+      setParentPinRecord(null);
+      closePinFlow({
+        tone: 'success',
+        message: 'Passcode removed. The gate now asks the next parent to choose one.'
+      });
+      return;
+    }
+
+    setCurrentProved(true);
+    setCurrentEntry('');
+    setPinNotice(null);
+  };
+
+  // Step two of 'change', and the whole of 'set': the same two fields the gate
+  // shows on its first run, with the same rule — 4 digits, twice, or nothing
+  // is stored.
+  const submitNewPasscode = async () => {
+    if (!PIN_PATTERN.test(newEntry)) {
+      playSound('wrong');
+      notify('error', 'A passcode is exactly 4 digits — numbers only.');
+      return;
+    }
+    if (newEntry !== confirmEntry) {
+      playSound('wrong');
+      notify('error', 'Those passcodes do not match. Enter the same 4 digits in both fields.');
+      setNewEntry('');
+      setConfirmEntry('');
+      return;
+    }
+
+    let record;
+    try {
+      record = await createPinRecord(newEntry);
+    } catch (err) {
+      console.error('Could not hash the parent passcode', err);
+      notify('error', 'This device cannot store a passcode securely — it needs https or localhost.');
+      return;
+    }
+
+    setParentPinRecord(record);
+    closePinFlow({ tone: 'success', message: 'Passcode saved. It protects this section from now on.' });
+  };
 
   // Revert all customized coordinates back to default database settings
   const clearAllCustomWaypoints = () => {
@@ -253,7 +352,7 @@ export default function ParentDashboard() {
           
           {/* Gate type selection */}
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-bold text-slate-500">Security Gate Type:</label>
+            <label className="text-xs font-bold text-slate-500">Parent Gate Type:</label>
             <div className="flex gap-2">
               <button
                 onClick={() => setGateType('math')}
@@ -270,47 +369,134 @@ export default function ParentDashboard() {
             </div>
           </div>
 
-          {/* PIN value editing */}
+          {/* Passcode management */}
           {gateType === 'pin' && (
-            <div className="flex flex-col gap-1.5 border-t border-slate-200/60 pt-3">
-              <label className="text-xs font-bold text-slate-500">Set Custom 4-Digit Passcode PIN:</label>
-              <div className="flex gap-2 items-center">
-                <input
-                  type="password"
-                  maxLength={4}
-                  placeholder="e.g. 1234"
-                  value={tempPasscode}
-                  onChange={(e) => {
-                    const val = e.target.value.replace(/\D/g, '');
-                    setTempPasscode(val);
-                  }}
-                  className="w-24 border-2 border-slate-200 focus:border-indigo-500 focus:outline-none rounded-xl px-3 py-2 text-center text-sm font-bold"
-                />
-                <button
-                  type="button"
-                  onClick={async () => {
-                    if (tempPasscode.length !== 4) {
-                      alert("Passcode must be exactly 4 digits.");
-                      return;
-                    }
-                    try {
-                      setParentPinRecord(await createPinRecord(tempPasscode));
-                    } catch (err) {
-                      console.error('Could not hash the parent passcode', err);
-                      alert("This device cannot store a passcode securely.");
-                      return;
-                    }
-                    setTempPasscode('');
-                    alert("Passcode saved.");
-                  }}
-                  className="bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs py-2 px-3.5 rounded-xl transition"
-                >
-                  Save PIN
-                </button>
+            <div className="flex flex-col gap-2.5 border-t border-slate-200/60 pt-3">
+              <label className="text-xs font-bold text-slate-500">4-Digit Passcode:</label>
+
+              <div className="flex gap-2 items-center flex-wrap">
                 {/* Only the digest is stored, so there is no passcode to
                     echo back here — just whether one is set. */}
-                <span className="text-xs text-slate-500">{parentPinRecord ? 'Active: ••••' : 'Not set yet'}</span>
+                <span className="text-xs text-slate-500 font-bold">{parentPinRecord ? 'Active: ••••' : 'Not set yet'}</span>
+
+                {parentPinRecord ? (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => openPinFlow('change')}
+                      className="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 font-bold text-xs py-2 px-3.5 rounded-xl transition"
+                    >
+                      Change passcode
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => openPinFlow('remove')}
+                      className="bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-bold text-xs py-2 px-3.5 rounded-xl transition"
+                    >
+                      Remove passcode
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => openPinFlow('set')}
+                    className="bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs py-2 px-3.5 rounded-xl transition"
+                  >
+                    Set passcode
+                  </button>
+                )}
               </div>
+
+              {/* Step one of change/remove: the passcode already stored. There
+                  is no path around it — removing needs it exactly as changing
+                  does. */}
+              {pinFlow !== null && pinFlow !== 'set' && !currentProved && (
+                <div className="flex flex-col gap-2 bg-white border border-slate-200 rounded-xl p-3">
+                  <label className="text-xs font-bold text-slate-500 flex flex-col gap-1.5">
+                    {pinFlow === 'remove' ? 'Enter the current passcode to remove it' : 'Enter the current passcode'}
+                    <input
+                      type="password"
+                      inputMode="numeric"
+                      maxLength={4}
+                      placeholder="4 digits"
+                      value={currentEntry}
+                      onChange={(e) => setCurrentEntry(digits(e.target.value))}
+                      className="w-28 border-2 border-slate-200 focus:border-indigo-500 focus:outline-none rounded-xl px-3 py-2 text-center text-sm font-bold"
+                    />
+                  </label>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={submitCurrentPasscode}
+                      className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs py-2 px-3.5 rounded-xl transition"
+                    >
+                      {pinFlow === 'remove' ? 'Remove' : 'Continue'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => closePinFlow()}
+                      className="bg-white border border-slate-200 hover:border-slate-300 text-slate-600 font-bold text-xs py-2 px-3.5 rounded-xl transition"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Step two of change, and all of set. */}
+              {(pinFlow === 'set' || (pinFlow === 'change' && currentProved)) && (
+                <div className="flex flex-col gap-2 bg-white border border-slate-200 rounded-xl p-3">
+                  <label className="text-xs font-bold text-slate-500 flex flex-col gap-1.5">
+                    New passcode
+                    <input
+                      type="password"
+                      inputMode="numeric"
+                      maxLength={4}
+                      placeholder="4 digits"
+                      value={newEntry}
+                      onChange={(e) => setNewEntry(digits(e.target.value))}
+                      className="w-28 border-2 border-slate-200 focus:border-indigo-500 focus:outline-none rounded-xl px-3 py-2 text-center text-sm font-bold"
+                    />
+                  </label>
+                  <label className="text-xs font-bold text-slate-500 flex flex-col gap-1.5">
+                    Confirm new passcode
+                    <input
+                      type="password"
+                      inputMode="numeric"
+                      maxLength={4}
+                      placeholder="the same 4 digits"
+                      value={confirmEntry}
+                      onChange={(e) => setConfirmEntry(digits(e.target.value))}
+                      className="w-28 border-2 border-slate-200 focus:border-indigo-500 focus:outline-none rounded-xl px-3 py-2 text-center text-sm font-bold"
+                    />
+                  </label>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={submitNewPasscode}
+                      className="bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs py-2 px-3.5 rounded-xl transition"
+                    >
+                      Save passcode
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => closePinFlow()}
+                      className="bg-white border border-slate-200 hover:border-slate-300 text-slate-600 font-bold text-xs py-2 px-3.5 rounded-xl transition"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {pinNotice && (
+                <p
+                  role="alert"
+                  className={`text-xs font-bold ${pinNotice.tone === 'error' ? 'text-rose-700' : 'text-emerald-700'}`}
+                >
+                  {pinNotice.message}
+                </p>
+              )}
             </div>
           )}
 
