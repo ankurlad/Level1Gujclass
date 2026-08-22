@@ -337,9 +337,16 @@
       0 4px 10px -2px color-mix(in srgb, var(--btn-tactile-from) 30%, transparent) !important;
   }
 
+  /* The gradient's lightest stop is what the white label has to survive, so
+     every recipe below keeps its lightest stop at 4.5:1 or better against
+     white. indigo starts at --color-primary (6.29:1) rather than the tint
+     (4.47:1); rose starts at --color-danger-hover (4.70:1) rather than
+     --color-danger (3.67:1). amber and emerald cannot reach 4.5:1 against
+     white at any stop on their ramps, so those two buttons carry
+     `text-ink` in App.jsx instead (8.31:1 / 7.04:1). */
   .btn-tactile-indigo {
-    --btn-tactile-from: var(--color-primary-tint);
-    --btn-tactile-to: var(--color-primary);
+    --btn-tactile-from: var(--color-primary);
+    --btn-tactile-to: var(--color-primary-hover);
     --btn-tactile-lip: var(--color-primary-shade);
   }
 
@@ -350,9 +357,11 @@
   }
 
   .btn-tactile-rose {
-    --btn-tactile-from: var(--color-danger);
-    --btn-tactile-to: var(--color-danger-hover);
-    --btn-tactile-lip: var(--color-danger-shade);
+    --btn-tactile-from: var(--color-danger-hover);
+    --btn-tactile-to: var(--color-danger-shade);
+    /* --color-danger-shade is now the gradient's dark end, so the lip has to
+       come from one step past it. */
+    --btn-tactile-lip: color-mix(in oklab, var(--color-danger-shade) 78%, black);
   }
 
   .btn-tactile-emerald {

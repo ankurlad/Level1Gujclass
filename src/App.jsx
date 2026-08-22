@@ -1697,7 +1697,7 @@ export default function App() {
 
               <button 
                 onClick={() => setView('games')}
-                className="btn-tactile-amber text-white font-extrabold text-lg py-4 px-6 rounded-3xl flex items-center justify-between shadow-lg cursor-pointer"
+                className="btn-tactile-amber text-ink font-extrabold text-lg py-4 px-6 rounded-3xl flex items-center justify-between shadow-lg cursor-pointer"
               >
                 <div className="flex items-center gap-3.5">
                   <div className="bg-white/20 p-2.5 rounded-2xl">
@@ -1723,7 +1723,7 @@ export default function App() {
 
               <button 
                 onClick={() => setView('stickers')}
-                className="btn-tactile-emerald text-white font-extrabold text-lg py-4 px-6 rounded-3xl flex items-center justify-between shadow-lg cursor-pointer"
+                className="btn-tactile-emerald text-ink font-extrabold text-lg py-4 px-6 rounded-3xl flex items-center justify-between shadow-lg cursor-pointer"
               >
                 <div className="flex items-center gap-3.5">
                   <div className="bg-white/20 p-2.5 rounded-2xl">
