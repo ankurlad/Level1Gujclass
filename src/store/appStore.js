@@ -52,6 +52,10 @@ const NO_WAYPOINTS = [];
 const toNumber = (fallback) => (value) => Number(value) || fallback;
 const toBoolean = (value) => value === true || value === 'true';
 
+// The views GameZone answers for: its menu plus one per game. The nav bar
+// highlights Games for all five, which is the list it already carried.
+export const GAME_VIEWS = ['games', 'match', 'quiz', 'phonics_game', 'memory_match'];
+
 const initialSession = () => ({
   view: 'home', // home | map | learn | games | match | quiz | phonics_game | memory_match | sandbox | stickers | dashboard | worksheets
   currentLessonIndex: 0,
@@ -207,6 +211,10 @@ export function AppStoreProvider({ children }) {
   // this store, so the store is what binds it.
   const playSound = (type) => playSoundEffect(type, soundEnabled);
 
+  // The one action every view takes, bound so navigation reads the same as it
+  // did when App owned the view state. Everything else goes through dispatch.
+  const setView = (nextView) => dispatch({ type: 'view/set', view: nextView });
+
   const value = {
     // Session state
     ...session,
@@ -231,6 +239,7 @@ export function AppStoreProvider({ children }) {
     getTraceSession,
 
     // Bound helpers
+    setView,
     playSound
   };
 

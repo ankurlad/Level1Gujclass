@@ -80,6 +80,7 @@ export default function TraceView() {
     brushWidth, setBrushWidth,
     editorMode,
     dispatch,
+    setView,
     playSound,
     traceSessionRef,
     getTraceSession
@@ -353,7 +354,7 @@ export default function TraceView() {
       {/* Top Navigation Selector */}
       <div className="flex justify-between items-center mb-4">
         <button 
-          onClick={() => dispatch({ type: 'view/set', view: 'map' })}
+          onClick={() => setView('map')}
           className="font-bold text-slate-500 hover:text-slate-700 bg-white border border-slate-200 px-4 py-2 rounded-xl text-sm shadow-sm flex-shrink-0"
         >
           🗺️ Map
