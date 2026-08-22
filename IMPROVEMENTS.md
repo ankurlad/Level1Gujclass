@@ -132,7 +132,28 @@ PR 11 — Parent gate (DONE)
     challenge (sums of 10–23 are trivial for a 7–8yo); soften "security" language in prd.md to
     match reality (it's a speed bump).
 
-PR 12 — Input validation
+PR 12 — Input validation (DONE)
+  - Shipped: src/lib/validate.js is the one boundary — bounded numbers with a name (points 0-999999,
+    brush width 1-64), the unlocked sticker list checked against the catalogue entry by entry, the
+    4-digit passcode rule, a whole-number parse for the math gate, and the waypoint schema. Every
+    correction is a console.warn; every refusal names the field, and for an array the entry index.
+    readStored/useLocalStorage take a `validate` guard that runs on every value they return, not
+    only a migrated v0 one, and the corrected value replaces the bad one on disk. The points and
+    sticker setters validate too, so the boundary is not read-only.
+  - The editor gained the missing direction: a paste box and Load JSON, applied whole or not at all,
+    with the reason inline (role="alert") and the previous letter kept. A 0-380 block is converted
+    and the notice says so. Loading is session-only; Save Waypoints still writes to the device.
+  - ErrorBoundary (the one class in src/ — getDerivedStateFromError has no hook form) wraps each of
+    the eight view branches in App.jsx separately, not the switch: "Something went wrong loading
+    this screen" plus Try again, which remounts the subtree. The nav, the header and the other seven
+    screens survive.
+  - 41 tests across tests/validate.test.js, storeValidation.test.jsx, waypointJsonLoad.test.jsx and
+    errorBoundary.test.jsx. prd.md gained 5.3 (failure containment) and 6.2 (the boundary table, the
+    schema, and where "no silent data loss" is now true).
+  - One judgement call worth knowing: a sticker id the catalogue does not have is dropped, because
+    every view already rendered nothing for it while the dashboard counted it. The v0 migration
+    fixture moved to real ids accordingly.
+
   - Schema-validate imported waypoint JSON; wrap the app in an error boundary. Today a malformed
     paste can leave a letter untraceable with no recovery path.
   - The waypoint schema, as of PR 5: an array of >= 2 objects, each { x, y, label } with an

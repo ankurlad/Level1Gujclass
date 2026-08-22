@@ -67,7 +67,7 @@ Built with React 19, Vite, and Workbox PWA technology, the application operates 
 ### 4.5 Parent Dashboard & Waypoint Editor
 - **Parent Verification Lock**: Math problem verification (`num1 + num2`) or passcode check before entering management view. This is a child-proof latch, not a security boundary: everything behind it sits in `localStorage` on the same origin, readable and writable from devtools, and 10,000 candidate PINs is an instant brute force for anyone holding the storage. The passcode is stored only as a salted SHA-256 digest (see 6.1) — never in cleartext, and there is no shipped default: the first parent to reach the PIN prompt chooses one and confirms it in a second field, and nothing is stored unless the two agree. The dashboard reports whether a passcode is set, it cannot show it; it can change or remove that passcode, and both actions require the current one first.
 - **Waypoint Editor**: Interactive tool to tweak, add, delete, or reset letter tracing waypoints.
-- **JSON Import/Export**: Ability to copy/paste custom waypoint arrays for curriculum customization.
+- **JSON Import/Export**: Ability to copy/paste custom waypoint arrays for curriculum customization. Export writes the live array; **Load JSON** reads a pasted block back in, and applies it only if the whole block passes the schema in 6.2. A refused paste names the entry that broke it in a `role="alert"` line under the box, leaves the letter on screen exactly as it was, and leaves the text in the box to be corrected. A block still in the pre-v2 pixel range is converted, not refused, and the same line says so. Loading changes the session; **Save Waypoints** is still what writes to the device.
 
 ---
 
@@ -86,6 +86,11 @@ Built with React 19, Vite, and Workbox PWA technology, the application operates 
 - **Light Fills Take Dark Labels**: `--color-reward`/amber and `--color-success`/emerald are too light for a white label at any step on their ramps (2.15:1 and 2.54:1), so those surfaces carry `text-ink` instead. Indigo, rose and purple keep white labels at the 600/700 steps. `pink-500` only clears 3:1, so it is limited to large text (the app logo glyph).
 - **Focus Indicators**: Visible `:focus-visible` outline rings (`3px` of `--color-primary-tint` at 60%, `offset 2px`).
 - **Semantic HTML**: Structural hierarchy using `<header>`, `<main>`, `<nav aria-label="Main Navigation">`, and explicit `aria-label` / `aria-current` states.
+
+### 5.3 Failure Containment
+- **One boundary per screen**: each of the eight view branches in `src/App.jsx` (home, letter map, tracing, games, drawing, sticker shop, parents room, worksheets) is wrapped in its own `ErrorBoundary` (`src/components/ErrorBoundary.jsx`). React unmounts to the root when nothing catches a render error, so without this one broken screen takes the header, the nav bar and the other seven with it and leaves a child on a blank page.
+- **What the child sees**: a card reading *"Something went wrong loading this screen"*, the line that nothing was lost, and a **Try again** button that remounts that screen's subtree (a re-render would hand the same state back to the same error). The card is `role="alert"`. The error and the name of the screen go to the console; neither reaches the card, because nobody can act on a stack trace.
+- **No blank screen as a design point**: the boundary is the backstop, not the plan. Nothing on the storage or input paths in 6.2 throws — a bad value is corrected, dropped or refused with a message, so reaching the card at all means a genuine bug.
 
 ---
 
@@ -131,11 +136,44 @@ Everything on disk goes through `src/hooks/useLocalStorage.js`. Component code d
 - **Waypoint overrides carry their own format tag**: the v1 -> v2 conversion keys off the value, not
   off `guj:version` — a coordinate past 100 in either axis can only be pixels, since a letterform in
   path space never reaches the edge of the box. Detection by shape makes the conversion idempotent
-  and correct for a store whose version key was lost.
+  and correct for a store whose version key was lost. The override is schema-checked (6.2) before
+  either conversion or use.
+- **Nothing on disk is trusted**: a `guj:` key is a text file on someone else's device, so every
+  value is validated on the way out of storage as well as on the way in — see 6.2. A stored value
+  the app cannot use is corrected, or dropped and logged, never handed to a view.
 - **No cleartext passcode**: `guj:parent_pin_hash` holds `{algorithm, salt, hash}` — a per-install
   16-byte salt and the SHA-256 of `salt:pin` via `crypto.subtle`. This needs a secure context
   (https or localhost); serving the built app over plain http on a LAN address cannot set or check a
   passcode and says so.
+
+### 6.2 Input & Storage Validation
+
+Every value that enters state from somewhere the app does not control — a text input, a pasted
+textarea, or a `guj:` key written by an older build, another tab or devtools — is checked by one
+module, `src/lib/validate.js`. **No silent data loss and no silent acceptance**: each boundary below
+either accepts the value, or corrects it and logs what it did, or refuses it and says which field
+failed. Nothing is dropped without a record, nothing bad is taken quietly, and nothing throws.
+
+| Value | Boundary | Rule | What happens |
+| :--- | :--- | :--- | :--- |
+| `guj:points` | read + every write | finite number, clamped to `0..999999` | out-of-range clamps, non-numeric starts at 0, both `console.warn`; the corrected value replaces the bad one on disk |
+| `guj:stickers` | read + every write | array of ids the catalogue in `src/lib/stickers.js` actually has, each once | bad and repeated entries are dropped one at a time and logged, the rest are kept — an unlocked sticker is never discarded because a neighbour was junk, and the dashboard count can no longer claim more than it draws |
+| `guj:brush_width` | read | finite number, clamped to `1..64` | clamped or reset to 16, logged; the value reaches `ctx.lineWidth` directly |
+| `guj:custom_waypoints_<letterId>` | read | the waypoint schema below | a bad override is ignored with the reason logged and the letter falls back to its calibrated default; the key is left on disk, because it is the only copy of what the parent recorded |
+| Parent passcode fields (gate first run, dashboard set/change/remove) | keystroke + submit | field holds digits only, max 4; exactly 4 digits to be accepted | a non-passcode never reaches `crypto.subtle`; the reason is one `role="alert"` line under the fields |
+| Math gate answer | submit | whole number | a field that does not hold a number is told so and keeps the same sum on screen, instead of being handed a new one as if the arithmetic were wrong |
+| Waypoint editor **Load JSON** textarea | Load JSON | parses, is an array, ≥ 2 points, the schema below | applied whole or not at all; the specific failure is a `role="alert"` line and the previous letter is untouched (4.5) |
+
+**The waypoint schema** (as of PR 5, validated as of PR 12): an array of objects, each with finite
+numeric `x` and `y`, an optional `label` that is a whole number above 0 (as a number or a digit
+string), and an optional `moveTo` that is a boolean. A rejection names the entry — *"Point at index
+1: x is 4000, outside the 0-380 pre-v2 pixel range."*
+
+Range is checked against the space the data is written in, not against a literal 100: a coordinate
+past 100 means the block is the pre-v2 pixel format, so it is range-checked against the 380x320 box
+and then converted by `normalizeWaypoints`. It is never clamped — clamping a stale export would
+import the letterform crushed against the right and bottom edges of the box, which is a letter that
+looks fine in the editor and cannot be traced.
 
 ---
 
