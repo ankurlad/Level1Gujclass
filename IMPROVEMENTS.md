@@ -93,13 +93,13 @@ PR 7 — Split App.jsx (DONE)
     geometry (wrapper class .surface-adult: tighter radii ~0.5rem vs 1.5rem, denser rows, no
     gradients/emoji, tabular numerals). Scope: ParentDashboard + WaypointEditor surfaces only.
 
-PR 8 — PWA hardening
+PR 8 — PWA hardening (DONE)
   - Add runtimeCaching (precache self-hosted fonts + recorded audio once added), offline fallback
     page, update-available prompt (autoUpdate currently reloads mid-lesson under the child).
   - Generate real 192 and 512 icons (manifest entries both point at the same icon.png;
     purpose 'any maskable' on both is wrong).
 
-PR 9 — CI + README (CI DONE in PR 0; README still owed)
+PR 9 — CI + README (DONE)
   - GitHub Actions: oxlint + build + tests on PR, plus Lighthouse CI with a budget enforcing the
     sub-1s claim. Rewrite the README (still the Vite template) as part of this PR.
   - NOTE: the thread recommends shipping a minimal PR 0 (oxlint + build + smoke test) before the
