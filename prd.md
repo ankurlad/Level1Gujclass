@@ -77,8 +77,8 @@ Built with React 19, Vite, and Workbox PWA technology, the application operates 
 
 ### 5.2 Accessibility (WCAG 2.2 AA)
 - **Touch Target Minimums**: All buttons, links, inputs, and interactive elements strictly meet `44x44px` minimum sizing.
-- **Color Contrast**: All text elements maintain a minimum contrast ratio of `4.5:1` against background surfaces (`.text-slate-400` mapped to `#64748b`).
-- **Focus Indicators**: Visible `:focus-visible` outline rings (`3px solid #4f46e5`, `offset 2px`).
+- **Color Contrast**: All text elements maintain a minimum contrast ratio of `4.5:1` against background surfaces (muted text is `text-slate-500`; `slate-400` is never used for text, it does not clear 4.5:1 on white).
+- **Focus Indicators**: Visible `:focus-visible` outline rings (`3px` of `--color-primary-tint` at 60%, `offset 2px`).
 - **Semantic HTML**: Structural hierarchy using `<header>`, `<main>`, `<nav aria-label="Main Navigation">`, and explicit `aria-label` / `aria-current` states.
 
 ---
@@ -90,7 +90,7 @@ Built with React 19, Vite, and Workbox PWA technology, the application operates 
   ├── index.html (PWA Meta & Viewport Fit)
   └── src/
        ├── main.jsx (React DOM Mount)
-       ├── index.css (Design System, Safe Areas, Touch Targets, A11y)
+       ├── index.css (@theme Design Tokens, Safe Areas, Touch Targets, A11y)
        ├── App.jsx (State Engine, Tracing, Games, Dashboard)
        └── curriculum.js (Letter Data & Waypoints)
 ```
@@ -98,6 +98,7 @@ Built with React 19, Vite, and Workbox PWA technology, the application operates 
 - **Frontend Framework**: React 19
 - **Build Tool**: Vite v8.1.4
 - **PWA Service Worker**: Workbox via `vite-plugin-pwa`
+- **Styling**: Tailwind CSS v4 via `@tailwindcss/vite`. There is one palette: the `@theme` block in `src/index.css` defines semantic tokens (`--color-primary`, `--color-reward`, `--color-success`, `--color-danger`, `--color-accent`) that are simultaneously CSS custom properties and utility classes. JSX carries no hex literals — `tools/oxlint-theme-plugin.js` fails the lint if one appears — and canvas code resolves the same tokens through `themeColor()`.
 - **Icons**: Lucide React
 - **Animations**: Canvas Confetti
 - **Typography**: Noto Sans Gujarati, Baloo Bhai 2, Outfit and Fredoka, self-hosted as woff2 subsets in `/public/fonts` and precached by the service worker. There is no runtime call to Google Fonts or any other third party — the guide letterforms the waypoints are calibrated against must be available offline.
