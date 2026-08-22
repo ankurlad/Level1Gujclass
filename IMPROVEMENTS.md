@@ -31,13 +31,13 @@ oxlint rule banning raw hex in .jsx.
 
 ## The PR sequence (in order — a few unblock the others)
 
-PR 1 — Font self-hosting + DPR canvas fix (first PR; small)
+PR 1 — Font self-hosting + DPR canvas fix (DONE)
   - Self-host a Gujarati subset woff2 of Noto Sans Gujarati in /public; drop the @import on
     index.css line 1.
   - Add devicePixelRatio scaling to the tracing canvas (fixed 380x320 backing store stretched by
     CSS = blurry trace guide on every modern phone). Keep waypoint math correct at any DPR.
 
-PR 2 — Tailwind v4 migration (biggest visual risk; do early)
+PR 2 — Tailwind v4 migration (DONE)
   - Add @tailwindcss/vite; strip the ~197 hand-rolled utilities from index.css; keep only :root
     tokens (replaced by @theme above), .font-gujarati, keyframes, safe-area rules.
   - ~150 of 307 utility classes have no CSS rule today (dead): min-h-[44px] (18 uses), hidden (6),
@@ -45,12 +45,12 @@ PR 2 — Tailwind v4 migration (biggest visual risk; do early)
     they suddenly resolve — that is the point; review on a device.
   - Include the Theme work above (semantic @theme tokens + no-raw-hex lint rule).
 
-PR 3 — Accessibility corrections
+PR 3 — Accessibility corrections (DONE)
   - Drop maximum-scale=1.0, user-scalable=no from index.html (WCAG 1.4.4 failure).
   - Re-verify 44px targets now that min-h-[44px] actually resolves; fix any contrast that moved in
     PR 2. Small.
 
-PR 4 — Storage layer (prerequisite for multi-child profiles)
+PR 4 — Storage layer (DONE)
   - One useLocalStorage hook replacing ~10 duplicated state+effect pairs in App.jsx; single guj:
     namespace; schema-version key with a migration path.
 
@@ -63,7 +63,7 @@ PR 5 — Normalize waypoint coordinates (DONE)
     time. Stored overrides in the old pixel range are detected by shape (a coordinate past 100
     in either axis) and converted on read; guj:version is now 2.
 
-PR 6 — Extract the tracing engine (DONE)
+PR 6 — Extract the tracing engine + accuracy score (DONE)
   - Pull snapping, sequential validation, and completion scoring into a headless module with no
     React/DOM. Add Vitest — the first tests in the repo. Much easier after PR 5.
   - Add a real accuracy score (not just binary waypoint completion) — enables the below.
@@ -86,7 +86,7 @@ PR 6 — Extract the tracing engine (DONE)
     analogue — projection onto the ideal polyline.
   - PR 7 hook: the three-mode UI reads getAccuracy(); nothing renders it yet.
 
-PR 7 — Split App.jsx
+PR 7 — Split App.jsx (DONE)
   - TraceView, GameZone, StickerShop, ParentDashboard, WaypointEditor + a shared store. Pure
     refactor, zero behavior change; reviewable only because PRs 4–6 carved out the hard parts.
   - PR 7b (slot in here): parent dashboard gets its own adult register — same tokens, different
@@ -99,7 +99,7 @@ PR 8 — PWA hardening
   - Generate real 192 and 512 icons (manifest entries both point at the same icon.png;
     purpose 'any maskable' on both is wrong).
 
-PR 9 — CI
+PR 9 — CI + README (CI DONE in PR 0; README still owed)
   - GitHub Actions: oxlint + build + tests on PR, plus Lighthouse CI with a budget enforcing the
     sub-1s claim. Rewrite the README (still the Vite template) as part of this PR.
   - NOTE: the thread recommends shipping a minimal PR 0 (oxlint + build + smoke test) before the
@@ -111,7 +111,7 @@ PR 10 — Recorded audio
     hear. Ship 34 recorded letter clips (gu-IN), precached by the service worker, with the
     oscillator fallback retained.
 
-PR 11 — Parent gate (mandatory, not polish)
+PR 11 — Parent gate (PIN hashing DONE in PR 4; first-run setup UX owed)
   - Hash the PIN; remove the 1234 default in favor of forced first-run setup; remove the math
     challenge (sums of 10–23 are trivial for a 7–8yo); soften "security" language in prd.md to
     match reality (it's a speed bump).
