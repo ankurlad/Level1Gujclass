@@ -127,7 +127,7 @@ PR 10 — Recorded audio (DONE)
     in audio.js: change a spoken line in a view and it must change in both, or that line
     quietly drops back to the synthesizer.
 
-PR 11 — Parent gate (PIN hashing DONE in PR 4; first-run setup UX owed)
+PR 11 — Parent gate (DONE)
   - Hash the PIN; remove the 1234 default in favor of forced first-run setup; remove the math
     challenge (sums of 10–23 are trivial for a 7–8yo); soften "security" language in prd.md to
     match reality (it's a speed bump).
