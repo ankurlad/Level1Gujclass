@@ -11,6 +11,7 @@ import { removeStored } from '../hooks/useLocalStorage';
 import { readWaypointOverride, waypointsKey } from '../lib/curriculumStorage';
 import { createPinRecord, verifyPin } from '../lib/parentPin';
 import { STICKERS } from '../lib/stickers';
+import { PASSCODE_LENGTH, isPasscode, passcodeDigits } from '../lib/validate';
 import { CURRICULUM } from '../curriculum';
 import { useAppStore } from '../store/appStore';
 
@@ -26,7 +27,10 @@ import { useAppStore } from '../store/appStore';
 // is local state: which flow is open, what has been typed into it, whether the
 // current passcode has been proved. None of it outlives the visit, so none of
 // it belongs in the store — the store keeps the digest and nothing else.
-const PIN_PATTERN = /^\d{4}$/;
+//
+// What a passcode field may hold, and what counts as a passcode, are
+// src/lib/validate.js's to say — the same two rules the gate applies on its
+// first run, written once (PR 12).
 
 export default function ParentDashboard() {
   const {
@@ -53,8 +57,6 @@ export default function ParentDashboard() {
   const [newEntry, setNewEntry] = useState('');
   const [confirmEntry, setConfirmEntry] = useState('');
   const [pinNotice, setPinNotice] = useState(null);
-
-  const digits = (value) => value.replace(/\D/g, '').slice(0, 4);
 
   const notify = (tone, message) => setPinNotice({ tone, message });
 
@@ -112,7 +114,7 @@ export default function ParentDashboard() {
   // shows on its first run, with the same rule — 4 digits, twice, or nothing
   // is stored.
   const submitNewPasscode = async () => {
-    if (!PIN_PATTERN.test(newEntry)) {
+    if (!isPasscode(newEntry)) {
       playSound('wrong');
       notify('error', 'A passcode is exactly 4 digits — numbers only.');
       return;
@@ -417,10 +419,10 @@ export default function ParentDashboard() {
                     <input
                       type="password"
                       inputMode="numeric"
-                      maxLength={4}
+                      maxLength={PASSCODE_LENGTH}
                       placeholder="4 digits"
                       value={currentEntry}
-                      onChange={(e) => setCurrentEntry(digits(e.target.value))}
+                      onChange={(e) => setCurrentEntry(passcodeDigits(e.target.value))}
                       className="w-28 border-2 border-slate-200 focus:border-indigo-500 focus:outline-none rounded-xl px-3 py-2 text-center text-sm font-bold"
                     />
                   </label>
@@ -451,10 +453,10 @@ export default function ParentDashboard() {
                     <input
                       type="password"
                       inputMode="numeric"
-                      maxLength={4}
+                      maxLength={PASSCODE_LENGTH}
                       placeholder="4 digits"
                       value={newEntry}
-                      onChange={(e) => setNewEntry(digits(e.target.value))}
+                      onChange={(e) => setNewEntry(passcodeDigits(e.target.value))}
                       className="w-28 border-2 border-slate-200 focus:border-indigo-500 focus:outline-none rounded-xl px-3 py-2 text-center text-sm font-bold"
                     />
                   </label>
@@ -463,10 +465,10 @@ export default function ParentDashboard() {
                     <input
                       type="password"
                       inputMode="numeric"
-                      maxLength={4}
+                      maxLength={PASSCODE_LENGTH}
                       placeholder="the same 4 digits"
                       value={confirmEntry}
-                      onChange={(e) => setConfirmEntry(digits(e.target.value))}
+                      onChange={(e) => setConfirmEntry(passcodeDigits(e.target.value))}
                       className="w-28 border-2 border-slate-200 focus:border-indigo-500 focus:outline-none rounded-xl px-3 py-2 text-center text-sm font-bold"
                     />
                   </label>

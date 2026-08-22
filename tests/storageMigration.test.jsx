@@ -51,10 +51,15 @@ function stubBrowser() {
 
 // Exactly what a v0 install looked like: some values JSON, some bare strings,
 // the passcode in cleartext.
+//
+// The sticker ids are the catalogue's own (src/lib/stickers.js). They have to
+// be: since PR 12 the unlocked list is checked against the catalogue on every
+// read, because an id it does not contain is a sticker no view can draw — the
+// dashboard counted it and then rendered nothing.
 const V0_STORE = {
   guj_points: '250',
   guj_progress: '{"tracedCount":12,"quizScore":4,"completedLessons":["ka","kha"]}',
-  guj_stickers: '["lion","panda"]',
+  guj_stickers: '["st1","st6"]',
   guj_brush_color: '#4f46e5',
   guj_brush_width: '24',
   guj_sound_enabled: 'false',
@@ -96,7 +101,7 @@ describe('v0 -> v1 storage migration, end to end', () => {
     expect(localStorage.getItem('guj:version')).toBe('2')
     expect(localStorage.getItem('guj:points')).toBe('250')
     expect(localStorage.getItem('guj:progress')).toBe(V0_STORE.guj_progress)
-    expect(localStorage.getItem('guj:stickers')).toBe('["lion","panda"]')
+    expect(localStorage.getItem('guj:stickers')).toBe('["st1","st6"]')
     expect(localStorage.getItem('guj:brush_color')).toBe('"#4f46e5"')
     expect(localStorage.getItem('guj:brush_width')).toBe('24')
     expect(localStorage.getItem('guj:sound_enabled')).toBe('false')

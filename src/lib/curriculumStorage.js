@@ -1,6 +1,6 @@
 import { CURRICULUM } from '../curriculum';
 import { readStored, writeStored } from '../hooks/useLocalStorage';
-import { normalizeWaypoints } from './waypoints';
+import { validateWaypointsValue } from './validate';
 
 // The per-letter waypoint overrides a parent records in the editor: how they
 // are keyed, read back and folded into the curriculum the session runs on.
@@ -19,15 +19,27 @@ export const waypointsKey = (lessonId) => `custom_waypoints_${lessonId}`;
 // conversion happens exactly once per letter no matter where the read came from.
 // Idempotent by construction — a path-space value has nothing past 100 to
 // detect, so a second pass is a no-op.
+//
+// The shape is checked before any of that (PR 12). An override that is not a
+// well-formed waypoint array is ignored, with the reason logged, and the letter
+// falls back to its calibrated default rather than reaching the tracing engine
+// as a letterform with a NaN in it. The bad key is left on disk: it is the only
+// copy of whatever the parent recorded, and this read has no business deleting
+// it.
 export const readWaypointOverride = (lessonId) => {
   const saved = readStored(waypointsKey(lessonId), null);
-  if (!Array.isArray(saved)) return null;
+  if (saved === null || saved === undefined) return null;
 
-  const normalized = normalizeWaypoints(saved);
-  // Identity, not deep equality: normalizeWaypoints hands back the same array
-  // when there was nothing to convert.
-  if (normalized !== saved) writeStored(waypointsKey(lessonId), normalized);
-  return normalized;
+  const result = validateWaypointsValue(saved);
+  if (!result.ok) {
+    console.warn(`Ignoring the saved waypoints for "${lessonId}": ${result.message}`);
+    return null;
+  }
+
+  // `converted` is identity, not deep equality: validateWaypointsValue hands
+  // back the same array when there was nothing to convert.
+  if (result.converted) writeStored(waypointsKey(lessonId), result.waypoints);
+  return result.waypoints;
 };
 
 // Helper to load curriculum with local overrides from device storage

@@ -5,6 +5,7 @@ import { loadSavedCurriculum } from '../lib/curriculumStorage';
 import { createPinRecord, takeLegacyPlaintextPin } from '../lib/parentPin';
 import { themeColor } from '../lib/theme';
 import { createTracingSession } from '../lib/tracingEngine';
+import { sanitizeStickerIds, toBrushWidth, toPoints } from '../lib/validate';
 import { CANVAS_H, CANVAS_W, canvasToPathXRaw } from '../lib/waypoints';
 
 // The state the views share, in one place.
@@ -46,10 +47,12 @@ const TRACE_SESSION_OPTS = {
 };
 const NO_WAYPOINTS = [];
 
-// v0 read these two through `Number(...) || fallback` and the flags through
-// `=== 'true'`. Both coercions have to survive the move, or a stray value left
-// by an older build would land in state as a string.
-const toNumber = (fallback) => (value) => Number(value) || fallback;
+// v0 read the flags through `=== 'true'`; that coercion has to survive the
+// move, or a stray value left by an older build would land in state as a
+// string. The two numbers used to be read the same way, through
+// `Number(...) || fallback` — they now go through the bounded validators in
+// src/lib/validate.js instead, which do the same coercion and additionally
+// refuse a value outside the range the app can render.
 const toBoolean = (value) => value === true || value === 'true';
 
 // The views GameZone answers for: its menu plus one per game. The nav bar
@@ -134,19 +137,37 @@ const AppStoreContext = createContext(null);
 export function AppStoreProvider({ children }) {
   const [session, dispatch] = useReducer(reducer, undefined, initialSession);
 
-  const [points, setPoints] = useLocalStorage('points', 0, toNumber(0));
+  // The two validated reads. The fourth argument is the PR 12 guard: it runs on
+  // whatever comes back off disk, so `guj:points` holding 1e8 and
+  // `guj:stickers` holding one junk entry are corrected at the boundary instead
+  // of reaching a view that renders a six-digit badge or counts three stickers
+  // and draws two.
+  const [points, setStoredPoints] = useLocalStorage('points', 0, undefined, toPoints);
   const [progressLog, setProgressLog] = useLocalStorage('progress', () => ({
     tracedCount: 0,
     quizScore: 0,
     completedLessons: []
   }));
-  const [unlockedStickers, setUnlockedStickers] = useLocalStorage('stickers', () => []);
+  const [unlockedStickers, setStoredStickers] = useLocalStorage(
+    'stickers',
+    () => [],
+    undefined,
+    sanitizeStickerIds
+  );
+
+  // Both setters validate too, so the boundary is not only the read: every
+  // award, purchase and reset lands in state through the same rule that let the
+  // value in, and the ledger cannot walk past its cap at +10 a letter.
+  const setPoints = (next) =>
+    setStoredPoints((prev) => toPoints(typeof next === 'function' ? next(prev) : next));
+  const setUnlockedStickers = (next) =>
+    setStoredStickers((prev) => sanitizeStickerIds(typeof next === 'function' ? next(prev) : next));
 
   const [brushColor, setBrushColor] = useLocalStorage(
     'brush_color',
     () => themeColor('--color-primary')
   );
-  const [brushWidth, setBrushWidth] = useLocalStorage('brush_width', 16, toNumber(16));
+  const [brushWidth, setBrushWidth] = useLocalStorage('brush_width', 16, undefined, toBrushWidth);
   const [soundEnabled, setSoundEnabled] = useLocalStorage('sound_enabled', true, toBoolean);
 
   const [editorMode, setEditorMode] = useLocalStorage('editor_mode', false, toBoolean);

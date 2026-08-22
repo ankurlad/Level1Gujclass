@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Lock } from 'lucide-react';
 import { createPinRecord, verifyPin } from '../lib/parentPin';
+import { PASSCODE_LENGTH, isPasscode, parseWholeNumber, passcodeDigits } from '../lib/validate';
 import { useAppStore } from '../store/appStore';
 
 // Math lock generator
@@ -17,8 +18,6 @@ const makeLockQuestion = () => {
 // The passcode is already stored by then; this is only so the parent reads the
 // one line that tells them a passcode now exists.
 export const SETUP_SUCCESS_MS = 900;
-
-const PIN_PATTERN = /^\d{4}$/;
 
 // The speed bump in front of the parents' room.
 //
@@ -84,7 +83,7 @@ export default function ParentGate() {
   }, [setupDone, dispatch]);
 
   const handleFirstRun = async () => {
-    if (!PIN_PATTERN.test(lockAnswer)) {
+    if (!isPasscode(lockAnswer)) {
       reject('A passcode is exactly 4 digits — numbers only.');
       firstFieldRef.current?.focus();
       return;
@@ -116,7 +115,16 @@ export default function ParentGate() {
     if (setupDone) return;
 
     if (gateType === 'math') {
-      if (parseInt(lockAnswer, 10) === lockQuestion.a) {
+      // `parseInt` read "12abc" as 12 and an empty field as NaN, and the gate
+      // answered both with a fresh sum — which tells a parent who mistyped
+      // that they got the arithmetic wrong. A field that does not hold a number
+      // keeps the same sum on screen and says so.
+      const answer = parseWholeNumber(lockAnswer);
+      if (answer === null) {
+        reject('Type the answer as a number — digits only.');
+        return;
+      }
+      if (answer === lockQuestion.a) {
         openParentView();
         return;
       }
@@ -181,9 +189,9 @@ export default function ParentGate() {
                   ref={firstFieldRef}
                   type="password"
                   inputMode="numeric"
-                  maxLength={4}
+                  maxLength={PASSCODE_LENGTH}
                   value={lockAnswer}
-                  onChange={(e) => setLockAnswer(e.target.value.replace(/\D/g, ''))}
+                  onChange={(e) => setLockAnswer(passcodeDigits(e.target.value))}
                   placeholder="4 digits"
                   className={fieldClass}
                   autoFocus
@@ -194,9 +202,9 @@ export default function ParentGate() {
                 <input
                   type="password"
                   inputMode="numeric"
-                  maxLength={4}
+                  maxLength={PASSCODE_LENGTH}
                   value={confirmAnswer}
-                  onChange={(e) => setConfirmAnswer(e.target.value.replace(/\D/g, ''))}
+                  onChange={(e) => setConfirmAnswer(passcodeDigits(e.target.value))}
                   placeholder="the same 4 digits"
                   className={fieldClass}
                 />
@@ -206,9 +214,13 @@ export default function ParentGate() {
             <input
               ref={firstFieldRef}
               type={gateType === 'math' ? 'number' : 'password'}
-              maxLength={gateType === 'pin' ? 4 : undefined}
+              maxLength={gateType === 'pin' ? PASSCODE_LENGTH : undefined}
               value={lockAnswer}
-              onChange={(e) => setLockAnswer(e.target.value)}
+              // The passcode field takes digits only — a letter in it can only
+              // ever be a wrong passcode, so it never reaches state.
+              onChange={(e) =>
+                setLockAnswer(gateType === 'pin' ? passcodeDigits(e.target.value) : e.target.value)
+              }
               placeholder={gateType === 'math' ? 'Enter answer' : 'Enter PIN'}
               className={fieldClass}
               autoFocus

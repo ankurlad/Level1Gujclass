@@ -76,24 +76,33 @@ const stampSchemaVersion = (ls) => {
 // decoded v0 value and returns what to store under the new key — use it where
 // v0's read path coerced the raw string (`Number(...) || 0`, `=== 'true'`) and
 // that coercion has to survive the move.
-export function readStored(key, initialValue, migrate) {
+//
+// `validate` is the PR 12 boundary and runs on *every* value this function
+// returns, not just a migrated one: the key is a text file on someone else's
+// device, so a value written by an older build, a different browser or devtools
+// is exactly as untrusted as a v0 one. It takes the decoded value and returns
+// what state is allowed to hold — see src/lib/validate.js, whose helpers clamp
+// or drop and log, and never throw.
+export function readStored(key, initialValue, migrate, validate) {
+  const guard = (value) => (validate ? validate(value) : value);
+
   const ls = store();
-  if (!ls) return resolve(initialValue);
+  if (!ls) return guard(resolve(initialValue));
 
   stampSchemaVersion(ls);
 
   const raw = ls.getItem(storageKey(key));
   if (raw !== null) {
     try {
-      return JSON.parse(raw);
+      return guard(JSON.parse(raw));
     } catch (e) {
       console.error(`Discarding unreadable value at ${storageKey(key)}`, e);
-      return resolve(initialValue);
+      return guard(resolve(initialValue));
     }
   }
 
   const legacyRaw = ls.getItem(legacyStorageKey(key));
-  if (legacyRaw === null) return resolve(initialValue);
+  if (legacyRaw === null) return guard(resolve(initialValue));
 
   // v0 stored some values as JSON and some as bare strings; try the former and
   // fall back to the latter, which is exactly what the old read sites did.
@@ -104,6 +113,7 @@ export function readStored(key, initialValue, migrate) {
     value = legacyRaw;
   }
   if (migrate) value = migrate(value);
+  value = guard(value);
 
   try {
     ls.removeItem(legacyStorageKey(key));
@@ -153,12 +163,15 @@ export function storedSchemaVersion() {
 
 // useState, with the value read from and mirrored to `guj:<key>`.
 //
-// `initialValue` and `migrate` are consulted on the first render only, the same
-// contract useState gives its initialiser. The write effect also fires on
-// mount, which re-persists what was just read — harmless, and it is what
-// materialises the namespaced key for a value the parent has never changed.
-export function useLocalStorage(key, initialValue, migrate) {
-  const [value, setValue] = useState(() => readStored(key, initialValue, migrate));
+// `initialValue`, `migrate` and `validate` are consulted on the first render
+// only, the same contract useState gives its initialiser. The write effect also
+// fires on mount, which re-persists what was just read — harmless, and it is
+// what materialises the namespaced key for a value the parent has never
+// changed. With a `validate` guard it does one more thing: the corrected value
+// replaces the bad one on disk, so a clamped or pruned key is fixed rather than
+// re-corrected on every load.
+export function useLocalStorage(key, initialValue, migrate, validate) {
+  const [value, setValue] = useState(() => readStored(key, initialValue, migrate, validate));
 
   useEffect(() => {
     writeStored(key, value);
