@@ -22,6 +22,7 @@ Built with React 19, Vite, and Workbox PWA technology, the application operates 
 - **Gamified Learning**: Motivate young learners through interactive tracing, instant audio-visual feedback, earned points, and a collectible Sticker Shop.
 - **Stroke Accuracy**: Guide letter formation using sequential, numbered waypoints with real-time distance-snapping algorithms.
 - **Offline Reliability**: Ensure 100% functionality without internet connectivity via PWA service worker caching.
+- **Updates on the child's terms**: a new service worker installs and then waits. It is announced once, on the home screen, through the same card that offers the install, and it only takes over when someone taps it — never mid-lesson.
 - **Universal Accessibility**: Maintain minimum 44x44px touch targets, high-contrast typography (>= 4.5:1 ratio), focus rings, and screen-reader ARIA semantics.
 - **Safe Mobile Experience**: Protect settings and metrics behind parent verification locks (Math challenge / passcode gate).
 
@@ -104,7 +105,7 @@ Built with React 19, Vite, and Workbox PWA technology, the application operates 
 
 - **Frontend Framework**: React 19
 - **Build Tool**: Vite v8.1.4
-- **PWA Service Worker**: Workbox via `vite-plugin-pwa`
+- **PWA Service Worker**: Workbox via `vite-plugin-pwa`, `generateSW` mode. The precache (16 entries) holds the shell, the four self-hosted font subsets and the three icons. Three runtime rules sit behind it: `/assets/` CacheFirst for a year (50 entries), a CacheFirst safety net for `fonts.googleapis.com` / `fonts.gstatic.com` that nothing should ever hit, and navigations NetworkFirst on a 3s leash falling back to the precached `index.html`. The shell is fetched, not assumed, so a deploy is never one load stale.
 - **Styling**: Tailwind CSS v4 via `@tailwindcss/vite`. There is one palette: the `@theme` block in `src/index.css` defines semantic tokens (`--color-primary`, `--color-reward`, `--color-success`, `--color-danger`, `--color-accent`) that are simultaneously CSS custom properties and utility classes. JSX carries no hex literals — `tools/oxlint-theme-plugin.js` fails the lint if one appears — and canvas code resolves the same tokens through `themeColor()`.
 - **Icons**: Lucide React
 - **Animations**: Canvas Confetti

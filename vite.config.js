@@ -9,7 +9,11 @@ export default defineConfig({
     react(),
     tailwindcss(),
     VitePWA({
-      registerType: 'autoUpdate',
+      // Not autoUpdate: that let a new worker claim the page the moment it
+      // installed, so a deploy reloaded the app under a child mid-letter. The
+      // new worker waits now, and src/hooks/useServiceWorkerUpdate.js releases
+      // it with a SKIP_WAITING message when the update card is tapped.
+      registerType: 'prompt',
       // The icons live in public/ and globPatterns already matches **/*.png.
       // Leaving this on listed each of them twice — same revision, so workbox
       // deduped at install, but the reported precache size counted both.

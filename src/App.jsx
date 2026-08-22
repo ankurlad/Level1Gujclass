@@ -3,8 +3,10 @@ import { ShieldAlert } from 'lucide-react';
 import AppHeader from './components/AppHeader';
 import BottomNav from './components/BottomNav';
 import InstallInstructionsModal from './components/InstallInstructionsModal';
+import InstallPromoCard from './components/InstallPromoCard';
 import ParentGate from './components/ParentGate';
 import { usePwaInstall } from './hooks/usePwaInstall';
+import { useServiceWorkerUpdate } from './hooks/useServiceWorkerUpdate';
 import { AppStoreProvider, GAME_VIEWS, useAppStore } from './store/appStore';
 import GameZone from './views/GameZone';
 import HomeView from './views/HomeView';
@@ -25,6 +27,7 @@ import WorksheetsView from './views/WorksheetsView';
 function AppShell() {
   const { view, gateTarget } = useAppStore();
   const { isStandalone, showInstallModal, setShowInstallModal, triggerPwaInstall } = usePwaInstall();
+  const { updateReady, applyUpdate, dismissUpdate } = useServiceWorkerUpdate();
   const [kioskPromptActive, setKioskPromptActive] = useState(false);
 
   return (
@@ -71,6 +74,18 @@ function AppShell() {
         {view === 'dashboard' && <ParentDashboard />}
 
         {view === 'worksheets' && <WorksheetsView />}
+
+        {/* A waiting service worker, announced on the home screen and nowhere
+            else. Offering it inside a lesson is how the old autoUpdate reload
+            took the canvas out from under a child mid-letter; here the reload
+            only ever happens because someone chose it from the way out. */}
+        {view === 'home' && updateReady && (
+          <InstallPromoCard
+            variant="update"
+            onDismiss={dismissUpdate}
+            onInstall={applyUpdate}
+          />
+        )}
       </main>
 
       {/* Footer Nav Bar */}
