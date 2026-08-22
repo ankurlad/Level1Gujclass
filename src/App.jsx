@@ -1548,7 +1548,7 @@ export default function App() {
   };
 
   return (
-    <div className="app-container">
+    <div className="flex flex-col min-h-screen">
       {/* Kiosk Mode Simulation */}
       {kioskPromptActive && (
         <div className="kiosk-lock-overlay">
@@ -1783,13 +1783,13 @@ export default function App() {
             )}
 
             {/* Offline notification card */}
-            <div className="mt-8 mx-auto bg-white max-w-sm rounded-2xl p-4 border border-slate-100 shadow-sm flex-center gap-3 text-left">
+            <div className="mt-8 mx-auto bg-white max-w-sm rounded-2xl p-4 border border-slate-100 shadow-sm flex items-center gap-3 text-left">
               <div className="bg-emerald-100 text-emerald-600 w-10 h-10 rounded-full flex justify-center items-center flex-shrink-0">
                 <CheckCircle size={20} />
               </div>
               <div>
                 <h4 className="font-bold text-slate-800 text-sm">Works Completely Offline!</h4>
-                <p className="text-slate-400 text-xs">Practice Kakko and trace letters anywhere without internet access.</p>
+                <p className="text-slate-500 text-xs">Practice Kakko and trace letters anywhere without internet access.</p>
               </div>
             </div>
           </div>
@@ -1811,7 +1811,7 @@ export default function App() {
               {/* Adventure Path Line */}
               <div className="absolute left-1/2 top-4 bottom-10 w-1.5 border-l-4 border-dashed border-indigo-200 -translate-x-1/2 z-0" />
               
-              <div className="flex flex-col gap-10 relative z-10">
+              <div className="flex flex-col gap-2.5 relative z-10">
                 {sessionCurriculum.map((item, idx) => {
                   const isCompleted = progressLog.completedLessons.includes(item.id);
                   const isLocked = idx > 0 && 
@@ -1862,7 +1862,7 @@ export default function App() {
                         <span className="text-xl">{item.emoji}</span>
                         <div className="flex flex-col text-left font-sans">
                           <span className="font-extrabold text-xs text-slate-800 leading-tight">{item.english}</span>
-                          <span className="text-xxs text-slate-400 font-bold truncate leading-none mt-0.5">{item.wordEnglish}</span>
+                          <span className="text-xxs text-slate-500 font-bold truncate leading-none mt-0.5">{item.wordEnglish}</span>
                         </div>
                       </div>
                     </div>
@@ -1895,7 +1895,7 @@ export default function App() {
                       disabled={isLocked}
                       onClick={() => setCurrentLessonIndex(idx)}
                       aria-label={`Lesson ${item.english}`}
-                      className={`min-w-[44px] min-h-[44px] rounded-xl font-bold flex justify-center items-center border transition-all flex-shrink-0 text-sm ${currentLessonIndex === idx ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm scale-105' : isLocked ? 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed opacity-60' : 'bg-white text-slate-600 border-slate-200'}`}
+                      className={`min-w-[44px] min-h-[44px] rounded-xl font-bold flex justify-center items-center border transition-all flex-shrink-0 text-sm ${currentLessonIndex === idx ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm scale-105' : isLocked ? 'bg-slate-100 text-slate-500 border-slate-200 cursor-not-allowed opacity-60' : 'bg-white text-slate-600 border-slate-200'}`}
                     >
                       <span className="font-gujarati">{item.letter}</span>
                     </button>
@@ -1909,7 +1909,7 @@ export default function App() {
               <div className="flex justify-between items-center w-full mb-3">
                 <div className="flex items-center gap-2">
                   <span className="text-4xl font-gujarati text-indigo-600">{currentLesson.letter}</span>
-                  <span className="text-slate-400 font-bold text-lg">({currentLesson.english})</span>
+                  <span className="text-slate-500 font-bold text-lg">({currentLesson.english})</span>
                 </div>
                 
                 <div className="flex items-center gap-2">
@@ -1981,7 +1981,7 @@ export default function App() {
                   onTouchStart={startDrawing}
                   onTouchMove={draw}
                   onTouchEnd={stopDrawing}
-                  className="w-full h-full cursor-crosshair touch-none"
+                  className="w-full h-full cursor-pointer touch-none"
                 />
 
                 {/* Guidance Waypoints */}
@@ -2212,7 +2212,7 @@ export default function App() {
                 </div>
               </div>
 
-              <p className="text-slate-400 text-sm mt-3 text-center px-4 font-medium italic">
+              <p className="text-slate-500 text-sm mt-3 text-center px-4 font-medium italic">
                 {currentLesson.instructions}
               </p>
 
@@ -2309,7 +2309,7 @@ export default function App() {
             <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm flex flex-col items-center max-w-sm mx-auto w-full">
               <div className="text-center mb-6">
                 <h3 className="text-xl font-black mb-1">Which letter makes this sound?</h3>
-                <p className="text-slate-400 text-xs font-medium">Listen carefully and tap the matching letter!</p>
+                <p className="text-slate-500 text-xs font-medium">Listen carefully and tap the matching letter!</p>
               </div>
 
               {/* Replay Sound Button */}
@@ -2386,7 +2386,7 @@ export default function App() {
             <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm flex-1 flex flex-col items-center max-w-sm mx-auto w-full">
               <div className="text-center mb-4">
                 <h3 className="text-lg font-black text-slate-800">Match Letters & Emojis</h3>
-                <p className="text-slate-400 text-xs font-medium">Flip cards to match the letter to its starting image!</p>
+                <p className="text-slate-500 text-xs font-medium">Flip cards to match the letter to its starting image!</p>
               </div>
 
               {/* Card Grid */}
@@ -2539,7 +2539,7 @@ export default function App() {
                     } else if (isSelected) {
                       buttonClass = "border-3 border-rose-500 bg-rose-50 text-rose-700";
                     } else {
-                      buttonClass = "border-3 border-slate-100 opacity-60 text-slate-400";
+                      buttonClass = "border-3 border-slate-100 opacity-60 text-slate-500";
                     }
                   }
 
@@ -2621,7 +2621,7 @@ export default function App() {
                   onTouchStart={startSandboxDrawing}
                   onTouchMove={drawSandbox}
                   onTouchEnd={stopSandboxDrawing}
-                  className="w-full h-full cursor-crosshair touch-none"
+                  className="w-full h-full cursor-pointer touch-none"
                 />
               </div>
 
@@ -2761,7 +2761,7 @@ export default function App() {
                         <button
                           onClick={() => buySticker(sticker)}
                           disabled={!canAfford}
-                          className={`w-full py-2.5 px-3 rounded-xl font-bold text-xs mt-2 transition shadow-sm font-sans ${canAfford ? 'bg-amber-500 hover:bg-amber-600 text-white shadow-amber-500/10' : 'bg-slate-200 text-slate-400 cursor-not-allowed'}`}
+                          className={`w-full py-2.5 px-3 rounded-xl font-bold text-xs mt-2 transition shadow-sm font-sans ${canAfford ? 'bg-amber-500 hover:bg-amber-600 text-white shadow-amber-500/10' : 'bg-slate-200 text-slate-500 cursor-not-allowed'}`}
                         >
                           Buy for {sticker.cost} Pts
                         </button>
@@ -2794,7 +2794,7 @@ export default function App() {
                 </div>
                 <div>
                   <h3 className="text-xl font-black text-slate-800">Learning Analytics</h3>
-                  <p className="text-slate-400 text-xs font-medium">Verify kid's daily progress and records</p>
+                  <p className="text-slate-500 text-xs font-medium">Verify kid's daily progress and records</p>
                 </div>
               </div>
 
@@ -2964,7 +2964,7 @@ export default function App() {
                       >
                         Save PIN
                       </button>
-                      <span className="text-xs text-slate-400">Active: {parentPasscode}</span>
+                      <span className="text-xs text-slate-500">Active: {parentPasscode}</span>
                     </div>
                   </div>
                 )}
@@ -2973,7 +2973,7 @@ export default function App() {
                 <div className="flex justify-between items-center border-t border-slate-200/60 pt-3">
                   <div className="flex flex-col">
                     <span className="text-xs font-extrabold text-slate-700">App Sound Effects</span>
-                    <span className="text-xs text-slate-400">Toggle sound signals for quiz & tracing</span>
+                    <span className="text-xs text-slate-500">Toggle sound signals for quiz & tracing</span>
                   </div>
                   <button
                     onClick={() => setSoundEnabled(!soundEnabled)}
@@ -2988,7 +2988,7 @@ export default function App() {
                 <div className="flex justify-between items-center border-t border-slate-200/60 pt-3">
                   <div className="flex flex-col">
                     <span className="text-xs font-bold text-slate-700">Developer Waypoint Editor</span>
-                    <span className="text-xs text-slate-400">Enable click-to-place waypoint builder tool</span>
+                    <span className="text-xs text-slate-500">Enable click-to-place waypoint builder tool</span>
                   </div>
                   <button
                     onClick={() => {
@@ -3007,7 +3007,7 @@ export default function App() {
                 <div className="flex justify-between items-center border-t border-slate-200/60 pt-3">
                   <div className="flex flex-col">
                     <span className="text-xs font-bold text-slate-700">Unlock All Tracing Letters</span>
-                    <span className="text-xs text-slate-400">Bypass sequential progression requirement</span>
+                    <span className="text-xs text-slate-500">Bypass sequential progression requirement</span>
                   </div>
                   <button
                     onClick={() => {
@@ -3026,7 +3026,7 @@ export default function App() {
                 <div className="flex justify-between items-center border-t border-slate-200/60 pt-3">
                   <div className="flex flex-col">
                     <span className="text-xs font-bold text-slate-700">Revert All Custom Waypoints</span>
-                    <span className="text-xs text-slate-400">Clear all recorded paths and revert to default</span>
+                    <span className="text-xs text-slate-500">Clear all recorded paths and revert to default</span>
                   </div>
                   <button
                     onClick={clearAllCustomWaypoints}
@@ -3041,7 +3041,7 @@ export default function App() {
                 <div className="flex justify-between items-center border-t border-slate-200/60 pt-3">
                   <div className="flex flex-col">
                     <span className="text-xs font-bold text-slate-700">Export Full Curriculum JSON</span>
-                    <span className="text-xs text-slate-400">Download the entire curriculum including custom waypoints</span>
+                    <span className="text-xs text-slate-500">Download the entire curriculum including custom waypoints</span>
                   </div>
                   <button
                     onClick={exportAllCustomWaypoints}
@@ -3057,7 +3057,7 @@ export default function App() {
               <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4 flex justify-between items-center">
                 <div>
                   <h4 className="font-extrabold text-sm text-slate-700">Database Sync Status</h4>
-                  <p className="text-xs text-slate-400">IndexedDB local offline storage active</p>
+                  <p className="text-xs text-slate-500">IndexedDB local offline storage active</p>
                 </div>
                 <span className="bg-emerald-100 text-emerald-700 font-extrabold text-xs px-2.5 py-1 rounded-full">
                   Fully Cached
@@ -3074,13 +3074,13 @@ export default function App() {
                       return item ? (
                         <div key={id} className="bg-white border border-slate-200 px-3 py-1.5 rounded-xl font-bold text-sm text-slate-800 flex items-center gap-1.5 shadow-sm">
                           <span className="font-gujarati">{item.letter}</span>
-                          <span className="text-xs text-slate-400">({item.english})</span>
+                          <span className="text-xs text-slate-500">({item.english})</span>
                         </div>
                       ) : null;
                     })}
                   </div>
                 ) : (
-                  <p className="text-slate-400 text-sm font-medium italic">No letters successfully completed yet.</p>
+                  <p className="text-slate-500 text-sm font-medium italic">No letters successfully completed yet.</p>
                 )}
               </div>
 
@@ -3099,7 +3099,7 @@ export default function App() {
                     })}
                   </div>
                 ) : (
-                  <p className="text-slate-400 text-sm font-medium italic">No stickers purchased yet.</p>
+                  <p className="text-slate-500 text-sm font-medium italic">No stickers purchased yet.</p>
                 )}
               </div>
 
@@ -3301,7 +3301,7 @@ export default function App() {
                         <div key={item.id} className="border border-slate-300 rounded-xl p-1.5 flex flex-col items-center justify-between text-center bg-white shadow-2xs min-h-[70px]">
                           <span className="text-xxs font-extrabold text-slate-500 leading-none">{item.english}</span>
                           <span className="tracing-gujarati-char text-3xl my-0.5" style={{ fontSize: '32px' }}>{item.letter}</span>
-                          <span className="text-xxs text-slate-400 truncate max-w-full leading-none font-bold">{item.emoji} {item.word}</span>
+                          <span className="text-xxs text-slate-500 truncate max-w-full leading-none font-bold">{item.emoji} {item.word}</span>
                         </div>
                       ))}
                     </div>
@@ -3353,7 +3353,7 @@ export default function App() {
                           <div key={item.id} className="border-2 border-slate-300 rounded-2xl p-3 flex items-center justify-between bg-white shadow-xs">
                             <div className="flex items-center gap-3">
                               <span className="font-gujarati text-2xl font-bold text-slate-900">{item.letter}</span>
-                              <span className="text-xs text-slate-400 font-bold">({item.english})</span>
+                              <span className="text-xs text-slate-500 font-bold">({item.english})</span>
                             </div>
                             <div className="w-4 h-4 rounded-full border-2 border-indigo-600 bg-white" />
                           </div>
@@ -3457,7 +3457,7 @@ export default function App() {
       {/* PWA Installation Instructions Modal */}
       {showInstallModal && (
         <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl p-6 max-w-sm w-full border border-slate-100 shadow-2xl text-left animate-fluentSlideIn">
+          <div className="bg-white rounded-3xl p-6 max-w-sm w-full border border-slate-100 shadow-2xl text-left animate-fluent-slide-in">
             <div className="flex justify-between items-center mb-4">
               <div className="flex items-center gap-2">
                 <div className="bg-indigo-100 text-indigo-600 p-2 rounded-xl">
@@ -3467,7 +3467,7 @@ export default function App() {
               </div>
               <button 
                 onClick={() => setShowInstallModal(false)}
-                className="text-slate-400 hover:text-slate-600 font-bold p-1 text-sm rounded-lg min-h-[44px] min-w-[44px] flex items-center justify-center"
+                className="text-slate-500 hover:text-slate-600 font-bold p-1 text-sm rounded-lg min-h-[44px] min-w-[44px] flex items-center justify-center"
                 aria-label="Close modal"
               >
                 ✕
