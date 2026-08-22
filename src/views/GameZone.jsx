@@ -617,6 +617,7 @@ export default function GameZone() {
             )}
           </div>
         </div>
-      )}    </>
+      )}
+    </>
   );
 }
