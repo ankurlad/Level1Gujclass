@@ -34,6 +34,35 @@ import { CURRICULUM } from './curriculum';
 const CANVAS_W = 380;
 const CANVAS_H = 320;
 
+// Colours live in one place: the `@theme` block in src/index.css, where each
+// token is both a CSS custom property and a Tailwind utility. JSX styling reads
+// them as classes or as var(); this is the door for the code that cannot, a 2D
+// canvas context, which only takes a resolved colour string.
+//
+// Resolved once per token and cached — getComputedStyle inside the draw loop
+// would force a style recalculation on every pointer move. There is no hex
+// fallback on purpose: a fallback list would be the second palette this PR
+// exists to delete. The stylesheet is a render-blocking <link>, so it is always
+// applied before this module runs.
+// (A plain object, not a Map — lucide-react's `Map` icon shadows the global.)
+const themeColorCache = Object.create(null);
+const themeColor = (token) => {
+  if (token in themeColorCache) return themeColorCache[token];
+  const root = typeof document === 'undefined' ? null : document.documentElement;
+  const value = root ? getComputedStyle(root).getPropertyValue(token).trim() : '';
+  themeColorCache[token] = value;
+  return value;
+};
+
+// The brush palette, offered in both the tracing toolbar and the sandbox.
+const BRUSH_TOKENS = [
+  { token: '--color-primary', label: 'Indigo' },
+  { token: '--color-danger', label: 'Rose' },
+  { token: '--color-success', label: 'Emerald' },
+  { token: '--color-reward', label: 'Amber' },
+  { token: '--color-accent', label: 'Purple' }
+];
+
 // Size a canvas' backing store to its rendered size times the device pixel
 // ratio, then map the 2D context back onto the CANVAS_W x CANVAS_H logical
 // space. Without this the fixed 380x320 backing store is stretched by CSS on
@@ -187,7 +216,9 @@ export default function App() {
   const [completedWaypoints, setCompletedWaypoints] = useState([]);
   const [traceStartTime, setTraceStartTime] = useState(null);
   
-  const [brushColor, setBrushColor] = useState(() => localStorage.getItem('guj_brush_color') || '#6366f1');
+  const [brushColor, setBrushColor] = useState(
+    () => localStorage.getItem('guj_brush_color') || themeColor('--color-primary')
+  );
   const [brushWidth, setBrushWidth] = useState(() => Number(localStorage.getItem('guj_brush_width')) || 16);
   const [soundEnabled, setSoundEnabled] = useState(() => {
     const val = localStorage.getItem('guj_sound_enabled');
@@ -315,7 +346,10 @@ export default function App() {
       tempCanvas.height = CANVAS_H;
       const tempCtx = tempCanvas.getContext('2d');
 
-      // Draw background
+      // Draw background. These two greys are snap calibration constants, not
+      // theme colours: the pixel test below keys off the exact RGB distance
+      // between them, and drawTraceGuide paints the visible canvas with the
+      // same pair. Retheming either one moves every snapped waypoint.
       tempCtx.fillStyle = '#f8fafc';
       tempCtx.fillRect(0, 0, CANVAS_W, CANVAS_H);
 
@@ -601,7 +635,7 @@ export default function App() {
     // Clear canvas
     ctx.clearRect(0, 0, CANVAS_W, CANVAS_H);
 
-    // Background Grid paper style
+    // Background Grid paper style. Calibration constants — see snapToCenterline.
     ctx.fillStyle = '#f8fafc';
     ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
 
@@ -615,7 +649,9 @@ export default function App() {
     // Draw dashed guide paths connecting waypoints (respecting moveTo skips)
     if (currentLesson.waypoints && currentLesson.waypoints.length > 1) {
       ctx.beginPath();
-      ctx.strokeStyle = editorMode && editorActive ? 'rgba(245, 158, 11, 0.45)' : 'rgba(99, 102, 241, 0.15)';
+      ctx.strokeStyle = themeColor(
+        editorMode && editorActive ? '--color-trace-path-editor' : '--color-trace-path'
+      );
       ctx.lineWidth = 4;
       ctx.setLineDash([6, 6]);
       ctx.moveTo(currentLesson.waypoints[0].x, currentLesson.waypoints[0].y);
@@ -757,7 +793,7 @@ export default function App() {
         ctx.lineWidth = brushWidth;
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
-        ctx.strokeStyle = '#f59e0b'; // Amber color trail for recording
+        ctx.strokeStyle = themeColor('--color-reward'); // Amber trail while recording
       } else {
         handleCanvasClick(e);
       }
@@ -1410,7 +1446,7 @@ export default function App() {
     if (!canvas) return;
     const ctx = setupCanvasScaling(canvas);
     ctx.clearRect(0, 0, CANVAS_W, CANVAS_H);
-    ctx.fillStyle = '#ffffff';
+    ctx.fillStyle = themeColor('--color-sandbox-surface');
     ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
   };
 
@@ -1963,7 +1999,9 @@ export default function App() {
                   }
 
                   // Dash border indicator for moveTo starting new strokes
-                  const strokeStyle = wp.moveTo ? { borderStyle: 'dashed', borderWidth: '3px', borderColor: '#4f46e5' } : {};
+                  const strokeStyle = wp.moveTo
+                    ? { borderStyle: 'dashed', borderWidth: '3px', borderColor: 'var(--color-primary)' }
+                    : {};
                   
                   return (
                     <div
@@ -2139,21 +2177,18 @@ export default function App() {
                 <div className="flex justify-between items-center">
                   <span className="text-xs font-bold text-slate-500">Brush Color:</span>
                   <div className="flex gap-2">
-                    {[
-                      { hex: '#6366f1', label: 'Indigo' },
-                      { hex: '#f43f5e', label: 'Rose' },
-                      { hex: '#10b981', label: 'Emerald' },
-                      { hex: '#f59e0b', label: 'Amber' },
-                      { hex: '#a855f7', label: 'Purple' }
-                    ].map(c => (
-                      <button
-                        key={c.hex}
-                        onClick={() => setBrushColor(c.hex)}
-                        style={{ backgroundColor: c.hex }}
-                        className={`w-7 h-7 rounded-full border-2 transition-all ${brushColor === c.hex ? 'border-slate-800 scale-110 shadow-sm' : 'border-white hover:scale-105'}`}
-                        title={c.label}
-                      />
-                    ))}
+                    {BRUSH_TOKENS.map(c => {
+                      const value = themeColor(c.token);
+                      return (
+                        <button
+                          key={c.token}
+                          onClick={() => setBrushColor(value)}
+                          style={{ backgroundColor: `var(${c.token})` }}
+                          className={`w-7 h-7 rounded-full border-2 transition-all ${brushColor === value ? 'border-slate-800 scale-110 shadow-sm' : 'border-white hover:scale-105'}`}
+                          title={c.label}
+                        />
+                      );
+                    })}
                   </div>
                 </div>
 
@@ -2596,21 +2631,18 @@ export default function App() {
                   <div className="flex justify-between items-center">
                     <span className="text-xs font-bold text-slate-500">Brush Color:</span>
                     <div className="flex gap-2">
-                      {[
-                        { hex: '#6366f1', label: 'Indigo' },
-                        { hex: '#f43f5e', label: 'Rose' },
-                        { hex: '#10b981', label: 'Emerald' },
-                        { hex: '#f59e0b', label: 'Amber' },
-                        { hex: '#a855f7', label: 'Purple' }
-                      ].map(c => (
-                        <button
-                          key={c.hex}
-                          onClick={() => setBrushColor(c.hex)}
-                          style={{ backgroundColor: c.hex }}
-                          className={`w-7 h-7 rounded-full border-2 transition-all ${brushColor === c.hex ? 'border-slate-800 scale-110 shadow-sm' : 'border-white hover:scale-105'}`}
-                          title={c.label}
-                        />
-                      ))}
+                      {BRUSH_TOKENS.map(c => {
+                        const value = themeColor(c.token);
+                        return (
+                          <button
+                            key={c.token}
+                            onClick={() => setBrushColor(value)}
+                            style={{ backgroundColor: `var(${c.token})` }}
+                            className={`w-7 h-7 rounded-full border-2 transition-all ${brushColor === value ? 'border-slate-800 scale-110 shadow-sm' : 'border-white hover:scale-105'}`}
+                            title={c.label}
+                          />
+                        );
+                      })}
                     </div>
                   </div>
 
