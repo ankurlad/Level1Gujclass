@@ -3147,21 +3147,21 @@ export default function App() {
               <div className="flex bg-slate-100 p-1 rounded-2xl gap-1">
                 <button
                   onClick={() => setWorksheetMode('single')}
-                  className={`flex-1 py-2 px-2.5 rounded-xl font-extrabold text-xs transition-all flex items-center justify-center gap-1.5 ${worksheetMode === 'single' ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
+                  className={`flex-1 py-2 px-2.5 rounded-xl font-extrabold text-xs transition-all flex items-center justify-center gap-1.5 ${worksheetMode === 'single' ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-600 hover:text-slate-800'}`}
                 >
                   <FileText size={14} />
                   <span>Single Letter</span>
                 </button>
                 <button
                   onClick={() => setWorksheetMode('grid')}
-                  className={`flex-1 py-2 px-2.5 rounded-xl font-extrabold text-xs transition-all flex items-center justify-center gap-1.5 ${worksheetMode === 'grid' ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
+                  className={`flex-1 py-2 px-2.5 rounded-xl font-extrabold text-xs transition-all flex items-center justify-center gap-1.5 ${worksheetMode === 'grid' ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-600 hover:text-slate-800'}`}
                 >
                   <Grid size={14} />
                   <span>Kakko Grid</span>
                 </button>
                 <button
                   onClick={() => setWorksheetMode('match')}
-                  className={`flex-1 py-2 px-2.5 rounded-xl font-extrabold text-xs transition-all flex items-center justify-center gap-1.5 ${worksheetMode === 'match' ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
+                  className={`flex-1 py-2 px-2.5 rounded-xl font-extrabold text-xs transition-all flex items-center justify-center gap-1.5 ${worksheetMode === 'match' ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-600 hover:text-slate-800'}`}
                 >
                   <CheckSquare size={14} />
                   <span>Match Activity</span>
@@ -3385,7 +3385,7 @@ export default function App() {
                         <span>Teacher / Parent Signature: </span>
                         <span className="inline-block w-40 border-b border-slate-400 border-dashed"></span>
                       </div>
-                      <div className="font-bold text-amber-600">
+                      <div className="font-bold text-amber-700">
                         <span>Score: _____ / {list.length} ⭐</span>
                       </div>
                     </div>
@@ -3489,7 +3489,7 @@ export default function App() {
               </div>
 
               <div className="bg-slate-50 border border-slate-100 p-3 rounded-2xl">
-                <h4 className="font-extrabold text-xs text-emerald-600 uppercase tracking-wide mb-1">🤖 Android & Chrome</h4>
+                <h4 className="font-extrabold text-xs text-emerald-700 uppercase tracking-wide mb-1">🤖 Android & Chrome</h4>
                 <p className="text-xs text-slate-600 font-medium">
                   Tap the browser menu <strong>(⋮)</strong>, then select <strong>'Install app'</strong> or <strong>'Add to Home screen'</strong>.
                 </p>
