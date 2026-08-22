@@ -39,11 +39,19 @@ export const pathToCanvasX = (x) => (x * CANVAS_W) / PATH_MAX;
 export const pathToCanvasY = (y) => (y * CANVAS_H) / PATH_MAX;
 export const pathToCanvas = ({ x, y }) => ({ x: pathToCanvasX(x), y: pathToCanvasY(y) });
 
+// Logical canvas pixels -> path space, exact. The tracing engine's read path:
+// a pointer sample that strays outside the box is a real miss, and clamping it
+// would drag it back onto the edge and score it as a near hit. Rounding is
+// wrong here too — the accuracy mean averages thousands of samples and has no
+// use for a coordinate trimmed to a readable two decimals.
+export const canvasToPathXRaw = (x) => (x * PATH_MAX) / CANVAS_W;
+export const canvasToPathYRaw = (y) => (y * PATH_MAX) / CANVAS_H;
+
 // Logical canvas pixels -> path space, clamped to the box and rounded. This is
 // the editor's write path: a pointer position or a snapped centreline pixel
 // becomes a stored coordinate here and nowhere else.
-export const canvasToPathX = (x) => roundPath(clampPath((x * PATH_MAX) / CANVAS_W));
-export const canvasToPathY = (y) => roundPath(clampPath((y * PATH_MAX) / CANVAS_H));
+export const canvasToPathX = (x) => roundPath(clampPath(canvasToPathXRaw(x)));
+export const canvasToPathY = (y) => roundPath(clampPath(canvasToPathYRaw(y)));
 export const canvasToPath = ({ x, y }) => ({ x: canvasToPathX(x), y: canvasToPathY(y) });
 
 // True for a saved override still written in the pre-path-space pixel range.
