@@ -33,7 +33,7 @@ Built with React 19, Vite, and Workbox PWA technology, the application operates 
 | Persona | Role | Primary Needs | Key Features Used |
 | :--- | :--- | :--- | :--- |
 | **Aarav (Age 5)** | Student Learner | Easy stroke guidance, instant audio feedback, fun rewards. | Tracing Canvas, Sticker Shop, Mini-Games |
-| **Priya (Parent)** | Parent | Track child progress, lock app settings, control session flow. | Parent Dashboard, Security Gate, Progress Reset |
+| **Priya (Parent)** | Parent | Track child progress, lock app settings, control session flow. | Parent Dashboard, Parent Gate, Progress Reset |
 | **Meera (Educator)** | Language Teacher | Custom stroke waypoints, structured alphabet sequence. | Waypoint Editor, Phonics Guide, Akshar Path |
 
 ---
@@ -65,7 +65,7 @@ Built with React 19, Vite, and Workbox PWA technology, the application operates 
   `guj:` namespace (see 6.1).
 
 ### 4.5 Parent Dashboard & Waypoint Editor
-- **Security Lock Gate**: Math problem verification (`num1 + num2`) or passcode check before entering management view. The passcode is stored only as a salted SHA-256 digest (see 6.1) — never in cleartext, and there is no shipped default: the first parent to reach the PIN prompt chooses one. The dashboard reports whether a passcode is set, it cannot show it.
+- **Parent Verification Lock**: Math problem verification (`num1 + num2`) or passcode check before entering management view. This is a child-proof latch, not a security boundary: everything behind it sits in `localStorage` on the same origin, readable and writable from devtools, and 10,000 candidate PINs is an instant brute force for anyone holding the storage. The passcode is stored only as a salted SHA-256 digest (see 6.1) — never in cleartext, and there is no shipped default: the first parent to reach the PIN prompt chooses one and confirms it in a second field, and nothing is stored unless the two agree. The dashboard reports whether a passcode is set, it cannot show it; it can change or remove that passcode, and both actions require the current one first.
 - **Waypoint Editor**: Interactive tool to tweak, add, delete, or reset letter tracing waypoints.
 - **JSON Import/Export**: Ability to copy/paste custom waypoint arrays for curriculum customization.
 
