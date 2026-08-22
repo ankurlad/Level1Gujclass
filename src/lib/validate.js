@@ -66,7 +66,16 @@ export const BRUSH_WIDTH_MAX = 64;
 // falls back and says so; a finite one outside [min, max] is clamped to the
 // bound and says so. `name` is only used in the log line.
 export function toBoundedNumber(value, { min, max, fallback, name = 'value' }) {
-  const number = typeof value === 'number' ? value : Number(value);
+  // Only a number, or the string form v0 stored, is a number. Number() alone is
+  // far too willing: `Number([''])` is 0, `Number(['12'])` is 12 and
+  // `Number('')` is 0, so a store holding an empty string or a stray array
+  // would have been read as a real value by the coercion this replaces.
+  const number =
+    typeof value === 'number'
+      ? value
+      : typeof value === 'string' && value.trim() !== ''
+        ? Number(value)
+        : Number.NaN;
 
   if (!Number.isFinite(number)) {
     warn(`${name} must be a number — using ${fallback} instead of ${describeValue(value)}.`);
