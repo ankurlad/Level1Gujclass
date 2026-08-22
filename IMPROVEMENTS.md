@@ -63,10 +63,28 @@ PR 5 — Normalize waypoint coordinates (DONE)
     time. Stored overrides in the old pixel range are detected by shape (a coordinate past 100
     in either axis) and converted on read; guj:version is now 2.
 
-PR 6 — Extract the tracing engine
+PR 6 — Extract the tracing engine (DONE)
   - Pull snapping, sequential validation, and completion scoring into a headless module with no
     React/DOM. Add Vitest — the first tests in the repo. Much easier after PR 5.
   - Add a real accuracy score (not just binary waypoint completion) — enables the below.
+  - Shipped: src/lib/tracingEngine.js. createTracingSession(waypoints, opts) returns a session
+    with startStroke / addPoint / endStroke / nextWaypoint / isComplete / getScore / getAccuracy /
+    getMeanDeviation / getCompletedWaypoints / getStrokes / reset. Everything is in the 0-100 path
+    space; radii are percent of the box WIDTH and the y axis is multiplied by opts.yScale (box
+    height / width) before any distance, so a radius is a circle on screen and not an ellipse.
+    App.jsx passes hitRadius = 28px-as-percent and yScale = 320/380, which is the tolerance the
+    app has always had.
+  - getAccuracy() is 100 * max(0, 1 - meanDeviation / accuracyTolerance), where meanDeviation is
+    the mean distance from each drawn sample to the nearest segment of the waypoint polyline
+    (split at moveTo, so the pen-lift gap is not traceable) and accuracyTolerance defaults to the
+    hit radius. 100 = on the line. It is additive: getScore() still reports the same binary
+    done/not-done, and completion is unchanged. Accuracy says how neatly, completion says how
+    much — a single dot on the line scores 100, which is why both ship.
+  - Not extracted: snapToCenterline. It snaps to the centre of mass of the rendered glyph by
+    reading pixels out of an offscreen canvas, which is a DOM capability, not geometry, and it is
+    the waypoint editor's tool, not the child's. The engine's snapRadius/onPath is the pure
+    analogue — projection onto the ideal polyline.
+  - PR 7 hook: the three-mode UI reads getAccuracy(); nothing renders it yet.
 
 PR 7 — Split App.jsx
   - TraceView, GameZone, StickerShop, ParentDashboard, WaypointEditor + a shared store. Pure
