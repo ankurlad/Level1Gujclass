@@ -40,7 +40,7 @@ Built with React 19, Vite, and Workbox PWA technology, the application operates 
 ## 4. Feature Specifications
 
 ### 4.1 Interactive Tracing Engine
-- **Canvas View**: 380x320 resolution canvas with touch and mouse event listeners (`touch-action: none`).
+- **Canvas View**: 380x320 logical drawing space with touch and mouse event listeners (`touch-action: none`). The canvas backing store is sized to the rendered box times `devicePixelRatio` so the guide letter is not upscaled on high-DPI screens; waypoint coordinates, hit-test radii and brush widths all remain expressed in the 380x320 logical space.
 - **Sequential Waypoint Snapping**: Guided numbered waypoints (1, 2, 3...) requiring sequential touch/drag validation within distance thresholds.
 - **Completion Validation**: Tracing progress calculated via completed waypoints; triggers confetti particle animation and audio fanfare upon completion.
 
@@ -100,6 +100,7 @@ Built with React 19, Vite, and Workbox PWA technology, the application operates 
 - **PWA Service Worker**: Workbox via `vite-plugin-pwa`
 - **Icons**: Lucide React
 - **Animations**: Canvas Confetti
+- **Typography**: Noto Sans Gujarati, Baloo Bhai 2, Outfit and Fredoka, self-hosted as woff2 subsets in `/public/fonts` and precached by the service worker. There is no runtime call to Google Fonts or any other third party — the guide letterforms the waypoints are calibrated against must be available offline.
 
 ---
 
