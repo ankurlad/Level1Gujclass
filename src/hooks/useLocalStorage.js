@@ -23,7 +23,12 @@ export const NAMESPACE = 'guj:';
 //       strings or JSON depending on the site, parent PIN in cleartext.
 //   1 — `guj:*` keys, every value JSON-encoded, parent PIN replaced by a
 //       salted SHA-256 record (see src/lib/parentPin.js).
-export const SCHEMA_VERSION = 1;
+//   2 — `custom_waypoints_<id>` overrides hold 0-100 path-space coordinates
+//       instead of absolute canvas pixels. Converted on read by
+//       readWaypointOverride in src/App.jsx, which detects the old range
+//       rather than reading this key: the value's own shape is the more
+//       reliable signal, and it makes the conversion idempotent.
+export const SCHEMA_VERSION = 2;
 export const VERSION_KEY = `${NAMESPACE}version`;
 
 // `guj:points`, from the bare key `points`.

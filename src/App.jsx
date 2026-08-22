@@ -29,12 +29,16 @@ import confetti from 'canvas-confetti';
 import { CURRICULUM } from './curriculum';
 import { readStored, removeStored, useLocalStorage, writeStored } from './hooks/useLocalStorage';
 import { createPinRecord, takeLegacyPlaintextPin, verifyPin } from './lib/parentPin';
-
-// Logical drawing space for the tracing and sandbox canvases. Waypoint
-// coordinates in curriculum.js, hit-test radii and brush widths are all in
-// these units; the backing store is a devicePixelRatio-scaled multiple of it.
-const CANVAS_W = 380;
-const CANVAS_H = 320;
+import {
+  CANVAS_H,
+  CANVAS_W,
+  canvasToPath,
+  canvasToPathX,
+  isLegacyPixelWaypoints,
+  pathToCanvasX,
+  pathToCanvasY,
+  toPathSpaceWaypoints
+} from './lib/waypoints';
 
 // Colours live in one place: the `@theme` block in src/index.css, where each
 // token is both a CSS custom property and a Tailwind utility. JSX styling reads
@@ -69,6 +73,10 @@ const BRUSH_TOKENS = [
 // ratio, then map the 2D context back onto the CANVAS_W x CANVAS_H logical
 // space. Without this the fixed 380x320 backing store is stretched by CSS on
 // every 2x/3x phone and the trace guide renders blurry. Returns the context.
+//
+// This transform is why the path space works: everything downstream draws in
+// logical units at any DPR, so scaling a 0-100 waypoint by CANVAS_W/CANVAS_H is
+// the only conversion the draw path needs.
 const setupCanvasScaling = (canvas) => {
   const rect = canvas.getBoundingClientRect();
   const dpr = window.devicePixelRatio || 1;
@@ -179,11 +187,30 @@ const waypointsKey = (lessonId) => `custom_waypoints_${lessonId}`;
 const toNumber = (fallback) => (value) => Number(value) || fallback;
 const toBoolean = (value) => value === true || value === 'true';
 
+// Reads a saved override, bringing a v1 one (absolute canvas pixels) forward to
+// the v2 path space in the same call.
+//
+// The rewrite happens on read rather than in a boot-time sweep, matching how
+// useLocalStorage adopts v0 keys: a letter the parent never customised is never
+// touched, and because the converted value is persisted immediately the
+// conversion happens exactly once per letter no matter where the read came from.
+// Idempotent by construction — a path-space value has nothing past 100 to
+// detect, so a second pass is a no-op.
+const readWaypointOverride = (lessonId) => {
+  const saved = readStored(waypointsKey(lessonId), null);
+  if (!Array.isArray(saved)) return null;
+  if (!isLegacyPixelWaypoints(saved)) return saved;
+
+  const migrated = toPathSpaceWaypoints(saved);
+  writeStored(waypointsKey(lessonId), migrated);
+  return migrated;
+};
+
 // Helper to load curriculum with local overrides from device storage
 const loadSavedCurriculum = () => {
   return CURRICULUM.map(item => {
-    const saved = readStored(waypointsKey(item.id), null);
-    return Array.isArray(saved) ? { ...item, waypoints: saved } : item;
+    const saved = readWaypointOverride(item.id);
+    return saved ? { ...item, waypoints: saved } : item;
   });
 };
 
@@ -321,6 +348,9 @@ export default function App() {
     }
   }, [currentLessonIndex]);
 
+  // Pulls a logical-pixel point onto the centre of mass of the guide glyph
+  // under it. In and out are both logical pixels: the probe below is a pixel
+  // grid, so conversion to the path space happens in the callers.
   const snapToCenterline = (x, y) => {
     try {
       // Offscreen probe in the logical space — no DPR scaling, the result is a
@@ -387,17 +417,17 @@ export default function App() {
     return { x, y };
   };
 
+  // x/y arrive as logical pixels from the drag listener; canvasToPath clamps to
+  // the box and rounds, so what lands in state is already storable.
   const updateWaypointPosition = (index, x, y) => {
-    const snapped = snapToCenterline(x, y);
-    const clampedX = Math.max(0, Math.min(CANVAS_W, snapped.x));
-    const clampedY = Math.max(0, Math.min(CANVAS_H, snapped.y));
-    
+    const point = canvasToPath(snapToCenterline(x, y));
+
     setEditorWaypoints(prev => {
       const updated = [...prev];
       updated[index] = {
         ...updated[index],
-        x: clampedX,
-        y: clampedY
+        x: point.x,
+        y: point.y
       };
       
       setSessionCurriculum(prevCurriculum => {
@@ -632,7 +662,9 @@ export default function App() {
     ctx.textBaseline = 'middle';
     ctx.fillText(currentLesson.letter, CANVAS_W / 2, CANVAS_H / 2 + 10);
 
-    // Draw dashed guide paths connecting waypoints (respecting moveTo skips)
+    // Draw dashed guide paths connecting waypoints (respecting moveTo skips).
+    // Waypoints are 0-100, so each one is scaled by the logical canvas size
+    // here — the one place the path space becomes pixels for the guide.
     if (currentLesson.waypoints && currentLesson.waypoints.length > 1) {
       ctx.beginPath();
       ctx.strokeStyle = themeColor(
@@ -640,13 +672,13 @@ export default function App() {
       );
       ctx.lineWidth = 4;
       ctx.setLineDash([6, 6]);
-      ctx.moveTo(currentLesson.waypoints[0].x, currentLesson.waypoints[0].y);
+      ctx.moveTo(pathToCanvasX(currentLesson.waypoints[0].x), pathToCanvasY(currentLesson.waypoints[0].y));
       for (let i = 1; i < currentLesson.waypoints.length; i++) {
         const wp = currentLesson.waypoints[i];
         if (wp.moveTo) {
-          ctx.moveTo(wp.x, wp.y);
+          ctx.moveTo(pathToCanvasX(wp.x), pathToCanvasY(wp.y));
         } else {
-          ctx.lineTo(wp.x, wp.y);
+          ctx.lineTo(pathToCanvasX(wp.x), pathToCanvasY(wp.y));
         }
       }
       ctx.stroke();
@@ -706,8 +738,8 @@ export default function App() {
   const handleCanvasClick = (e) => {
     if (!editorMode || !editorActive) return;
     const { x, y } = getCoords(e);
-    const snapped = snapToCenterline(x, y);
-    
+    const snapped = canvasToPath(snapToCenterline(x, y));
+
     setEditorWaypoints(prev => {
       const newPoint = {
         x: snapped.x,
@@ -742,8 +774,8 @@ export default function App() {
     if (editorMode && editorActive) {
       if (editorRecordMode) {
         // Record path drawing mode
-        const snapped = snapToCenterline(x, y);
-        
+        const snapped = canvasToPath(snapToCenterline(x, y));
+
         setEditorWaypoints(prev => {
           const newPoint = {
             x: snapped.x,
@@ -809,8 +841,8 @@ export default function App() {
         const dist = Math.hypot(x - lastPoint.x, y - lastPoint.y);
         // Spacing downsampling threshold (35px) between unsnapped points
         if (dist >= 35) {
-          const snapped = snapToCenterline(x, y);
-          
+          const snapped = canvasToPath(snapToCenterline(x, y));
+
           setEditorWaypoints(prev => {
             const newPoint = {
               x: snapped.x,
@@ -858,9 +890,13 @@ export default function App() {
     const nextIndex = completedWaypoints.length;
     if (nextIndex >= currentLesson.waypoints.length) return;
     
+    // The pointer is in logical pixels and the target is 0-100, so the target
+    // moves into pixel space rather than the reverse: the box is not square, so
+    // a radius in path space would be an ellipse on the canvas — wider
+    // tolerance vertically than horizontally.
     const target = currentLesson.waypoints[nextIndex];
-    const dist = Math.hypot(x - target.x, y - target.y);
-    
+    const dist = Math.hypot(x - pathToCanvasX(target.x), y - pathToCanvasY(target.y));
+
     if (dist < 28) {
       const newWaypoints = [...completedWaypoints, nextIndex];
       setCompletedWaypoints(newWaypoints);
@@ -935,7 +971,10 @@ export default function App() {
     }
   };
 
-  // Helper to serialize a waypoint array with one coordinate object per line (matching curriculum.js formatting)
+  // Helper to serialize a waypoint array with one coordinate object per line
+  // (matching curriculum.js formatting). Coordinates go out in the same 0-100
+  // path space they are held in, so the block pastes straight into
+  // curriculum.js and a file exported here re-imports without rescaling.
   const stringifyWaypointsArray = (arr) => {
     if (!arr || arr.length === 0) return "[]";
     const lines = arr.map(wp => {
@@ -972,8 +1011,8 @@ export default function App() {
   const exportAllCustomWaypoints = () => {
     try {
       const fullCurriculumExport = sessionCurriculum.map(item => {
-        const saved = readStored(waypointsKey(item.id), null);
-        return Array.isArray(saved) ? { ...item, waypoints: saved } : item;
+        const saved = readWaypointOverride(item.id);
+        return saved ? { ...item, waypoints: saved } : item;
       });
 
       const stringifyFullCurriculum = (curriculumArray) => {
@@ -1061,13 +1100,15 @@ export default function App() {
   // Auto-centers coordinates horizontally based on letter strokes for points 1-10
   const handleAutoCenterRows = () => {
     if (editorWaypoints.length === 0) return;
-    
+
     try {
-      const wps = [...editorWaypoints];
+      const wps = editorWaypoints.map(wp => ({ ...wp }));
       const letter = currentLesson.letter;
-      const canvasWidth = 380;
-      const canvasHeight = 320;
-      
+      // The probe is a pixel raster, so it runs in the logical canvas size and
+      // each waypoint crosses into pixels and back per row.
+      const canvasWidth = CANVAS_W;
+      const canvasHeight = CANVAS_H;
+
       const tempCanvas = document.createElement('canvas');
       tempCanvas.width = canvasWidth;
       tempCanvas.height = canvasHeight;
@@ -1082,7 +1123,7 @@ export default function App() {
       wps.forEach(point => {
         const labelNum = parseInt(point.label);
         if (labelNum >= 1 && labelNum <= 10) {
-          const y = Math.floor(point.y);
+          const y = Math.floor(pathToCanvasY(point.y));
           const imageData = tempCtx.getImageData(0, y, canvasWidth, 1).data;
           
           let minX = -1;
@@ -1099,7 +1140,7 @@ export default function App() {
           }
           
           if (minX !== -1 && maxX !== -1) {
-            point.x = Math.round((minX + maxX) / 2);
+            point.x = canvasToPathX((minX + maxX) / 2);
           }
         }
       });
@@ -1979,7 +2020,7 @@ export default function App() {
 
               {/* Canvas draw field */}
               <div 
-                style={{ position: 'relative', aspectRatio: '380/320' }}
+                style={{ position: 'relative', aspectRatio: `${CANVAS_W}/${CANVAS_H}` }}
                 className="border-4 border-slate-200 rounded-3xl overflow-hidden shadow-inner bg-slate-100 w-full max-w-[380px] flex-1 flex items-center justify-center"
               >
                 <canvas
@@ -2020,8 +2061,10 @@ export default function App() {
                       key={idx}
                       style={{
                         position: 'absolute',
-                        left: `${(wp.x / CANVAS_W) * 100}%`,
-                        top: `${(wp.y / CANVAS_H) * 100}%`,
+                        // The dots are DOM, not canvas: a percentage of the
+                        // wrapper is exactly what the path space already is.
+                        left: `${wp.x}%`,
+                        top: `${wp.y}%`,
                         transform: 'translate(-50%, -50%)',
                         ...strokeStyle
                       }}
@@ -2619,7 +2662,7 @@ export default function App() {
 
               {/* Blank canvas field */}
               <div 
-                style={{ position: 'relative', aspectRatio: '380/320' }}
+                style={{ position: 'relative', aspectRatio: `${CANVAS_W}/${CANVAS_H}` }}
                 className="border-4 border-slate-200 rounded-3xl overflow-hidden shadow-inner bg-white w-full max-w-[380px] flex-1 flex items-center justify-center"
               >
                 <canvas

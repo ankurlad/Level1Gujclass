@@ -1,3 +1,11 @@
+// The 34 Gujarati consonants, in the traditional varga order.
+//
+// `waypoints` are in the 0-100 path space defined by src/lib/waypoints.js: a
+// percentage of the tracing box on each axis, not pixels. They were calibrated
+// against Noto Sans Gujarati at 220px in a 380x320 box, so the numbers here are
+// the old pixel values divided by 3.8 (x) and 3.2 (y) and rounded to
+// hundredths. `label` is the 1-based order the child traces them in; `moveTo`
+// lifts the pen before that point, starting a new stroke.
 export const CURRICULUM = [
   {
     id: 'ka',
@@ -8,19 +16,19 @@ export const CURRICULUM = [
     emoji: '🪷',
     instructions: 'Start from top-right, draw an S shape to bottom-left, then draw the crossbar.',
     waypoints: [
-	  { "x": 201, "y": 87, "label": "1" },
-	  { "x": 175, "y": 104, "label": "2" },
-	  { "x": 177, "y": 139, "label": "3" },
-	  { "x": 203, "y": 159, "label": "4" },
-	  { "x": 227, "y": 185, "label": "5" },
-	  { "x": 228, "y": 215, "label": "6" },
-	  { "x": 199, "y": 232, "label": "7" },
-	  { "x": 171, "y": 230, "label": "8" },
-	  { "x": 144, "y": 213, "label": "9" },
-	  { "x": 235, "y": 137, "label": "10", "moveTo": true },
-	  { "x": 212, "y": 152, "label": "11" },
-	  { "x": 181, "y": 163, "label": "12" },
-	  { "x": 161, "y": 169, "label": "13" }
+	  { "x": 52.89, "y": 27.19, "label": "1" },
+	  { "x": 46.05, "y": 32.5, "label": "2" },
+	  { "x": 46.58, "y": 43.44, "label": "3" },
+	  { "x": 53.42, "y": 49.69, "label": "4" },
+	  { "x": 59.74, "y": 57.81, "label": "5" },
+	  { "x": 60, "y": 67.19, "label": "6" },
+	  { "x": 52.37, "y": 72.5, "label": "7" },
+	  { "x": 45, "y": 71.88, "label": "8" },
+	  { "x": 37.89, "y": 66.56, "label": "9" },
+	  { "x": 61.84, "y": 42.81, "label": "10", "moveTo": true },
+	  { "x": 55.79, "y": 47.5, "label": "11" },
+	  { "x": 47.63, "y": 50.94, "label": "12" },
+	  { "x": 42.37, "y": 52.81, "label": "13" }
 	]
   },
   {
@@ -32,21 +40,21 @@ export const CURRICULUM = [
     emoji: '🐿️',
     instructions: 'Start top-left, make a loop on the left, draw horizontal bar, and finish with vertical line.',
     waypoints: [
-	  { "x": 101.5, "y": 88.390625, "label": "1" },
-	  { "x": 120.5, "y": 94.390625, "label": "2" },
-	  { "x": 124.50000000000001, "y": 123.390625, "label": "3" },
-	  { "x": 121.5, "y": 150.390625, "label": "4" },
-	  { "x": 126.49999999999999, "y": 179.390625, "label": "5" },
-	  { "x": 141.5, "y": 198.390625, "label": "6" },
-	  { "x": 169.5, "y": 193.390625, "label": "7" },
-	  { "x": 186.5, "y": 169.390625, "label": "8" },
-	  { "x": 189.5, "y": 125.390625, "label": "9" },
-	  { "x": 197.5, "y": 160.390625, "label": "10" },
-	  { "x": 216.50000000000003, "y": 177.390625, "label": "11" },
-	  { "x": 244.49999999999997, "y": 170.390625, "label": "12" },
-	  { "x": 252.5, "y": 86.390625, "label": "13" },
-	  { "x": 251.5, "y": 225.390625, "label": "14" },
-	  { "x": 273.5, "y": 220.390625, "label": "15" }
+	  { "x": 26.71, "y": 27.62, "label": "1" },
+	  { "x": 31.71, "y": 29.5, "label": "2" },
+	  { "x": 32.76, "y": 38.56, "label": "3" },
+	  { "x": 31.97, "y": 47, "label": "4" },
+	  { "x": 33.29, "y": 56.06, "label": "5" },
+	  { "x": 37.24, "y": 62, "label": "6" },
+	  { "x": 44.61, "y": 60.43, "label": "7" },
+	  { "x": 49.08, "y": 52.93, "label": "8" },
+	  { "x": 49.87, "y": 39.18, "label": "9" },
+	  { "x": 51.97, "y": 50.12, "label": "10" },
+	  { "x": 56.97, "y": 55.43, "label": "11" },
+	  { "x": 64.34, "y": 53.25, "label": "12" },
+	  { "x": 66.45, "y": 27, "label": "13" },
+	  { "x": 66.18, "y": 70.43, "label": "14" },
+	  { "x": 71.97, "y": 68.87, "label": "15" }
 	]
   },
   {
@@ -58,22 +66,22 @@ export const CURRICULUM = [
     emoji: '🐄',
     instructions: 'Draw a hook shape on the left, then a vertical line on the right.',
     waypoints: [
-	  { "x": 135.5, "y": 91.390625, "label": "1" },
-	  { "x": 159.5, "y": 88.390625, "label": "2" },
-	  { "x": 182.5, "y": 97.390625, "label": "3" },
-	  { "x": 194.5, "y": 115.390625, "label": "4" },
-	  { "x": 198.5, "y": 138.390625, "label": "5" },
-	  { "x": 191.49999999999997, "y": 162.390625, "label": "6" },
-	  { "x": 176.5, "y": 181.390625, "label": "7" },
-	  { "x": 154.5, "y": 185.390625, "label": "8" },
-	  { "x": 134.5, "y": 180.390625, "label": "9" },
-	  { "x": 122.5, "y": 167.390625, "label": "10" },
-	  { "x": 231.49999999999997, "y": 87.390625, "label": "11", "moveTo": true },
-	  { "x": 232.49999999999997, "y": 120.390625, "label": "12" },
-	  { "x": 231.49999999999997, "y": 156.390625, "label": "13" },
-	  { "x": 231.49999999999997, "y": 192.390625, "label": "14" },
-	  { "x": 232.49999999999997, "y": 229.390625, "label": "15" },
-	  { "x": 253.5, "y": 225.390625, "label": "16" }
+	  { "x": 35.66, "y": 28.56, "label": "1" },
+	  { "x": 41.97, "y": 27.62, "label": "2" },
+	  { "x": 48.03, "y": 30.43, "label": "3" },
+	  { "x": 51.18, "y": 36.06, "label": "4" },
+	  { "x": 52.24, "y": 43.25, "label": "5" },
+	  { "x": 50.39, "y": 50.75, "label": "6" },
+	  { "x": 46.45, "y": 56.68, "label": "7" },
+	  { "x": 40.66, "y": 57.93, "label": "8" },
+	  { "x": 35.39, "y": 56.37, "label": "9" },
+	  { "x": 32.24, "y": 52.31, "label": "10" },
+	  { "x": 60.92, "y": 27.31, "label": "11", "moveTo": true },
+	  { "x": 61.18, "y": 37.62, "label": "12" },
+	  { "x": 60.92, "y": 48.87, "label": "13" },
+	  { "x": 60.92, "y": 60.12, "label": "14" },
+	  { "x": 61.18, "y": 71.68, "label": "15" },
+	  { "x": 66.71, "y": 70.43, "label": "16" }
 	]
   },
   {
@@ -85,21 +93,21 @@ export const CURRICULUM = [
     emoji: '🏠',
     instructions: 'Draw two curves starting from top-left, and finish with a vertical line on the right.',
     waypoints: [
-	  { "x": 169.5, "y": 87.390625, "label": "1" },
-	  { "x": 148.5, "y": 95.390625, "label": "2" },
-	  { "x": 137.5, "y": 114.390625, "label": "3" },
-	  { "x": 148.5, "y": 134.390625, "label": "4" },
-	  { "x": 191.49999999999997, "y": 141.390625, "label": "5" },
-	  { "x": 160.5, "y": 149.390625, "label": "6" },
-	  { "x": 142.5, "y": 162.390625, "label": "7" },
-	  { "x": 147.5, "y": 197.390625, "label": "8" },
-	  { "x": 168.5, "y": 206.390625, "label": "9" },
-	  { "x": 195.5, "y": 208.390625, "label": "10" },
-	  { "x": 220.5, "y": 193.390625, "label": "11" },
-	  { "x": 228.5, "y": 139.390625, "label": "12" },
-	  { "x": 227.5, "y": 89.390625, "label": "13" },
-	  { "x": 229.50000000000003, "y": 227.390625, "label": "14" },
-	  { "x": 251.5, "y": 222.390625, "label": "15" }
+	  { "x": 44.61, "y": 27.31, "label": "1" },
+	  { "x": 39.08, "y": 29.81, "label": "2" },
+	  { "x": 36.18, "y": 35.75, "label": "3" },
+	  { "x": 39.08, "y": 42, "label": "4" },
+	  { "x": 50.39, "y": 44.18, "label": "5" },
+	  { "x": 42.24, "y": 46.68, "label": "6" },
+	  { "x": 37.5, "y": 50.75, "label": "7" },
+	  { "x": 38.82, "y": 61.68, "label": "8" },
+	  { "x": 44.34, "y": 64.5, "label": "9" },
+	  { "x": 51.45, "y": 65.12, "label": "10" },
+	  { "x": 58.03, "y": 60.43, "label": "11" },
+	  { "x": 60.13, "y": 43.56, "label": "12" },
+	  { "x": 59.87, "y": 27.93, "label": "13" },
+	  { "x": 60.39, "y": 71.06, "label": "14" },
+	  { "x": 66.18, "y": 69.5, "label": "15" }
 	]
   },
   {
@@ -111,20 +119,20 @@ export const CURRICULUM = [
     emoji: '🐦',
     instructions: 'Start from left, make a middle loop, drop down to a curve, and draw the vertical line.',
     waypoints: [
-	  { "x": 134.5, "y": 90.390625, "label": "1" },
-	  { "x": 165.5, "y": 94.390625, "label": "2" },
-	  { "x": 176.5, "y": 116.390625, "label": "3" },
-	  { "x": 170.5, "y": 143.390625, "label": "4" },
-	  { "x": 147.5, "y": 161.390625, "label": "5" },
-	  { "x": 127.5, "y": 159.390625, "label": "6" },
-	  { "x": 151.5, "y": 172.390625, "label": "7" },
-	  { "x": 164.5, "y": 191.390625, "label": "8" },
-	  { "x": 187.5, "y": 199.390625, "label": "9" },
-	  { "x": 209.5, "y": 194.390625, "label": "10" },
-	  { "x": 225.5, "y": 185.390625, "label": "11" },
-	  { "x": 229.50000000000003, "y": 86.390625, "label": "12" },
-	  { "x": 228.5, "y": 231.390625, "label": "13" },
-	  { "x": 249.5, "y": 222.390625, "label": "14" }
+	  { "x": 35.39, "y": 28.25, "label": "1" },
+	  { "x": 43.55, "y": 29.5, "label": "2" },
+	  { "x": 46.45, "y": 36.37, "label": "3" },
+	  { "x": 44.87, "y": 44.81, "label": "4" },
+	  { "x": 38.82, "y": 50.43, "label": "5" },
+	  { "x": 33.55, "y": 49.81, "label": "6" },
+	  { "x": 39.87, "y": 53.87, "label": "7" },
+	  { "x": 43.29, "y": 59.81, "label": "8" },
+	  { "x": 49.34, "y": 62.31, "label": "9" },
+	  { "x": 55.13, "y": 60.75, "label": "10" },
+	  { "x": 59.34, "y": 57.93, "label": "11" },
+	  { "x": 60.39, "y": 27, "label": "12" },
+	  { "x": 60.13, "y": 72.31, "label": "13" },
+	  { "x": 65.66, "y": 69.5, "label": "14" }
 	]
   },
   {
@@ -136,26 +144,26 @@ export const CURRICULUM = [
     emoji: '🌂',
     instructions: 'Draw consecutive loops descending, tie a knot at bottom-right, and draw a short hook up.',
     waypoints: [
-	  { "x": 167.5, "y": 85.390625, "label": "1" },
-	  { "x": 140.5, "y": 97.390625, "label": "2" },
-	  { "x": 131.5, "y": 120.390625, "label": "3" },
-	  { "x": 140.5, "y": 146.390625, "label": "4" },
-	  { "x": 165.5, "y": 154.390625, "label": "5" },
-	  { "x": 189.5, "y": 153.390625, "label": "6" },
-	  { "x": 150.5, "y": 160.390625, "label": "7" },
-	  { "x": 140.5, "y": 178.390625, "label": "8" },
-	  { "x": 140.5, "y": 210.390625, "label": "9" },
-	  { "x": 156.5, "y": 229.390625, "label": "10" },
-	  { "x": 189.5, "y": 231.390625, "label": "11" },
-	  { "x": 216.50000000000003, "y": 220.390625, "label": "12" },
-	  { "x": 237.5, "y": 202.390625, "label": "13" },
-	  { "x": 256.5, "y": 156.390625, "label": "14" },
-	  { "x": 253.5, "y": 104.390625, "label": "15" },
-	  { "x": 232.49999999999997, "y": 86.390625, "label": "16" },
-	  { "x": 210.5, "y": 100.390625, "label": "17" },
-	  { "x": 207.5, "y": 128.390625, "label": "18" },
-	  { "x": 217.49999999999997, "y": 147.390625, "label": "19" },
-	  { "x": 234.5, "y": 171.390625, "label": "20" }
+	  { "x": 44.08, "y": 26.68, "label": "1" },
+	  { "x": 36.97, "y": 30.43, "label": "2" },
+	  { "x": 34.61, "y": 37.62, "label": "3" },
+	  { "x": 36.97, "y": 45.75, "label": "4" },
+	  { "x": 43.55, "y": 48.25, "label": "5" },
+	  { "x": 49.87, "y": 47.93, "label": "6" },
+	  { "x": 39.61, "y": 50.12, "label": "7" },
+	  { "x": 36.97, "y": 55.75, "label": "8" },
+	  { "x": 36.97, "y": 65.75, "label": "9" },
+	  { "x": 41.18, "y": 71.68, "label": "10" },
+	  { "x": 49.87, "y": 72.31, "label": "11" },
+	  { "x": 56.97, "y": 68.87, "label": "12" },
+	  { "x": 62.5, "y": 63.25, "label": "13" },
+	  { "x": 67.5, "y": 48.87, "label": "14" },
+	  { "x": 66.71, "y": 32.62, "label": "15" },
+	  { "x": 61.18, "y": 27, "label": "16" },
+	  { "x": 55.39, "y": 31.37, "label": "17" },
+	  { "x": 54.61, "y": 40.12, "label": "18" },
+	  { "x": 57.24, "y": 46.06, "label": "19" },
+	  { "x": 61.71, "y": 53.56, "label": "20" }
 	]
   },
   {
@@ -167,26 +175,26 @@ export const CURRICULUM = [
     emoji: '🚢',
     instructions: 'Draw a top-left loop, curve down to center loop, loop at bottom, and end with right hook.',
     waypoints: [
-	  { "x": 127.5, "y": 89.390625, "label": "1" },
-	  { "x": 157.5, "y": 85.390625, "label": "2" },
-	  { "x": 180.5, "y": 98.390625, "label": "3" },
-	  { "x": 189.5, "y": 123.390625, "label": "4" },
-	  { "x": 187.5, "y": 148.390625, "label": "5" },
-	  { "x": 182.5, "y": 174.390625, "label": "6" },
-	  { "x": 165.5, "y": 184.390625, "label": "7" },
-	  { "x": 140.5, "y": 190.390625, "label": "8" },
-	  { "x": 122.5, "y": 185.390625, "label": "9" },
-	  { "x": 194.5, "y": 133.390625, "label": "10", "moveTo": true },
-	  { "x": 216.50000000000003, "y": 134.390625, "label": "11" },
-	  { "x": 234.5, "y": 136.390625, "label": "12" },
-	  { "x": 247.5, "y": 151.390625, "label": "13" },
-	  { "x": 248.5, "y": 174.390625, "label": "14" },
-	  { "x": 240.5, "y": 188.390625, "label": "15" },
-	  { "x": 223.5, "y": 200.390625, "label": "16" },
-	  { "x": 234.5, "y": 79.390625, "label": "17", "moveTo": true },
-	  { "x": 235.5, "y": 101.390625, "label": "18" },
-	  { "x": 233.5, "y": 117.390625, "label": "19" },
-	  { "x": 231.49999999999997, "y": 128.390625, "label": "20" }
+	  { "x": 33.55, "y": 27.93, "label": "1" },
+	  { "x": 41.45, "y": 26.68, "label": "2" },
+	  { "x": 47.5, "y": 30.75, "label": "3" },
+	  { "x": 49.87, "y": 38.56, "label": "4" },
+	  { "x": 49.34, "y": 46.37, "label": "5" },
+	  { "x": 48.03, "y": 54.5, "label": "6" },
+	  { "x": 43.55, "y": 57.62, "label": "7" },
+	  { "x": 36.97, "y": 59.5, "label": "8" },
+	  { "x": 32.24, "y": 57.93, "label": "9" },
+	  { "x": 51.18, "y": 41.68, "label": "10", "moveTo": true },
+	  { "x": 56.97, "y": 42, "label": "11" },
+	  { "x": 61.71, "y": 42.62, "label": "12" },
+	  { "x": 65.13, "y": 47.31, "label": "13" },
+	  { "x": 65.39, "y": 54.5, "label": "14" },
+	  { "x": 63.29, "y": 58.87, "label": "15" },
+	  { "x": 58.82, "y": 62.62, "label": "16" },
+	  { "x": 61.71, "y": 24.81, "label": "17", "moveTo": true },
+	  { "x": 61.97, "y": 31.68, "label": "18" },
+	  { "x": 61.45, "y": 36.68, "label": "19" },
+	  { "x": 60.92, "y": 40.12, "label": "20" }
 	]
   },
   {
@@ -198,12 +206,12 @@ export const CURRICULUM = [
     emoji: '🌳',
     instructions: 'Draw a left curve shape, then draw a right hook shape connected next to it.',
     waypoints: [
-      { x: 160, y: 110, label: '1' },
-      { x: 120, y: 150, label: '2' },
-      { x: 180, y: 190, label: '3' },
-      { x: 100, y: 250, label: '4' },
-      { x: 250, y: 120, label: '5', moveTo: true },
-      { x: 250, y: 260, label: '6' }
+      { x: 42.11, y: 34.38, label: '1' },
+      { x: 31.58, y: 46.88, label: '2' },
+      { x: 47.37, y: 59.38, label: '3' },
+      { x: 26.32, y: 78.13, label: '4' },
+      { x: 65.79, y: 37.5, label: '5', moveTo: true },
+      { x: 65.79, y: 81.25, label: '6' }
     ]
   },
   {
@@ -215,11 +223,11 @@ export const CURRICULUM = [
     emoji: '🍅',
     instructions: 'Draw a top loop right and hook left like a backwards S.',
     waypoints: [
-      { x: 140, y: 120, label: '1' },
-      { x: 230, y: 140, label: '2' },
-      { x: 190, y: 200, label: '3' },
-      { x: 150, y: 240, label: '4' },
-      { x: 230, y: 250, label: '5' }
+      { x: 36.84, y: 37.5, label: '1' },
+      { x: 60.53, y: 43.75, label: '2' },
+      { x: 50, y: 62.5, label: '3' },
+      { x: 39.47, y: 75, label: '4' },
+      { x: 60.53, y: 78.13, label: '5' }
     ]
   },
   {
@@ -231,11 +239,11 @@ export const CURRICULUM = [
     emoji: '🍑',
     instructions: 'Draw a full circle starting from the top.',
     waypoints: [
-      { x: 190, y: 100, label: '1' },
-      { x: 130, y: 180, label: '2' },
-      { x: 190, y: 260, label: '3' },
-      { x: 250, y: 180, label: '4' },
-      { x: 195, y: 105, label: '5' }
+      { x: 50, y: 31.25, label: '1' },
+      { x: 34.21, y: 56.25, label: '2' },
+      { x: 50, y: 81.25, label: '3' },
+      { x: 65.79, y: 56.25, label: '4' },
+      { x: 51.32, y: 32.81, label: '5' }
     ]
   },
   {
@@ -247,10 +255,10 @@ export const CURRICULUM = [
     emoji: '🪘',
     instructions: 'Draw an S shape from top to bottom.',
     waypoints: [
-      { x: 240, y: 110, label: '1' },
-      { x: 150, y: 150, label: '2' },
-      { x: 240, y: 210, label: '3' },
-      { x: 150, y: 250, label: '4' }
+      { x: 63.16, y: 34.38, label: '1' },
+      { x: 39.47, y: 46.88, label: '2' },
+      { x: 63.16, y: 65.63, label: '3' },
+      { x: 39.47, y: 78.13, label: '4' }
     ]
   },
   {
@@ -262,11 +270,11 @@ export const CURRICULUM = [
     emoji: '🛡️',
     instructions: 'Start top-right, loop left, drop down, make a small circle at the end.',
     waypoints: [
-      { x: 240, y: 120, label: '1' },
-      { x: 150, y: 160, label: '2' },
-      { x: 200, y: 250, label: '3' },
-      { x: 240, y: 220, label: '4' },
-      { x: 210, y: 200, label: '5' }
+      { x: 63.16, y: 37.5, label: '1' },
+      { x: 39.47, y: 50, label: '2' },
+      { x: 52.63, y: 78.13, label: '3' },
+      { x: 63.16, y: 68.75, label: '4' },
+      { x: 55.26, y: 62.5, label: '5' }
     ]
   },
   {
@@ -278,12 +286,12 @@ export const CURRICULUM = [
     emoji: '🏹',
     instructions: 'Draw a standing hook curve, then a vertical bar, and finish with a vertical line.',
     waypoints: [
-      { x: 130, y: 100, label: '1' },
-      { x: 130, y: 240, label: '2' },
-      { x: 170, y: 200, label: '3', moveTo: true },
-      { x: 210, y: 200, label: '4' },
-      { x: 260, y: 100, label: '5', moveTo: true },
-      { x: 260, y: 260, label: '6' }
+      { x: 34.21, y: 31.25, label: '1' },
+      { x: 34.21, y: 75, label: '2' },
+      { x: 44.74, y: 62.5, label: '3', moveTo: true },
+      { x: 55.26, y: 62.5, label: '4' },
+      { x: 68.42, y: 31.25, label: '5', moveTo: true },
+      { x: 68.42, y: 81.25, label: '6' }
     ]
   },
   {
@@ -295,11 +303,11 @@ export const CURRICULUM = [
     emoji: '🍉',
     instructions: 'Start with a curve, make a sharp hook right, then a vertical line on the right.',
     waypoints: [
-      { x: 130, y: 180, label: '1' },
-      { x: 190, y: 180, label: '2' },
-      { x: 190, y: 130, label: '3' },
-      { x: 250, y: 100, label: '4', moveTo: true },
-      { x: 250, y: 260, label: '5' }
+      { x: 34.21, y: 56.25, label: '1' },
+      { x: 50, y: 56.25, label: '2' },
+      { x: 50, y: 40.63, label: '3' },
+      { x: 65.79, y: 31.25, label: '4', moveTo: true },
+      { x: 65.79, y: 81.25, label: '5' }
     ]
   },
   {
@@ -311,12 +319,12 @@ export const CURRICULUM = [
     emoji: '🫙',
     instructions: 'Start with a small loop, curve up and down, then draw a vertical line on the right.',
     waypoints: [
-      { x: 150, y: 130, label: '1' },
-      { x: 130, y: 150, label: '2' },
-      { x: 170, y: 180, label: '3' },
-      { x: 150, y: 240, label: '4' },
-      { x: 250, y: 100, label: '5', moveTo: true },
-      { x: 250, y: 260, label: '6' }
+      { x: 39.47, y: 40.63, label: '1' },
+      { x: 34.21, y: 46.88, label: '2' },
+      { x: 44.74, y: 56.25, label: '3' },
+      { x: 39.47, y: 75, label: '4' },
+      { x: 65.79, y: 31.25, label: '5', moveTo: true },
+      { x: 65.79, y: 81.25, label: '6' }
     ]
   },
   {
@@ -328,11 +336,11 @@ export const CURRICULUM = [
     emoji: '🍇',
     instructions: 'Draw a C shape, then draw another C shape connected below it.',
     waypoints: [
-      { x: 240, y: 110, label: '1' },
-      { x: 150, y: 140, label: '2' },
-      { x: 210, y: 180, label: '3' },
-      { x: 150, y: 220, label: '4' },
-      { x: 240, y: 250, label: '5' }
+      { x: 63.16, y: 34.38, label: '1' },
+      { x: 39.47, y: 43.75, label: '2' },
+      { x: 55.26, y: 56.25, label: '3' },
+      { x: 39.47, y: 68.75, label: '4' },
+      { x: 63.16, y: 78.13, label: '5' }
     ]
   },
   {
@@ -344,12 +352,12 @@ export const CURRICULUM = [
     emoji: '🏹',
     instructions: 'Start with a small loop, draw two curves, and finish with a short vertical line.',
     waypoints: [
-      { x: 140, y: 130, label: '1' },
-      { x: 120, y: 160, label: '2' },
-      { x: 180, y: 180, label: '3' },
-      { x: 140, y: 240, label: '4' },
-      { x: 250, y: 140, label: '5', moveTo: true },
-      { x: 250, y: 260, label: '6' }
+      { x: 36.84, y: 40.63, label: '1' },
+      { x: 31.58, y: 50, label: '2' },
+      { x: 47.37, y: 56.25, label: '3' },
+      { x: 36.84, y: 75, label: '4' },
+      { x: 65.79, y: 43.75, label: '5', moveTo: true },
+      { x: 65.79, y: 81.25, label: '6' }
     ]
   },
   {
@@ -361,11 +369,11 @@ export const CURRICULUM = [
     emoji: '🚰',
     instructions: 'Draw a small loop, a horizontal line to the right, and finish with a vertical line.',
     waypoints: [
-      { x: 140, y: 220, label: '1' },
-      { x: 120, y: 200, label: '2' },
-      { x: 200, y: 200, label: '3' },
-      { x: 250, y: 100, label: '4', moveTo: true },
-      { x: 250, y: 260, label: '5' }
+      { x: 36.84, y: 68.75, label: '1' },
+      { x: 31.58, y: 62.5, label: '2' },
+      { x: 52.63, y: 62.5, label: '3' },
+      { x: 65.79, y: 31.25, label: '4', moveTo: true },
+      { x: 65.79, y: 81.25, label: '5' }
     ]
   },
   {
@@ -377,11 +385,11 @@ export const CURRICULUM = [
     emoji: '🪁',
     instructions: 'Draw a U shape, and finish with a vertical line on the right.',
     waypoints: [
-      { x: 140, y: 100, label: '1' },
-      { x: 140, y: 210, label: '2' },
-      { x: 200, y: 210, label: '3' },
-      { x: 260, y: 100, label: '4', moveTo: true },
-      { x: 260, y: 260, label: '5' }
+      { x: 36.84, y: 31.25, label: '1' },
+      { x: 36.84, y: 65.63, label: '2' },
+      { x: 52.63, y: 65.63, label: '3' },
+      { x: 68.42, y: 31.25, label: '4', moveTo: true },
+      { x: 68.42, y: 81.25, label: '5' }
     ]
   },
   {
@@ -393,13 +401,13 @@ export const CURRICULUM = [
     emoji: '🍎',
     instructions: 'Draw a Ka-like shape but loop it differently at the bottom-right.',
     waypoints: [
-      { x: 150, y: 110, label: '1' },
-      { x: 190, y: 160, label: '2' },
-      { x: 130, y: 220, label: '3' },
-      { x: 230, y: 220, label: '4' },
-      { x: 250, y: 180, label: '5' },
-      { x: 140, y: 180, label: '6', moveTo: true },
-      { x: 240, y: 180, label: '7' }
+      { x: 39.47, y: 34.38, label: '1' },
+      { x: 50, y: 50, label: '2' },
+      { x: 34.21, y: 68.75, label: '3' },
+      { x: 60.53, y: 68.75, label: '4' },
+      { x: 65.79, y: 56.25, label: '5' },
+      { x: 36.84, y: 56.25, label: '6', moveTo: true },
+      { x: 63.16, y: 56.25, label: '7' }
     ]
   },
   {
@@ -411,12 +419,12 @@ export const CURRICULUM = [
     emoji: '🦆',
     instructions: 'Draw a curve on the left, make a loop, extend right, and draw a vertical line.',
     waypoints: [
-      { x: 140, y: 150, label: '1' },
-      { x: 180, y: 130, label: '2' },
-      { x: 180, y: 220, label: '3' },
-      { x: 220, y: 220, label: '4' },
-      { x: 260, y: 100, label: '5', moveTo: true },
-      { x: 260, y: 260, label: '6' }
+      { x: 36.84, y: 46.88, label: '1' },
+      { x: 47.37, y: 40.63, label: '2' },
+      { x: 47.37, y: 68.75, label: '3' },
+      { x: 57.89, y: 68.75, label: '4' },
+      { x: 68.42, y: 31.25, label: '5', moveTo: true },
+      { x: 68.42, y: 81.25, label: '6' }
     ]
   },
   {
@@ -428,11 +436,11 @@ export const CURRICULUM = [
     emoji: '🐻',
     instructions: 'Draw a top loop, go straight down, make a bottom loop, go right, and draw a vertical line.',
     waypoints: [
-      { x: 140, y: 120, label: '1' },
-      { x: 140, y: 220, label: '2' },
-      { x: 200, y: 200, label: '3' },
-      { x: 260, y: 100, label: '4', moveTo: true },
-      { x: 260, y: 260, label: '5' }
+      { x: 36.84, y: 37.5, label: '1' },
+      { x: 36.84, y: 68.75, label: '2' },
+      { x: 52.63, y: 62.5, label: '3' },
+      { x: 68.42, y: 31.25, label: '4', moveTo: true },
+      { x: 68.42, y: 81.25, label: '5' }
     ]
   },
   {
@@ -444,11 +452,11 @@ export const CURRICULUM = [
     emoji: '🌶️',
     instructions: 'Start from top-left, go down, loop to the right, and finish with a vertical line.',
     waypoints: [
-      { x: 140, y: 140, label: '1' },
-      { x: 140, y: 220, label: '2' },
-      { x: 210, y: 220, label: '3' },
-      { x: 260, y: 100, label: '4', moveTo: true },
-      { x: 260, y: 260, label: '5' }
+      { x: 36.84, y: 43.75, label: '1' },
+      { x: 36.84, y: 68.75, label: '2' },
+      { x: 55.26, y: 68.75, label: '3' },
+      { x: 68.42, y: 31.25, label: '4', moveTo: true },
+      { x: 68.42, y: 81.25, label: '5' }
     ]
   },
   {
@@ -460,11 +468,11 @@ export const CURRICULUM = [
     emoji: '🧘',
     instructions: 'Draw a wide double curve on the left, and finish with a vertical line on the right.',
     waypoints: [
-      { x: 130, y: 120, label: '1' },
-      { x: 180, y: 170, label: '2' },
-      { x: 140, y: 240, label: '3' },
-      { x: 260, y: 100, label: '4', moveTo: true },
-      { x: 260, y: 260, label: '5' }
+      { x: 34.21, y: 37.5, label: '1' },
+      { x: 47.37, y: 53.13, label: '2' },
+      { x: 36.84, y: 75, label: '3' },
+      { x: 68.42, y: 31.25, label: '4', moveTo: true },
+      { x: 68.42, y: 81.25, label: '5' }
     ]
   },
   {
@@ -476,11 +484,11 @@ export const CURRICULUM = [
     emoji: '🧸',
     instructions: 'Draw a curve, make a loop at center-left, and curve down to bottom-right.',
     waypoints: [
-      { x: 140, y: 110, label: '1' },
-      { x: 230, y: 110, label: '2' },
-      { x: 190, y: 170, label: '3' },
-      { x: 140, y: 240, label: '4' },
-      { x: 240, y: 250, label: '5' }
+      { x: 36.84, y: 34.38, label: '1' },
+      { x: 60.53, y: 34.38, label: '2' },
+      { x: 50, y: 53.13, label: '3' },
+      { x: 36.84, y: 75, label: '4' },
+      { x: 63.16, y: 78.13, label: '5' }
     ]
   },
   {
@@ -492,12 +500,12 @@ export const CURRICULUM = [
     emoji: '🧄',
     instructions: 'Draw a curve like a C, a horizontal connecting line, and finish with a vertical line.',
     waypoints: [
-      { x: 180, y: 250, label: '1' },
-      { x: 130, y: 180, label: '2' },
-      { x: 180, y: 130, label: '3' },
-      { x: 210, y: 180, label: '4' },
-      { x: 260, y: 100, label: '5', moveTo: true },
-      { x: 260, y: 260, label: '6' }
+      { x: 47.37, y: 78.13, label: '1' },
+      { x: 34.21, y: 56.25, label: '2' },
+      { x: 47.37, y: 40.63, label: '3' },
+      { x: 55.26, y: 56.25, label: '4' },
+      { x: 68.42, y: 31.25, label: '5', moveTo: true },
+      { x: 68.42, y: 81.25, label: '6' }
     ]
   },
   {
@@ -509,11 +517,11 @@ export const CURRICULUM = [
     emoji: '🌳',
     instructions: 'Draw a circular shape on the left, and finish with a vertical line on the right.',
     waypoints: [
-      { x: 180, y: 130, label: '1' },
-      { x: 130, y: 180, label: '2' },
-      { x: 180, y: 230, label: '3' },
-      { x: 260, y: 100, label: '4', moveTo: true },
-      { x: 260, y: 260, label: '5' }
+      { x: 47.37, y: 40.63, label: '1' },
+      { x: 34.21, y: 56.25, label: '2' },
+      { x: 47.37, y: 71.88, label: '3' },
+      { x: 68.42, y: 31.25, label: '4', moveTo: true },
+      { x: 68.42, y: 81.25, label: '5' }
     ]
   },
   {
@@ -525,11 +533,11 @@ export const CURRICULUM = [
     emoji: '🎺',
     instructions: 'Start with a loop, draw a shape like ર, and finish with a vertical line.',
     waypoints: [
-      { x: 130, y: 120, label: '1' },
-      { x: 170, y: 170, label: '2' },
-      { x: 130, y: 240, label: '3' },
-      { x: 260, y: 100, label: '4', moveTo: true },
-      { x: 260, y: 260, label: '5' }
+      { x: 34.21, y: 37.5, label: '1' },
+      { x: 44.74, y: 53.13, label: '2' },
+      { x: 34.21, y: 75, label: '3' },
+      { x: 68.42, y: 31.25, label: '4', moveTo: true },
+      { x: 68.42, y: 81.25, label: '5' }
     ]
   },
   {
@@ -541,13 +549,13 @@ export const CURRICULUM = [
     emoji: '⬡',
     instructions: 'Draw a Pa-like shape and draw a diagonal line inside it.',
     waypoints: [
-      { x: 140, y: 100, label: '1' },
-      { x: 140, y: 210, label: '2' },
-      { x: 200, y: 210, label: '3' },
-      { x: 260, y: 100, label: '4', moveTo: true },
-      { x: 260, y: 260, label: '5' },
-      { x: 150, y: 130, label: '6', moveTo: true },
-      { x: 250, y: 230, label: '7' }
+      { x: 36.84, y: 31.25, label: '1' },
+      { x: 36.84, y: 65.63, label: '2' },
+      { x: 52.63, y: 65.63, label: '3' },
+      { x: 68.42, y: 31.25, label: '4', moveTo: true },
+      { x: 68.42, y: 81.25, label: '5' },
+      { x: 39.47, y: 40.63, label: '6', moveTo: true },
+      { x: 65.79, y: 71.88, label: '7' }
     ]
   },
   {
@@ -559,12 +567,12 @@ export const CURRICULUM = [
     emoji: '🐇',
     instructions: 'Draw a Ra-like shape, draw a horizontal link, and finish with a vertical line.',
     waypoints: [
-      { x: 140, y: 110, label: '1' },
-      { x: 190, y: 170, label: '2' },
-      { x: 140, y: 240, label: '3' },
-      { x: 180, y: 180, label: '4', moveTo: true },
-      { x: 260, y: 100, label: '5', moveTo: true },
-      { x: 260, y: 260, label: '6' }
+      { x: 36.84, y: 34.38, label: '1' },
+      { x: 50, y: 53.13, label: '2' },
+      { x: 36.84, y: 75, label: '3' },
+      { x: 47.37, y: 56.25, label: '4', moveTo: true },
+      { x: 68.42, y: 31.25, label: '5', moveTo: true },
+      { x: 68.42, y: 81.25, label: '6' }
     ]
   },
   {
@@ -576,10 +584,10 @@ export const CURRICULUM = [
     emoji: '🐘',
     instructions: 'Draw a curve down, make a small loop, and curve to bottom-right.',
     waypoints: [
-      { x: 140, y: 110, label: '1' },
-      { x: 240, y: 130, label: '2' },
-      { x: 170, y: 190, label: '3' },
-      { x: 240, y: 250, label: '4' }
+      { x: 36.84, y: 34.38, label: '1' },
+      { x: 63.16, y: 40.63, label: '2' },
+      { x: 44.74, y: 59.38, label: '3' },
+      { x: 63.16, y: 78.13, label: '4' }
     ]
   },
   {
@@ -591,11 +599,11 @@ export const CURRICULUM = [
     emoji: '💧',
     instructions: 'Draw a left curve, loop to right, loop back, and draw a hook down.',
     waypoints: [
-      { x: 140, y: 110, label: '1' },
-      { x: 140, y: 240, label: '2' },
-      { x: 200, y: 180, label: '3' },
-      { x: 260, y: 240, label: '4' },
-      { x: 260, y: 110, label: '5' }
+      { x: 36.84, y: 34.38, label: '1' },
+      { x: 36.84, y: 75, label: '2' },
+      { x: 52.63, y: 56.25, label: '3' },
+      { x: 68.42, y: 75, label: '4' },
+      { x: 68.42, y: 34.38, label: '5' }
     ]
   },
   {
@@ -607,11 +615,11 @@ export const CURRICULUM = [
     emoji: '⚔️',
     instructions: 'Start with a loop, make a double loop in center, and draw vertical line.',
     waypoints: [
-      { x: 150, y: 150, label: '1' },
-      { x: 190, y: 150, label: '2' },
-      { x: 150, y: 230, label: '3' },
-      { x: 260, y: 100, label: '4', moveTo: true },
-      { x: 260, y: 260, label: '5' }
+      { x: 39.47, y: 46.88, label: '1' },
+      { x: 50, y: 46.88, label: '2' },
+      { x: 39.47, y: 71.88, label: '3' },
+      { x: 68.42, y: 31.25, label: '4', moveTo: true },
+      { x: 68.42, y: 81.25, label: '5' }
     ]
   },
   {
@@ -623,12 +631,12 @@ export const CURRICULUM = [
     emoji: '🧠',
     instructions: 'Draw a loop like Ja, draw a horizontal line, and finish with a vertical line.',
     waypoints: [
-      { x: 140, y: 150, label: '1' },
-      { x: 180, y: 180, label: '2' },
-      { x: 140, y: 220, label: '3' },
-      { x: 200, y: 220, label: '4' },
-      { x: 260, y: 100, label: '5', moveTo: true },
-      { x: 260, y: 260, label: '6' }
+      { x: 36.84, y: 46.88, label: '1' },
+      { x: 47.37, y: 56.25, label: '2' },
+      { x: 36.84, y: 68.75, label: '3' },
+      { x: 52.63, y: 68.75, label: '4' },
+      { x: 68.42, y: 31.25, label: '5', moveTo: true },
+      { x: 68.42, y: 81.25, label: '6' }
     ]
   }
 ];
