@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { CURRICULUM } from './curriculum';
+import { readStored, useLocalStorage } from './hooks/useLocalStorage';
 
 // Logical drawing space for the tracing and sandbox canvases. Waypoint
 // coordinates in curriculum.js, hit-test radii and brush widths are all in
@@ -166,48 +167,40 @@ const WORKSHEET_GROUPS = [
   { id: 'sibilants', name: 'Semi-vowels & Sibilants (ય-જ્ઞ)', filter: (item) => ['ya', 'ra', 'la', 'va', 'sha', 'ssa', 'sa', 'ha', 'la2', 'ksha', 'gna'].includes(item.id) }
 ];
 
-// Helper to load curriculum with local overrides from localStorage
+// Storage keys. The bare names below live under the `guj:` namespace that
+// src/hooks/useLocalStorage.js owns; it also knows how to adopt the
+// un-namespaced `guj_*` key each one replaces.
+const waypointsKey = (lessonId) => `custom_waypoints_${lessonId}`;
+
+// v0 read these two through `Number(...) || fallback` and the flags through
+// `=== 'true'`. Both coercions have to survive the move, or a stray value left
+// by an older build would land in state as a string.
+const toNumber = (fallback) => (value) => Number(value) || fallback;
+const toBoolean = (value) => value === true || value === 'true';
+
+// Helper to load curriculum with local overrides from device storage
 const loadSavedCurriculum = () => {
   return CURRICULUM.map(item => {
-    const saved = localStorage.getItem(`guj_custom_waypoints_${item.id}`);
-    if (saved) {
-      try {
-        return { ...item, waypoints: JSON.parse(saved) };
-      } catch (e) {
-        console.error("Failed to parse saved waypoints for " + item.id, e);
-      }
-    }
-    return item;
+    const saved = readStored(waypointsKey(item.id), null);
+    return Array.isArray(saved) ? { ...item, waypoints: saved } : item;
   });
 };
 
 export default function App() {
   const [view, setView] = useState('home'); // home | learn | match | quiz | stickers | dashboard
   const [currentLessonIndex, setCurrentLessonIndex] = useState(0);
-  const [points, setPoints] = useState(() => Number(localStorage.getItem('guj_points')) || 0);
+  const [points, setPoints] = useLocalStorage('points', 0, toNumber(0));
   
   // Custom Session Curriculum with overrides loaded
   const [sessionCurriculum, setSessionCurriculum] = useState(loadSavedCurriculum);
   const [saveStatus, setSaveStatus] = useState(''); // Visual save feedback
   
-  const [progressLog, setProgressLog] = useState(() => {
-    try {
-      return JSON.parse(localStorage.getItem('guj_progress')) || {
-        tracedCount: 0,
-        quizScore: 0,
-        completedLessons: []
-      };
-    } catch {
-      return { tracedCount: 0, quizScore: 0, completedLessons: [] };
-    }
-  });
-  const [unlockedStickers, setUnlockedStickers] = useState(() => {
-    try {
-      return JSON.parse(localStorage.getItem('guj_stickers')) || [];
-    } catch {
-      return [];
-    }
-  });
+  const [progressLog, setProgressLog] = useLocalStorage('progress', () => ({
+    tracedCount: 0,
+    quizScore: 0,
+    completedLessons: []
+  }));
+  const [unlockedStickers, setUnlockedStickers] = useLocalStorage('stickers', () => []);
 
   // Canvas Drawing & Styling Customizations
   const canvasRef = useRef(null);
@@ -216,17 +209,15 @@ export default function App() {
   const [completedWaypoints, setCompletedWaypoints] = useState([]);
   const [traceStartTime, setTraceStartTime] = useState(null);
   
-  const [brushColor, setBrushColor] = useState(
-    () => localStorage.getItem('guj_brush_color') || themeColor('--color-primary')
+  const [brushColor, setBrushColor] = useLocalStorage(
+    'brush_color',
+    () => themeColor('--color-primary')
   );
-  const [brushWidth, setBrushWidth] = useState(() => Number(localStorage.getItem('guj_brush_width')) || 16);
-  const [soundEnabled, setSoundEnabled] = useState(() => {
-    const val = localStorage.getItem('guj_sound_enabled');
-    return val === null ? true : val === 'true';
-  });
+  const [brushWidth, setBrushWidth] = useLocalStorage('brush_width', 16, toNumber(16));
+  const [soundEnabled, setSoundEnabled] = useLocalStorage('sound_enabled', true, toBoolean);
 
   // Waypoint Editor Mode States
-  const [editorMode, setEditorMode] = useState(() => localStorage.getItem('guj_editor_mode') === 'true');
+  const [editorMode, setEditorMode] = useLocalStorage('editor_mode', false, toBoolean);
   const [editorActive, setEditorActive] = useState(false);
   const [editorWaypoints, setEditorWaypoints] = useState([]);
   const [editorMoveTo, setEditorMoveTo] = useState(false);
@@ -235,7 +226,7 @@ export default function App() {
   const [installPrompt, setInstallPrompt] = useState(null);
   const [showInstallModal, setShowInstallModal] = useState(false);
   const [isStandalone, setIsStandalone] = useState(false);
-  const [installDismissed, setInstallDismissed] = useState(() => localStorage.getItem('guj_install_dismissed') === 'true');
+  const [installDismissed, setInstallDismissed] = useLocalStorage('install_dismissed', false, toBoolean);
   const [editorRecordMode, setEditorRecordMode] = useState(false);
   const [draggedWaypointIndex, setDraggedWaypointIndex] = useState(null);
   const [isDraggingWaypoint, setIsDraggingWaypoint] = useState(false);
@@ -253,7 +244,7 @@ export default function App() {
   const [matchFeedback, setMatchFeedback] = useState(null);
 
   // Parent Gate & Security Configurations
-  const [gateType, setGateType] = useState(() => localStorage.getItem('guj_gate_type') || 'math'); // math | pin
+  const [gateType, setGateType] = useLocalStorage('gate_type', 'math'); // math | pin
   const [parentPasscode, setParentPasscode] = useState(() => localStorage.getItem('guj_parent_pin') || '1234');
   const [tempPasscode, setTempPasscode] = useState('');
   
@@ -285,7 +276,7 @@ export default function App() {
   const sandboxLastPointRef = useRef(null);
 
   // Parent Lock Progression Toggle (Idea 2)
-  const [parentUnlockAll, setParentUnlockAll] = useState(() => localStorage.getItem('guj_parent_unlock_all') === 'true');
+  const [parentUnlockAll, setParentUnlockAll] = useLocalStorage('parent_unlock_all', false, toBoolean);
 
   // Printable Activity Worksheets States (Roadmap Feature 4)
   const [worksheetMode, setWorksheetMode] = useState('single'); // 'single' | 'grid' | 'match'
@@ -295,35 +286,9 @@ export default function App() {
 
   const currentLesson = sessionCurriculum[currentLessonIndex];
 
-  // Local Storage sync hooks
-  useEffect(() => {
-    localStorage.setItem('guj_points', points);
-  }, [points]);
-
-  useEffect(() => {
-    localStorage.setItem('guj_progress', JSON.stringify(progressLog));
-  }, [progressLog]);
-
-  useEffect(() => {
-    localStorage.setItem('guj_stickers', JSON.stringify(unlockedStickers));
-  }, [unlockedStickers]);
-
-  useEffect(() => {
-    localStorage.setItem('guj_brush_color', brushColor);
-  }, [brushColor]);
-
-  useEffect(() => {
-    localStorage.setItem('guj_brush_width', brushWidth);
-  }, [brushWidth]);
-
-  useEffect(() => {
-    localStorage.setItem('guj_sound_enabled', soundEnabled);
-  }, [soundEnabled]);
-
-  useEffect(() => {
-    localStorage.setItem('guj_gate_type', gateType);
-  }, [gateType]);
-
+  // The nine states above persist themselves: useLocalStorage mirrors each one
+  // to its `guj:` key, which is what the block of sync effects here used to do
+  // one key at a time. The parent passcode is the exception below.
   useEffect(() => {
     localStorage.setItem('guj_parent_pin', parentPasscode);
   }, [parentPasscode]);
@@ -1755,10 +1720,7 @@ export default function App() {
             {!isStandalone && !installDismissed && (
               <div className="mt-6 mx-auto bg-gradient-to-r from-indigo-600 to-purple-600 max-w-sm rounded-3xl p-5 border border-indigo-400/30 shadow-lg flex flex-col gap-3 text-left text-white animate-float relative">
                 <button
-                  onClick={() => {
-                    setInstallDismissed(true);
-                    localStorage.setItem('guj_install_dismissed', 'true');
-                  }}
+                  onClick={() => setInstallDismissed(true)}
                   className="absolute top-2 right-2 text-white p-1 rounded-full text-xs min-h-[44px] min-w-[44px] flex items-center justify-center"
                   aria-label="Dismiss install card"
                   title="Dismiss"
@@ -2993,11 +2955,7 @@ export default function App() {
                     <span className="text-xs text-slate-500">Enable click-to-place waypoint builder tool</span>
                   </div>
                   <button
-                    onClick={() => {
-                      const next = !editorMode;
-                      setEditorMode(next);
-                      localStorage.setItem('guj_editor_mode', next);
-                    }}
+                    onClick={() => setEditorMode(!editorMode)}
                     aria-label="Toggle Developer Waypoint Editor"
                     className={`min-w-[44px] min-h-[44px] px-1 rounded-full transition-all relative flex items-center ${editorMode ? 'bg-amber-500 justify-end' : 'bg-slate-300 justify-start'}`}
                   >
@@ -3012,11 +2970,7 @@ export default function App() {
                     <span className="text-xs text-slate-500">Bypass sequential progression requirement</span>
                   </div>
                   <button
-                    onClick={() => {
-                      const next = !parentUnlockAll;
-                      setParentUnlockAll(next);
-                      localStorage.setItem('guj_parent_unlock_all', next);
-                    }}
+                    onClick={() => setParentUnlockAll(!parentUnlockAll)}
                     aria-label="Toggle Unlock All Tracing Letters"
                     className={`min-w-[44px] min-h-[44px] px-1 rounded-full transition-all relative flex items-center ${parentUnlockAll ? 'bg-indigo-600 justify-end' : 'bg-slate-300 justify-start'}`}
                   >
