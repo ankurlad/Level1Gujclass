@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { CURRICULUM } from '../curriculum';
 import { canvasRefCoords } from '../lib/canvas';
 import { waypointsKey } from '../lib/curriculumStorage';
+import { WAYPOINT_MIN_POINTS, parseWaypointsJson } from '../lib/validate';
 import {
   CANVAS_H,
   CANVAS_W,
@@ -41,6 +42,19 @@ export function useWaypointEditor({ canvasRef }) {
   const [isDraggingWaypoint, setIsDraggingWaypoint] = useState(false);
   const [saveStatus, setSaveStatus] = useState(''); // Visual save feedback
 
+  // The paste box and what the last attempt to load it said. The message is
+  // keyed by a sequence number, like the parent gate's: the same rejection
+  // twice in a row has to be a fresh node, or a screen reader announces it
+  // once and the second Load looks like it did nothing.
+  const [jsonDraft, setJsonDraft] = useState('');
+  const [jsonNotice, setJsonNotice] = useState(null);
+  const jsonNoticeSeq = useRef(0);
+
+  const sayAboutJson = (tone, message) => {
+    jsonNoticeSeq.current += 1;
+    setJsonNotice({ tone, message, seq: jsonNoticeSeq.current });
+  };
+
   // Every write below lands on the same lesson: the one being edited.
   const setLessonWaypoints = (waypoints) =>
     dispatch({ type: 'curriculum/setLessonWaypoints', index: currentLessonIndex, waypoints });
@@ -53,6 +67,8 @@ export function useWaypointEditor({ canvasRef }) {
       setEditorWaypoints(currentLesson.waypoints || []);
       setEditorMoveTo(false);
       setSaveStatus('');
+      setJsonDraft('');
+      setJsonNotice(null);
     }
   }, [currentLessonIndex]);
 
@@ -244,6 +260,39 @@ export function useWaypointEditor({ canvasRef }) {
     return `[\n${lines.join(',\n')}\n]`;
   };
 
+  // The other direction: a block of JSON — pasted from a file exported here,
+  // from curriculum.js, or from an older build — becomes the letter on screen.
+  //
+  // It is the one path into the curriculum that does not come from the canvas,
+  // so it is the one that could put a letterform the tracing engine cannot
+  // follow onto a letter with no way back. Nothing is applied unless the whole
+  // block validates: a rejection names the entry that broke it, the previous
+  // waypoints stay exactly as they were, and the paste stays in the box so the
+  // parent can fix it rather than retype it.
+  //
+  // Loading does not persist. It sets the letter for the session and says so —
+  // Save Waypoints is still what writes to the device, which means a paste that
+  // validated but looks wrong on the canvas is undone by leaving the letter.
+  const loadWaypointsJson = () => {
+    const result = parseWaypointsJson(jsonDraft, { minPoints: WAYPOINT_MIN_POINTS });
+
+    if (!result.ok) {
+      playSound('wrong');
+      sayAboutJson('error', result.message);
+      return;
+    }
+
+    setEditorWaypoints(result.waypoints);
+    setLessonWaypoints(result.waypoints);
+    setEditorMoveTo(false);
+
+    playSound('success');
+    sayAboutJson(
+      'success',
+      `Loaded ${result.waypoints.length} points.${result.converted ? ' Converted from the older pixel format.' : ''} Tap Save Waypoints to keep them on this device.`
+    );
+  };
+
   // Export current letter waypoints as single JSON file
   const exportCurrentLetterWaypoints = () => {
     try {
@@ -395,6 +444,9 @@ export function useWaypointEditor({ canvasRef }) {
     handleEditorReset,
     handleAutoCenterRows,
     exportCurrentLetterWaypoints,
+    jsonDraft, setJsonDraft,
+    jsonNotice,
+    loadWaypointsJson,
     stringifyWaypointsArray
   };
 }

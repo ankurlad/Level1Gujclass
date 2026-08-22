@@ -24,6 +24,10 @@ export default function WaypointEditor({ editor, initCanvas }) {
     handleEditorSave,
     handleAutoCenterRows,
     exportCurrentLetterWaypoints,
+    jsonDraft,
+    setJsonDraft,
+    jsonNotice,
+    loadWaypointsJson,
     stringifyWaypointsArray
   } = editor;
 
@@ -171,6 +175,44 @@ export default function WaypointEditor({ editor, initCanvas }) {
           onClick={(e) => e.target.select()}
           title="Click to select all"
         />
+      </div>
+
+      {/* Load JSON block — the way back in for an exported file, a block from
+          curriculum.js, or waypoints from an older build. Nothing is applied
+          until it validates, and what went wrong is the line under the box
+          (role="alert", so a screen reader announces it) rather than an
+          alert() or a letter that quietly stops working. */}
+      <div className="font-sans mt-4">
+        <label
+          htmlFor="waypoint-json-paste"
+          className="text-xxs font-extrabold text-amber-800 uppercase tracking-wider block mb-1"
+        >
+          Load Waypoints From JSON:
+        </label>
+        <textarea
+          id="waypoint-json-paste"
+          value={jsonDraft}
+          onChange={(e) => setJsonDraft(e.target.value)}
+          placeholder='[ { "x": 52.89, "y": 27.19, "label": "1" }, … ]'
+          className="w-full h-24 font-mono text-xxs border-2 border-amber-200 p-2 rounded-xl bg-white focus:outline-none focus:border-amber-400"
+        />
+
+        {jsonNotice && (
+          <p
+            key={jsonNotice.seq}
+            role="alert"
+            className={`mt-1.5 text-xs font-bold ${jsonNotice.tone === 'error' ? 'text-rose-700' : 'text-emerald-700'}`}
+          >
+            {jsonNotice.message}
+          </p>
+        )}
+
+        <button
+          onClick={loadWaypointsJson}
+          className="w-full mt-2 bg-white border border-amber-300 text-amber-800 hover:bg-amber-100 font-extrabold py-2.5 px-3 rounded-xl text-xs transition"
+        >
+          📤 Load JSON
+        </button>
       </div>
     </div>
   );
