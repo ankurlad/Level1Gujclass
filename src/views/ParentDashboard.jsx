@@ -323,9 +323,9 @@ export default function ParentDashboard() {
             <button
               onClick={() => setSoundEnabled(!soundEnabled)}
               aria-label="Toggle App Sound Effects"
-              className={`min-w-[44px] min-h-[44px] px-1 rounded-full transition-all relative flex items-center ${soundEnabled ? 'bg-indigo-600 justify-end' : 'bg-slate-300 justify-start'}`}
+              className={`min-w-[44px] min-h-[44px] px-1 rounded-full transition-all relative flex items-center ${soundEnabled ? 'bg-indigo-600 justify-end' : 'bg-slate-500 justify-start'}`}
             >
-              <div className="w-5 h-5 rounded-full bg-white transition-all shadow-sm" />
+              <div className="w-5 h-5 rounded-full bg-white ring-2 ring-slate-700 transition-all shadow-sm" />
             </button>
           </div>
 
@@ -338,9 +338,9 @@ export default function ParentDashboard() {
             <button
               onClick={() => setEditorMode(!editorMode)}
               aria-label="Toggle Developer Waypoint Editor"
-              className={`min-w-[44px] min-h-[44px] px-1 rounded-full transition-all relative flex items-center ${editorMode ? 'bg-amber-500 justify-end' : 'bg-slate-300 justify-start'}`}
+              className={`min-w-[44px] min-h-[44px] px-1 rounded-full transition-all relative flex items-center ${editorMode ? 'bg-amber-500 justify-end' : 'bg-slate-500 justify-start'}`}
             >
-              <div className="w-5 h-5 rounded-full bg-white transition-all shadow-sm" />
+              <div className="w-5 h-5 rounded-full bg-white ring-2 ring-slate-700 transition-all shadow-sm" />
             </button>
           </div>
 
@@ -353,9 +353,9 @@ export default function ParentDashboard() {
             <button
               onClick={() => setParentUnlockAll(!parentUnlockAll)}
               aria-label="Toggle Unlock All Tracing Letters"
-              className={`min-w-[44px] min-h-[44px] px-1 rounded-full transition-all relative flex items-center ${parentUnlockAll ? 'bg-indigo-600 justify-end' : 'bg-slate-300 justify-start'}`}
+              className={`min-w-[44px] min-h-[44px] px-1 rounded-full transition-all relative flex items-center ${parentUnlockAll ? 'bg-indigo-600 justify-end' : 'bg-slate-500 justify-start'}`}
             >
-              <div className="w-5 h-5 rounded-full bg-white transition-all shadow-sm" />
+              <div className="w-5 h-5 rounded-full bg-white ring-2 ring-slate-700 transition-all shadow-sm" />
             </button>
           </div>
 
