@@ -29,15 +29,34 @@ import confetti from 'canvas-confetti';
 import { CURRICULUM } from './curriculum';
 import { readStored, removeStored, useLocalStorage, writeStored } from './hooks/useLocalStorage';
 import { createPinRecord, takeLegacyPlaintextPin, verifyPin } from './lib/parentPin';
+import { createTracingSession } from './lib/tracingEngine';
 import {
   CANVAS_H,
   CANVAS_W,
   canvasToPath,
   canvasToPathX,
+  canvasToPathXRaw,
+  canvasToPathYRaw,
   normalizeWaypoints,
   pathToCanvasX,
   pathToCanvasY
 } from './lib/waypoints';
+
+// How the child's tracing is judged. The engine works in the 0-100 path space
+// and measures in percent of the box width, so the two numbers the app has
+// always used in pixels are converted once, here.
+//
+// hitRadius: the 28px circle checkWaypoint used to test in logical pixels.
+// yScale:    the box is 380x320, so path units are not square. Scaling y by
+//            the aspect ratio keeps the radius a circle on screen; without it
+//            it would be an ellipse, and the same 28px would be accepted
+//            sideways but refused going up.
+const TRACE_HIT_RADIUS_PX = 28;
+const TRACE_SESSION_OPTS = {
+  hitRadius: canvasToPathXRaw(TRACE_HIT_RADIUS_PX),
+  yScale: CANVAS_H / CANVAS_W
+};
+const NO_WAYPOINTS = [];
 
 // Colours live in one place: the `@theme` block in src/index.css, where each
 // token is both a CSS custom property and a Tailwind utility. JSX styling reads
@@ -236,6 +255,14 @@ export default function App() {
   const [isDrawing, setIsDrawing] = useState(false);
   const [completedWaypoints, setCompletedWaypoints] = useState([]);
   const [traceStartTime, setTraceStartTime] = useState(null);
+
+  // The tracing engine session for the letter on screen. A ref, not state:
+  // during a drag the pointer handlers touch it dozens of times between
+  // renders, and each one has to see what the last one wrote. completedWaypoints
+  // above is now only a render mirror of it — the session is the source of
+  // truth for what has been hit.
+  const traceSessionRef = useRef(null);
+  const traceWaypointsRef = useRef(null);
   
   const [brushColor, setBrushColor] = useLocalStorage(
     'brush_color',
@@ -686,10 +713,24 @@ export default function App() {
     }
   };
 
+  // The live session, rebuilt whenever the letter's waypoints change identity —
+  // which the editor does on every drag, and switching letters does once.
+  const getTraceSession = () => {
+    // NO_WAYPOINTS, not a fresh [], so a letter without waypoints keeps one
+    // session instead of building a new one on every pointer sample.
+    const waypoints = currentLesson?.waypoints || NO_WAYPOINTS;
+    if (!traceSessionRef.current || traceWaypointsRef.current !== waypoints) {
+      traceWaypointsRef.current = waypoints;
+      traceSessionRef.current = createTracingSession(waypoints, TRACE_SESSION_OPTS);
+    }
+    return traceSessionRef.current;
+  };
+
   const initCanvas = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     drawTraceGuide(canvas);
+    getTraceSession().reset();
     setCompletedWaypoints([]);
     setTraceStartTime(performance.now());
   };
@@ -827,6 +868,7 @@ export default function App() {
     ctx.lineJoin = 'round';
     ctx.strokeStyle = brushColor;
     setIsDrawing(true);
+    getTraceSession().startStroke();
     checkWaypoint(x, y);
   };
 
@@ -884,29 +926,31 @@ export default function App() {
 
   const stopDrawing = () => {
     setIsDrawing(false);
+    // Closes the stroke in the engine so the next pen-down starts a new one.
+    // The editor's record mode never opened one, hence the optional call.
+    traceSessionRef.current?.endStroke();
   };
 
+  // Hands one pointer sample to the engine and turns its verdict into the
+  // things only App can do: the chime, the buzz, the dots, the confetti.
+  //
+  // The sample arrives in logical pixels and the engine speaks the 0-100 path
+  // space, so it converts here — exactly, without the clamp and rounding the
+  // editor's write path applies. Everything after that (which waypoint is
+  // next, the radius, the ordering rule, whether the letter is finished) is
+  // the engine's; this function no longer knows what 28px means.
   const checkWaypoint = (x, y) => {
-    const nextIndex = completedWaypoints.length;
-    if (nextIndex >= currentLesson.waypoints.length) return;
-    
-    // The pointer is in logical pixels and the target is 0-100, so the target
-    // moves into pixel space rather than the reverse: the box is not square, so
-    // a radius in path space would be an ellipse on the canvas — wider
-    // tolerance vertically than horizontally.
-    const target = currentLesson.waypoints[nextIndex];
-    const dist = Math.hypot(x - pathToCanvasX(target.x), y - pathToCanvasY(target.y));
+    const session = getTraceSession();
+    const result = session.addPoint(canvasToPathXRaw(x), canvasToPathYRaw(y));
+    if (!result.hit) return;
 
-    if (dist < 28) {
-      const newWaypoints = [...completedWaypoints, nextIndex];
-      setCompletedWaypoints(newWaypoints);
-      
-      playSound('waypoint');
-      if (navigator.vibrate) navigator.vibrate(40);
-      
-      if (newWaypoints.length === currentLesson.waypoints.length) {
-        handleSuccess();
-      }
+    setCompletedWaypoints(session.getCompletedWaypoints());
+
+    playSound('waypoint');
+    if (navigator.vibrate) navigator.vibrate(40);
+
+    if (result.complete) {
+      handleSuccess();
     }
   };
 
