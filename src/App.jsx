@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { ShieldAlert } from 'lucide-react';
 import AppHeader from './components/AppHeader';
 import BottomNav from './components/BottomNav';
+import ErrorBoundary from './components/ErrorBoundary';
 import InstallInstructionsModal from './components/InstallInstructionsModal';
 import InstallPromoCard from './components/InstallPromoCard';
 import ParentGate from './components/ParentGate';
@@ -55,25 +56,63 @@ function AppShell() {
       {/* Header bar */}
       <AppHeader isStandalone={isStandalone} triggerPwaInstall={triggerPwaInstall} />
 
-      {/* Main View Area */}
+      {/* Main View Area.
+
+          Each branch is wrapped in its own ErrorBoundary, one per screen rather
+          than one around the switch: a boundary catches for its subtree, so a
+          single one out here would replace the view *and* leave the nav bar as
+          the only way out of a card that had already lost the view it names.
+          Per-screen, a broken screen is a screen — the header still counts
+          points, the nav still navigates, and the other seven are unaffected.
+          The label is what the console line says when one of them throws. */}
       <main className="flex-1 flex flex-col p-4 bg-kids-pattern overflow-y-auto">
         {view === 'home' && (
-          <HomeView isStandalone={isStandalone} triggerPwaInstall={triggerPwaInstall} />
+          <ErrorBoundary label="home">
+            <HomeView isStandalone={isStandalone} triggerPwaInstall={triggerPwaInstall} />
+          </ErrorBoundary>
         )}
 
-        {view === 'map' && <LessonMap />}
+        {view === 'map' && (
+          <ErrorBoundary label="letter map">
+            <LessonMap />
+          </ErrorBoundary>
+        )}
 
-        {view === 'learn' && <TraceView />}
+        {view === 'learn' && (
+          <ErrorBoundary label="tracing">
+            <TraceView />
+          </ErrorBoundary>
+        )}
 
-        {GAME_VIEWS.includes(view) && <GameZone />}
+        {GAME_VIEWS.includes(view) && (
+          <ErrorBoundary label="games">
+            <GameZone />
+          </ErrorBoundary>
+        )}
 
-        {view === 'sandbox' && <SandboxView />}
+        {view === 'sandbox' && (
+          <ErrorBoundary label="drawing">
+            <SandboxView />
+          </ErrorBoundary>
+        )}
 
-        {view === 'stickers' && <StickerShop />}
+        {view === 'stickers' && (
+          <ErrorBoundary label="sticker shop">
+            <StickerShop />
+          </ErrorBoundary>
+        )}
 
-        {view === 'dashboard' && <ParentDashboard />}
+        {view === 'dashboard' && (
+          <ErrorBoundary label="parents room">
+            <ParentDashboard />
+          </ErrorBoundary>
+        )}
 
-        {view === 'worksheets' && <WorksheetsView />}
+        {view === 'worksheets' && (
+          <ErrorBoundary label="worksheets">
+            <WorksheetsView />
+          </ErrorBoundary>
+        )}
 
         {/* A waiting service worker, announced on the home screen and nowhere
             else. Offering it inside a lesson is how the old autoUpdate reload
