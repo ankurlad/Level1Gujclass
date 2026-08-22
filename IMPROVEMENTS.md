@@ -54,10 +54,14 @@ PR 4 — Storage layer (prerequisite for multi-child profiles)
   - One useLocalStorage hook replacing ~10 duplicated state+effect pairs in App.jsx; single guj:
     namespace; schema-version key with a migration path.
 
-PR 5 — Normalize waypoint coordinates
+PR 5 — Normalize waypoint coordinates (DONE)
   - Convert curriculum.js from absolute px to a 0–100 path space; update the ~10 hardcoded
     380/320 sites; migrate any saved guj_custom_waypoints_* overrides; update the editor's JSON
     import/export format. Medium, touches the core.
+  - Shipped: src/lib/waypoints.js owns the path space (0–100 on both axes, a percentage of the
+    tracing box, hundredth resolution) and the logical canvas size it is multiplied by at draw
+    time. Stored overrides in the old pixel range are detected by shape (a coordinate past 100
+    in either axis) and converted on read; guj:version is now 2.
 
 PR 6 — Extract the tracing engine
   - Pull snapping, sequential validation, and completion scoring into a headless module with no
@@ -97,6 +101,15 @@ PR 11 — Parent gate (mandatory, not polish)
 PR 12 — Input validation
   - Schema-validate imported waypoint JSON; wrap the app in an error boundary. Today a malformed
     paste can leave a letter untraceable with no recovery path.
+  - The waypoint schema, as of PR 5: an array of >= 2 objects, each { x, y, label } with an
+    optional moveTo: true. x and y are finite numbers in 0..100 — the path space, NOT pixels —
+    and PATH_MAX in src/lib/waypoints.js is the range to validate against, not a literal 100.
+    label is the 1-based index as a string, in order. moveTo is absent or true, never on the
+    first point. A coordinate past 100 is not out of range, it is the pre-v2 pixel format: route
+    it through normalizeWaypoints (same as the storage read path) or reject the file outright.
+    What it must not do is clamp — that imports a stale file as a letterform crushed against the
+    right and bottom edges of the box, which is exactly the silent untraceable letter this PR is
+    for.
 
 PR 13+ — Phase 5 (blocked on PR 4 — do not start earlier)
   - Vowels curriculum; multi-child profiles.

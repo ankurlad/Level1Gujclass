@@ -40,7 +40,8 @@ Built with React 19, Vite, and Workbox PWA technology, the application operates 
 ## 4. Feature Specifications
 
 ### 4.1 Interactive Tracing Engine
-- **Canvas View**: 380x320 logical drawing space with touch and mouse event listeners (`touch-action: none`). The canvas backing store is sized to the rendered box times `devicePixelRatio` so the guide letter is not upscaled on high-DPI screens; waypoint coordinates, hit-test radii and brush widths all remain expressed in the 380x320 logical space.
+- **Canvas View**: 380x320 logical drawing space with touch and mouse event listeners (`touch-action: none`). The canvas backing store is sized to the rendered box times `devicePixelRatio` so the guide letter is not upscaled on high-DPI screens; ink coordinates, hit-test radii and brush widths are expressed in the 380x320 logical space.
+- **Waypoint Path Space**: Waypoint coordinates are *not* pixels. Each is a percentage of the tracing box — `0`..`100` on both axes, `{ x: 50, y: 50 }` being dead centre — and is multiplied by the current logical canvas size at draw time (`src/lib/waypoints.js`). Resolution is hundredths of the box. This is the format of the curriculum data, of a saved `guj:custom_waypoints_<letterId>` override and of the editor's JSON import/export alike.
 - **Sequential Waypoint Snapping**: Guided numbered waypoints (1, 2, 3...) requiring sequential touch/drag validation within distance thresholds.
 - **Completion Validation**: Tracing progress calculated via completed waypoints; triggers confetti particle animation and audio fanfare upon completion.
 
@@ -120,11 +121,16 @@ Everything on disk goes through `src/hooks/useLocalStorage.js`. Component code d
   `guj:custom_waypoints_<letterId>` per customised letter. A whole install can be enumerated,
   exported or wiped by prefix, which is the prerequisite for multi-child profiles (Phase 5).
 - **One encoding**: values are JSON, so read and write are a single pair of rules.
-- **Versioned**: `guj:version` records the schema the store was last written by. Version 1 is the
-  namespaced, JSON, hashed-passcode shape; version 0 is the pre-namespace `guj_*` store. A key
+- **Versioned**: `guj:version` records the schema the store was last written by. Version 2 stores
+  waypoint overrides in the 0-100 path space; version 1 is the namespaced, JSON, hashed-passcode
+  shape with waypoints still in canvas pixels; version 0 is the pre-namespace `guj_*` store. A key
   written by an older version is adopted on first read — the old key is deleted and the new one
   written in the same step — so migration is lazy, per key, and safe to interrupt. Bump the version
   when a stored *value* shape changes.
+- **Waypoint overrides carry their own format tag**: the v1 -> v2 conversion keys off the value, not
+  off `guj:version` — a coordinate past 100 in either axis can only be pixels, since a letterform in
+  path space never reaches the edge of the box. Detection by shape makes the conversion idempotent
+  and correct for a store whose version key was lost.
 - **No cleartext passcode**: `guj:parent_pin_hash` holds `{algorithm, salt, hash}` — a per-install
   16-byte salt and the SHA-256 of `salt:pin` via `crypto.subtle`. This needs a secure context
   (https or localhost); serving the built app over plain http on a LAN address cannot set or check a
