@@ -3,7 +3,9 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/png" href="/icon.png" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <!-- No maximum-scale / user-scalable=no: blocking pinch-zoom is a WCAG 1.4.4
+         (Resize Text) failure. viewport-fit=cover stays for the safe-area insets. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <!-- The tracing guide glyph cannot render until this font is in; preload it. -->
     <link rel="preload" href="/fonts/noto-sans-gujarati-gujarati.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="preload" href="/fonts/outfit-latin.woff2" as="font" type="font/woff2" crossorigin />
