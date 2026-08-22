@@ -1,24 +1,21 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { 
-  BookOpen, 
-  Award, 
-  Settings, 
-  Volume2, 
-  RotateCcw, 
-  CheckCircle, 
-  ShieldAlert, 
-  Lock, 
-  Unlock, 
-  Sparkles, 
-  TrendingUp, 
-  Home, 
-  Trophy, 
+import { useState, useEffect, useRef } from 'react';
+import {
+  Settings,
+  Volume2,
+  RotateCcw,
+  CheckCircle,
+  ShieldAlert,
+  Lock,
+  Unlock,
+  Sparkles,
+  TrendingUp,
+  Home,
+  Trophy,
   Grid,
   ChevronRight,
   RefreshCw,
   Palette,
   Map,
-  Smile,
   Gamepad2,
   Download,
   Printer,
@@ -27,9 +24,13 @@ import {
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { CURRICULUM } from './curriculum';
-import { readStored, removeStored, useLocalStorage, writeStored } from './hooks/useLocalStorage';
-import { createPinRecord, takeLegacyPlaintextPin, verifyPin } from './lib/parentPin';
-import { createTracingSession } from './lib/tracingEngine';
+import { removeStored, writeStored } from './hooks/useLocalStorage';
+import { speak } from './lib/audio';
+import { eventToCanvasCoords, setupCanvasScaling } from './lib/canvas';
+import { readWaypointOverride, waypointsKey } from './lib/curriculumStorage';
+import { createPinRecord, verifyPin } from './lib/parentPin';
+import { STICKERS } from './lib/stickers';
+import { BRUSH_TOKENS, themeColor } from './lib/theme';
 import {
   CANVAS_H,
   CANVAS_W,
@@ -37,104 +38,10 @@ import {
   canvasToPathX,
   canvasToPathXRaw,
   canvasToPathYRaw,
-  normalizeWaypoints,
   pathToCanvasX,
   pathToCanvasY
 } from './lib/waypoints';
-
-// How the child's tracing is judged. The engine works in the 0-100 path space
-// and measures in percent of the box width, so the two numbers the app has
-// always used in pixels are converted once, here.
-//
-// hitRadius: the 28px circle checkWaypoint used to test in logical pixels.
-// yScale:    the box is 380x320, so path units are not square. Scaling y by
-//            the aspect ratio keeps the radius a circle on screen; without it
-//            it would be an ellipse, and the same 28px would be accepted
-//            sideways but refused going up.
-const TRACE_HIT_RADIUS_PX = 28;
-const TRACE_SESSION_OPTS = {
-  hitRadius: canvasToPathXRaw(TRACE_HIT_RADIUS_PX),
-  yScale: CANVAS_H / CANVAS_W
-};
-const NO_WAYPOINTS = [];
-
-// Colours live in one place: the `@theme` block in src/index.css, where each
-// token is both a CSS custom property and a Tailwind utility. JSX styling reads
-// them as classes or as var(); this is the door for the code that cannot, a 2D
-// canvas context, which only takes a resolved colour string.
-//
-// Resolved once per token and cached — getComputedStyle inside the draw loop
-// would force a style recalculation on every pointer move. There is no hex
-// fallback on purpose: a fallback list would be the second palette this PR
-// exists to delete. The stylesheet is a render-blocking <link>, so it is always
-// applied before this module runs.
-// (A plain object, not a Map — lucide-react's `Map` icon shadows the global.)
-const themeColorCache = Object.create(null);
-const themeColor = (token) => {
-  if (token in themeColorCache) return themeColorCache[token];
-  const root = typeof document === 'undefined' ? null : document.documentElement;
-  const value = root ? getComputedStyle(root).getPropertyValue(token).trim() : '';
-  themeColorCache[token] = value;
-  return value;
-};
-
-// The brush palette, offered in both the tracing toolbar and the sandbox.
-const BRUSH_TOKENS = [
-  { token: '--color-primary', label: 'Indigo' },
-  { token: '--color-danger', label: 'Rose' },
-  { token: '--color-success', label: 'Emerald' },
-  { token: '--color-reward', label: 'Amber' },
-  { token: '--color-accent', label: 'Purple' }
-];
-
-// Size a canvas' backing store to its rendered size times the device pixel
-// ratio, then map the 2D context back onto the CANVAS_W x CANVAS_H logical
-// space. Without this the fixed 380x320 backing store is stretched by CSS on
-// every 2x/3x phone and the trace guide renders blurry. Returns the context.
-//
-// This transform is why the path space works: everything downstream draws in
-// logical units at any DPR, so scaling a 0-100 waypoint by CANVAS_W/CANVAS_H is
-// the only conversion the draw path needs.
-const setupCanvasScaling = (canvas) => {
-  const rect = canvas.getBoundingClientRect();
-  const dpr = window.devicePixelRatio || 1;
-  // Before layout has run the rect is 0x0; fall back to the logical size.
-  const backingW = Math.max(1, Math.round((rect.width || CANVAS_W) * dpr));
-  const backingH = Math.max(1, Math.round((rect.height || CANVAS_H) * dpr));
-
-  // Assigning width/height resets all context state, so only touch it on change.
-  if (canvas.width !== backingW || canvas.height !== backingH) {
-    canvas.width = backingW;
-    canvas.height = backingH;
-  }
-
-  const ctx = canvas.getContext('2d');
-  // setTransform is absolute, so re-running this never compounds the scale.
-  ctx.setTransform(backingW / CANVAS_W, 0, 0, backingH / CANVAS_H, 0, 0);
-  return ctx;
-};
-
-// Pointer/touch position in the logical canvas space, independent of both the
-// CSS size the canvas was laid out at and the backing store resolution.
-const eventToCanvasCoords = (canvas, e) => {
-  const rect = canvas.getBoundingClientRect();
-
-  let clientX = e.clientX;
-  let clientY = e.clientY;
-
-  if (e.touches && e.touches.length > 0) {
-    clientX = e.touches[0].clientX;
-    clientY = e.touches[0].clientY;
-  } else if (e.changedTouches && e.changedTouches.length > 0) {
-    clientX = e.changedTouches[0].clientX;
-    clientY = e.changedTouches[0].clientY;
-  }
-
-  return {
-    x: ((clientX - rect.left) / rect.width) * CANVAS_W,
-    y: ((clientY - rect.top) / rect.height) * CANVAS_H
-  };
-};
+import { AppStoreProvider, useAppStore } from './store/appStore';
 
 const PHONICS_GUIDE = {
   ka: { phonic: "ka", pron: "k as in cup" },
@@ -173,17 +80,6 @@ const PHONICS_GUIDE = {
   gna: { phonic: "gna", pron: "gya as in gyan (nasalized)" }
 };
 
-const STICKERS = [
-  { id: 'st1', emoji: '🦁', label: 'Simha (Lion)', cost: 50 },
-  { id: 'st2', emoji: '🐵', label: 'Vanara (Monkey)', cost: 100 },
-  { id: 'st3', emoji: '🦄', label: 'Unicorn', cost: 150 },
-  { id: 'st4', emoji: '🚀', label: 'Yana (Rocket)', cost: 200 },
-  { id: 'st5', emoji: '🦖', label: 'Dinosaur', cost: 250 },
-  { id: 'st6', emoji: '🐼', label: 'Panda', cost: 300 },
-  { id: 'st7', emoji: '🍉', label: 'Tarbuch (Watermelon)', cost: 350 },
-  { id: 'st8', emoji: '🎈', label: 'Fuggo (Balloon)', cost: 400 }
-];
-
 const WORKSHEET_GROUPS = [
   { id: 'all', name: 'All Letters (૩૪)', filter: () => true },
   { id: 'guttural', name: 'Guttural / કંઠ્ય (ક-ઙ)', filter: (item) => ['ka', 'kha', 'ga', 'gha', 'nga'].includes(item.id) },
@@ -194,85 +90,66 @@ const WORKSHEET_GROUPS = [
   { id: 'sibilants', name: 'Semi-vowels & Sibilants (ય-જ્ઞ)', filter: (item) => ['ya', 'ra', 'la', 'va', 'sha', 'ssa', 'sa', 'ha', 'la2', 'ksha', 'gna'].includes(item.id) }
 ];
 
-// Storage keys. The bare names below live under the `guj:` namespace that
-// src/hooks/useLocalStorage.js owns; it also knows how to adopt the
-// un-namespaced `guj_*` key each one replaces.
-const waypointsKey = (lessonId) => `custom_waypoints_${lessonId}`;
+function AppShell() {
+  const {
+    view,
+    currentLessonIndex,
+    sessionCurriculum,
+    currentLesson,
+    completedWaypoints,
+    gateTarget,
+    tempPasscode,
+    worksheetMode,
+    selectedWorksheetLetter,
+    worksheetGroup,
+    worksheetFromView,
+    dispatch,
+    points, setPoints,
+    progressLog, setProgressLog,
+    unlockedStickers, setUnlockedStickers,
+    brushColor, setBrushColor,
+    brushWidth, setBrushWidth,
+    soundEnabled, setSoundEnabled,
+    editorMode, setEditorMode,
+    installDismissed, setInstallDismissed,
+    gateType, setGateType,
+    parentPinRecord, setParentPinRecord,
+    parentUnlockAll, setParentUnlockAll,
+    traceSessionRef,
+    getTraceSession,
+    playSound
+  } = useAppStore();
 
-// v0 read these two through `Number(...) || fallback` and the flags through
-// `=== 'true'`. Both coercions have to survive the move, or a stray value left
-// by an older build would land in state as a string.
-const toNumber = (fallback) => (value) => Number(value) || fallback;
-const toBoolean = (value) => value === true || value === 'true';
-
-// Reads a saved override, bringing a v1 one (absolute canvas pixels) forward to
-// the v2 path space in the same call.
-//
-// The rewrite happens on read rather than in a boot-time sweep, matching how
-// useLocalStorage adopts v0 keys: a letter the parent never customised is never
-// touched, and because the converted value is persisted immediately the
-// conversion happens exactly once per letter no matter where the read came from.
-// Idempotent by construction — a path-space value has nothing past 100 to
-// detect, so a second pass is a no-op.
-const readWaypointOverride = (lessonId) => {
-  const saved = readStored(waypointsKey(lessonId), null);
-  if (!Array.isArray(saved)) return null;
-
-  const normalized = normalizeWaypoints(saved);
-  // Identity, not deep equality: normalizeWaypoints hands back the same array
-  // when there was nothing to convert.
-  if (normalized !== saved) writeStored(waypointsKey(lessonId), normalized);
-  return normalized;
-};
-
-// Helper to load curriculum with local overrides from device storage
-const loadSavedCurriculum = () => {
-  return CURRICULUM.map(item => {
-    const saved = readWaypointOverride(item.id);
-    return saved ? { ...item, waypoints: saved } : item;
+  // Transitional shims. Every section below still calls the setters App used to
+  // own; they are removed one at a time as each section moves into its own view
+  // and starts dispatching for itself.
+  const setView = (nextView) => dispatch({ type: 'view/set', view: nextView });
+  const setCurrentLessonIndex = (index) => dispatch({ type: 'lesson/select', index });
+  const setSessionCurriculum = (next) => dispatch({
+    type: 'curriculum/set',
+    curriculum: typeof next === 'function' ? next(sessionCurriculum) : next
   });
-};
+  const setCompletedWaypoints = (next) =>
+    dispatch({ type: 'trace/setCompletedWaypoints', completedWaypoints: next });
+  const setTempPasscode = (value) => dispatch({ type: 'gate/setTempPasscode', tempPasscode: value });
+  const setWorksheetMode = (mode) => dispatch({ type: 'worksheets/setMode', worksheetMode: mode });
+  const setWorksheetGroup = (group) => dispatch({ type: 'worksheets/setGroup', worksheetGroup: group });
+  const setSelectedWorksheetLetter = (letter) =>
+    dispatch({ type: 'worksheets/setLetter', selectedWorksheetLetter: letter });
+  const showParentLock = gateTarget !== null;
+  const parentLockTarget = gateTarget;
+  const setShowParentLock = (open) => { if (!open) dispatch({ type: 'gate/cancel' }); };
+  const setParentLockTarget = (target) => dispatch({ type: 'gate/request', target });
 
-export default function App() {
-  const [view, setView] = useState('home'); // home | learn | match | quiz | stickers | dashboard
-  const [currentLessonIndex, setCurrentLessonIndex] = useState(0);
-  const [points, setPoints] = useLocalStorage('points', 0, toNumber(0));
-  
-  // Custom Session Curriculum with overrides loaded
-  const [sessionCurriculum, setSessionCurriculum] = useState(loadSavedCurriculum);
   const [saveStatus, setSaveStatus] = useState(''); // Visual save feedback
-  
-  const [progressLog, setProgressLog] = useLocalStorage('progress', () => ({
-    tracedCount: 0,
-    quizScore: 0,
-    completedLessons: []
-  }));
-  const [unlockedStickers, setUnlockedStickers] = useLocalStorage('stickers', () => []);
 
   // Canvas Drawing & Styling Customizations
   const canvasRef = useRef(null);
   const lastPointRef = useRef(null);
   const [isDrawing, setIsDrawing] = useState(false);
-  const [completedWaypoints, setCompletedWaypoints] = useState([]);
   const [traceStartTime, setTraceStartTime] = useState(null);
 
-  // The tracing engine session for the letter on screen. A ref, not state:
-  // during a drag the pointer handlers touch it dozens of times between
-  // renders, and each one has to see what the last one wrote. completedWaypoints
-  // above is now only a render mirror of it — the session is the source of
-  // truth for what has been hit.
-  const traceSessionRef = useRef(null);
-  const traceWaypointsRef = useRef(null);
-  
-  const [brushColor, setBrushColor] = useLocalStorage(
-    'brush_color',
-    () => themeColor('--color-primary')
-  );
-  const [brushWidth, setBrushWidth] = useLocalStorage('brush_width', 16, toNumber(16));
-  const [soundEnabled, setSoundEnabled] = useLocalStorage('sound_enabled', true, toBoolean);
-
   // Waypoint Editor Mode States
-  const [editorMode, setEditorMode] = useLocalStorage('editor_mode', false, toBoolean);
   const [editorActive, setEditorActive] = useState(false);
   const [editorWaypoints, setEditorWaypoints] = useState([]);
   const [editorMoveTo, setEditorMoveTo] = useState(false);
@@ -281,7 +158,6 @@ export default function App() {
   const [installPrompt, setInstallPrompt] = useState(null);
   const [showInstallModal, setShowInstallModal] = useState(false);
   const [isStandalone, setIsStandalone] = useState(false);
-  const [installDismissed, setInstallDismissed] = useLocalStorage('install_dismissed', false, toBoolean);
   const [editorRecordMode, setEditorRecordMode] = useState(false);
   const [draggedWaypointIndex, setDraggedWaypointIndex] = useState(null);
   const [isDraggingWaypoint, setIsDraggingWaypoint] = useState(false);
@@ -298,16 +174,6 @@ export default function App() {
   const [matchSelected, setMatchSelected] = useState(null);
   const [matchFeedback, setMatchFeedback] = useState(null);
 
-  // Parent Gate & Security Configurations
-  const [gateType, setGateType] = useLocalStorage('gate_type', 'math'); // math | pin
-  // The salted digest of the passcode, or null when no passcode has been set.
-  // There is deliberately no default: a PIN every install shares is not a gate,
-  // so the first parent to reach the PIN prompt chooses one.
-  const [parentPinRecord, setParentPinRecord] = useLocalStorage('parent_pin_hash', null);
-  const [tempPasscode, setTempPasscode] = useState('');
-  
-  const [showParentLock, setShowParentLock] = useState(false);
-  const [parentLockTarget, setParentLockTarget] = useState(null);
   const [lockAnswer, setLockAnswer] = useState('');
   const [lockQuestion, setLockQuestion] = useState({ q: '', a: 0 });
 
@@ -332,39 +198,6 @@ export default function App() {
   const [sandboxIsDrawing, setSandboxIsDrawing] = useState(false);
   const sandboxCanvasRef = useRef(null);
   const sandboxLastPointRef = useRef(null);
-
-  // Parent Lock Progression Toggle (Idea 2)
-  const [parentUnlockAll, setParentUnlockAll] = useLocalStorage('parent_unlock_all', false, toBoolean);
-
-  // Printable Activity Worksheets States (Roadmap Feature 4)
-  const [worksheetMode, setWorksheetMode] = useState('single'); // 'single' | 'grid' | 'match'
-  const [selectedWorksheetLetter, setSelectedWorksheetLetter] = useState('ka');
-  const [worksheetGroup, setWorksheetGroup] = useState('all');
-  const [worksheetFromView, setWorksheetFromView] = useState('dashboard');
-
-  const currentLesson = sessionCurriculum[currentLessonIndex];
-
-  // The states above persist themselves: useLocalStorage mirrors each one to
-  // its `guj:` key, which is what the block of sync effects here used to do one
-  // key at a time.
-
-  // v0 kept the passcode in cleartext. Evict it on the first render after the
-  // update — takeLegacyPlaintextPin deletes it synchronously, so the plaintext
-  // is gone from storage before the digest that replaces it exists.
-  useEffect(() => {
-    const plaintext = takeLegacyPlaintextPin();
-    if (plaintext === null) return;
-
-    let cancelled = false;
-    createPinRecord(plaintext)
-      .then((record) => { if (!cancelled) setParentPinRecord(record); })
-      .catch((e) => {
-        // The PIN is unrecoverable at this point, which is the right trade: the
-        // parent re-sets it at the next prompt, and no cleartext survives.
-        console.error('Could not hash the stored parent passcode', e);
-      });
-    return () => { cancelled = true; };
-  }, [setParentPinRecord]);
 
   // Keep developer editor waypoints synced when letter changes
   useEffect(() => {
@@ -567,90 +400,6 @@ export default function App() {
     setShowInstallModal(true);
   };
 
-  // Synthesize Sound Effects using Web Audio API
-  const playSound = (type) => {
-    if (!soundEnabled) return;
-    try {
-      const AudioContext = window.AudioContext || window.webkitAudioContext;
-      if (!AudioContext) return;
-      const ctx = new AudioContext();
-      
-      if (type === 'waypoint') {
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(600, ctx.currentTime);
-        osc.frequency.exponentialRampToValueAtTime(820, ctx.currentTime + 0.08);
-        gain.gain.setValueAtTime(0.12, ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.08);
-        osc.start();
-        osc.stop(ctx.currentTime + 0.08);
-      } else if (type === 'success') {
-        const now = ctx.currentTime;
-        const playNote = (freq, start, duration) => {
-          const osc = ctx.createOscillator();
-          const gain = ctx.createGain();
-          osc.connect(gain);
-          gain.connect(ctx.destination);
-          osc.type = 'triangle';
-          osc.frequency.setValueAtTime(freq, start);
-          gain.gain.setValueAtTime(0.12, start);
-          gain.gain.exponentialRampToValueAtTime(0.01, start + duration);
-          osc.start(start);
-          osc.stop(start + duration);
-        };
-        playNote(523.25, now, 0.12);
-        playNote(659.25, now + 0.1, 0.12);
-        playNote(783.99, now + 0.2, 0.12);
-        playNote(1046.50, now + 0.3, 0.35);
-      } else if (type === 'correct') {
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(880, ctx.currentTime);
-        gain.gain.setValueAtTime(0.15, ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.25);
-        osc.start();
-        osc.stop(ctx.currentTime + 0.25);
-      } else if (type === 'wrong') {
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        osc.type = 'sawtooth';
-        osc.frequency.setValueAtTime(140, ctx.currentTime);
-        osc.frequency.linearRampToValueAtTime(90, ctx.currentTime + 0.25);
-        gain.gain.setValueAtTime(0.15, ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.25);
-        osc.start();
-        osc.stop(ctx.currentTime + 0.25);
-      }
-    } catch (e) {
-      console.error("Web Audio API failed to synthesize sound", e);
-    }
-  };
-
-  // Voice Pronunciation Speech Synthesis
-  const speak = (text) => {
-    if ('speechSynthesis' in window) {
-      window.speechSynthesis.cancel();
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = 'gu-IN';
-      const voices = window.speechSynthesis.getVoices();
-      const guVoice = voices.find(v => v.lang.toLowerCase().includes('gu'));
-      if (guVoice) {
-        utterance.voice = guVoice;
-      }
-      utterance.rate = 0.75;
-      utterance.pitch = 1.15;
-      window.speechSynthesis.speak(utterance);
-    }
-  };
-
   const handleLessonSpeech = () => {
     speak(`${currentLesson.letter}. ${currentLesson.word}.`);
   };
@@ -711,19 +460,6 @@ export default function App() {
       ctx.stroke();
       ctx.setLineDash([]);
     }
-  };
-
-  // The live session, rebuilt whenever the letter's waypoints change identity —
-  // which the editor does on every drag, and switching letters does once.
-  const getTraceSession = () => {
-    // NO_WAYPOINTS, not a fresh [], so a letter without waypoints keeps one
-    // session instead of building a new one on every pointer sample.
-    const waypoints = currentLesson?.waypoints || NO_WAYPOINTS;
-    if (!traceSessionRef.current || traceWaypointsRef.current !== waypoints) {
-      traceWaypointsRef.current = waypoints;
-      traceSessionRef.current = createTracingSession(waypoints, TRACE_SESSION_OPTS);
-    }
-    return traceSessionRef.current;
   };
 
   const initCanvas = () => {
@@ -1833,10 +1569,7 @@ export default function App() {
               </button>
 
               <button 
-                onClick={() => {
-                  setWorksheetFromView('home');
-                  setView('worksheets');
-                }}
+                onClick={() => dispatch({ type: 'worksheets/open', from: 'home' })}
                 className="btn-tactile-indigo text-white font-extrabold text-lg py-4 px-6 rounded-3xl flex items-center justify-between shadow-lg cursor-pointer"
               >
                 <div className="flex items-center gap-3.5">
@@ -2011,12 +1744,12 @@ export default function App() {
                 
                 <div className="flex items-center gap-2">
                   <button 
-                    onClick={() => {
-                      setSelectedWorksheetLetter(currentLesson.id);
-                      setWorksheetMode('single');
-                      setWorksheetFromView('learn');
-                      setView('worksheets');
-                    }}
+                    onClick={() => dispatch({
+                      type: 'worksheets/open',
+                      from: 'learn',
+                      mode: 'single',
+                      letter: currentLesson.id
+                    })}
                     className="bg-indigo-50 hover:bg-indigo-100 text-indigo-600 p-2.5 rounded-2xl transition shadow-sm flex items-center gap-1.5 font-bold text-xs"
                     title="Print Practice Worksheet"
                     aria-label="Print Practice Worksheet"
@@ -2961,11 +2694,7 @@ export default function App() {
 
                 <div className="grid grid-cols-3 gap-2">
                   <button
-                    onClick={() => {
-                      setWorksheetMode('single');
-                      setWorksheetFromView('dashboard');
-                      setView('worksheets');
-                    }}
+                    onClick={() => dispatch({ type: 'worksheets/open', from: 'dashboard', mode: 'single' })}
                     className="bg-white hover:bg-slate-50 border border-indigo-100 rounded-xl p-2.5 flex flex-col items-center gap-1 text-center shadow-xs transition"
                   >
                     <FileText size={16} className="text-indigo-600" />
@@ -2973,11 +2702,7 @@ export default function App() {
                   </button>
 
                   <button
-                    onClick={() => {
-                      setWorksheetMode('grid');
-                      setWorksheetFromView('dashboard');
-                      setView('worksheets');
-                    }}
+                    onClick={() => dispatch({ type: 'worksheets/open', from: 'dashboard', mode: 'grid' })}
                     className="bg-white hover:bg-slate-50 border border-indigo-100 rounded-xl p-2.5 flex flex-col items-center gap-1 text-center shadow-xs transition"
                   >
                     <Grid size={16} className="text-purple-600" />
@@ -2985,11 +2710,7 @@ export default function App() {
                   </button>
 
                   <button
-                    onClick={() => {
-                      setWorksheetMode('match');
-                      setWorksheetFromView('dashboard');
-                      setView('worksheets');
-                    }}
+                    onClick={() => dispatch({ type: 'worksheets/open', from: 'dashboard', mode: 'match' })}
                     className="bg-white hover:bg-slate-50 border border-indigo-100 rounded-xl p-2.5 flex flex-col items-center gap-1 text-center shadow-xs transition"
                   >
                     <CheckSquare size={16} className="text-emerald-600" />
@@ -2998,10 +2719,7 @@ export default function App() {
                 </div>
 
                 <button
-                  onClick={() => {
-                    setWorksheetFromView('dashboard');
-                    setView('worksheets');
-                  }}
+                  onClick={() => dispatch({ type: 'worksheets/open', from: 'dashboard' })}
                   className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs py-2.5 px-4 rounded-xl flex items-center justify-center gap-2 shadow-sm transition"
                 >
                   <Printer size={15} />
@@ -3610,5 +3328,14 @@ export default function App() {
         </div>
       )}
     </div>
+  );
+}
+
+
+export default function App() {
+  return (
+    <AppStoreProvider>
+      <AppShell />
+    </AppStoreProvider>
   );
 }
