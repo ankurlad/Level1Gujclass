@@ -3033,7 +3033,7 @@ export default function App() {
                   <button
                     onClick={clearAllCustomWaypoints}
                     aria-label="Revert all custom waypoints"
-                    className="min-w-[44px] min-h-[44px] bg-rose-50 hover:bg-rose-100 text-rose-600 font-bold text-xs py-2.5 px-4 rounded-xl border border-rose-200 transition flex items-center justify-center"
+                    className="min-w-[44px] min-h-[44px] bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs py-2.5 px-4 rounded-xl border border-rose-200 transition flex items-center justify-center"
                   >
                     Revert All
                   </button>
@@ -3109,7 +3109,7 @@ export default function App() {
               <div className="mt-auto border-t border-slate-100 pt-6">
                 <button
                   onClick={resetAllProgress}
-                  className="w-full bg-rose-50 hover:bg-rose-100 text-rose-600 font-extrabold py-3.5 px-4 rounded-2xl flex justify-center items-center gap-2 transition"
+                  className="w-full bg-rose-50 hover:bg-rose-100 text-rose-700 font-extrabold py-3.5 px-4 rounded-2xl flex justify-center items-center gap-2 transition"
                 >
                   <RefreshCw size={16} />
                   <span>Reset All Progress</span>
