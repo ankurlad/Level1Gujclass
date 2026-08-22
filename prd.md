@@ -59,10 +59,11 @@ Built with React 19, Vite, and Workbox PWA technology, the application operates 
 ### 4.4 Rewards & Points Economy
 - **Points Ledger**: Earn +10 points per completed tracing exercise.
 - **Sticker Shop**: Purchase collectible stickers (`Lion`, `Monkey`, `Unicorn`, `Rocket`, `Panda`, `Watermelon`) using accumulated points.
-- **Local Persistence**: Purchases and progress persisted in browser `localStorage`.
+- **Local Persistence**: Purchases and progress persisted in browser `localStorage` under the single
+  `guj:` namespace (see 6.1).
 
 ### 4.5 Parent Dashboard & Waypoint Editor
-- **Security Lock Gate**: Math problem verification (`num1 + num2`) or passcode check before entering management view.
+- **Security Lock Gate**: Math problem verification (`num1 + num2`) or passcode check before entering management view. The passcode is stored only as a salted SHA-256 digest (see 6.1) — never in cleartext, and there is no shipped default: the first parent to reach the PIN prompt chooses one. The dashboard reports whether a passcode is set, it cannot show it.
 - **Waypoint Editor**: Interactive tool to tweak, add, delete, or reset letter tracing waypoints.
 - **JSON Import/Export**: Ability to copy/paste custom waypoint arrays for curriculum customization.
 
@@ -95,7 +96,9 @@ Built with React 19, Vite, and Workbox PWA technology, the application operates 
        ├── main.jsx (React DOM Mount)
        ├── index.css (@theme Design Tokens, Safe Areas, Touch Targets, A11y)
        ├── App.jsx (State Engine, Tracing, Games, Dashboard)
-       └── curriculum.js (Letter Data & Waypoints)
+       ├── curriculum.js (Letter Data & Waypoints)
+       ├── hooks/useLocalStorage.js (Namespaced Persistence & Schema Migration)
+       └── lib/parentPin.js (Salted Passcode Digest)
 ```
 
 - **Frontend Framework**: React 19
@@ -105,6 +108,27 @@ Built with React 19, Vite, and Workbox PWA technology, the application operates 
 - **Icons**: Lucide React
 - **Animations**: Canvas Confetti
 - **Typography**: Noto Sans Gujarati, Baloo Bhai 2, Outfit and Fredoka, self-hosted as woff2 subsets in `/public/fonts` and precached by the service worker. There is no runtime call to Google Fonts or any other third party — the guide letterforms the waypoints are calibrated against must be available offline.
+
+### 6.1 Persistence
+
+Everything on disk goes through `src/hooks/useLocalStorage.js`. Component code does not call
+`localStorage` directly.
+
+- **One namespace**: every key is `guj:<name>` — `guj:points`, `guj:progress`, `guj:stickers`,
+  `guj:brush_color`, `guj:brush_width`, `guj:sound_enabled`, `guj:editor_mode`,
+  `guj:install_dismissed`, `guj:gate_type`, `guj:parent_unlock_all`, `guj:parent_pin_hash`, and one
+  `guj:custom_waypoints_<letterId>` per customised letter. A whole install can be enumerated,
+  exported or wiped by prefix, which is the prerequisite for multi-child profiles (Phase 5).
+- **One encoding**: values are JSON, so read and write are a single pair of rules.
+- **Versioned**: `guj:version` records the schema the store was last written by. Version 1 is the
+  namespaced, JSON, hashed-passcode shape; version 0 is the pre-namespace `guj_*` store. A key
+  written by an older version is adopted on first read — the old key is deleted and the new one
+  written in the same step — so migration is lazy, per key, and safe to interrupt. Bump the version
+  when a stored *value* shape changes.
+- **No cleartext passcode**: `guj:parent_pin_hash` holds `{algorithm, salt, hash}` — a per-install
+  16-byte salt and the SHA-256 of `salt:pin` via `crypto.subtle`. This needs a secure context
+  (https or localhost); serving the built app over plain http on a LAN address cannot set or check a
+  passcode and says so.
 
 ---
 
