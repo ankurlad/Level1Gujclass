@@ -3193,7 +3193,7 @@ export default function App() {
                           <button
                             key={item.id}
                             onClick={() => setSelectedWorksheetLetter(item.id)}
-                            className={`min-w-[40px] h-10 rounded-xl font-bold flex justify-center items-center border transition-all text-sm flex-shrink-0 ${selectedWorksheetLetter === item.id ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm scale-105' : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'}`}
+                            className={`min-w-[44px] min-h-[44px] rounded-xl font-bold flex justify-center items-center border transition-all text-sm flex-shrink-0 ${selectedWorksheetLetter === item.id ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm scale-105' : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'}`}
                           >
                             <span className="font-gujarati">{item.letter}</span>
                           </button>
