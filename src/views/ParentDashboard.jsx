@@ -5,7 +5,8 @@ import {
   Grid,
   Printer,
   RefreshCw,
-  TrendingUp
+  TrendingUp,
+  Users
 } from 'lucide-react';
 import { removeStored } from '../hooks/useLocalStorage';
 import { readWaypointOverride, waypointsKey } from '../lib/curriculumStorage';
@@ -17,11 +18,17 @@ import { useAppStore } from '../store/appStore';
 
 // The parents' room, reached only through the gate in src/components/ParentGate.jsx.
 //
-// Four things live here: the progress read-out, the worksheet studio entry
-// points, the settings block (gate type, passcode, the three toggles, the two
-// curriculum-wide waypoint operations) and the reset. Everything it changes is
-// persisted state, so it changes it through the store; the passcode it sets
-// goes through src/lib/parentPin.js and only the digest is ever held.
+// Five things live here: the progress read-out, the Children panel, the
+// worksheet studio entry points, the settings block (gate type, passcode, the
+// three toggles, the two curriculum-wide waypoint operations) and the reset.
+// Everything it changes is persisted state, so it changes it through the store;
+// the passcode it sets goes through src/lib/parentPin.js and only the digest is
+// ever held.
+//
+// The read-out and the reset at the bottom are the *active* child's (PR 13b) —
+// the header says which one, and this page names them. The Children panel is
+// where any other child on the device is reset, and it is the only thing here
+// that can reach a child who is not on screen.
 //
 // The passcode manager below is the one part with steps, and every one of them
 // is local state: which flow is open, what has been typed into it, whether the
@@ -43,6 +50,7 @@ export default function ParentDashboard() {
     parentUnlockAll, setParentUnlockAll,
     gateType, setGateType,
     parentPinRecord, setParentPinRecord,
+    childProfiles, activeChild, activeChildId, resetChild,
     dispatch,
     setView,
     playSound
@@ -57,6 +65,19 @@ export default function ParentDashboard() {
   const [newEntry, setNewEntry] = useState('');
   const [confirmEntry, setConfirmEntry] = useState('');
   const [pinNotice, setPinNotice] = useState(null);
+
+  // The per-child reset (PR 13b). Which child is being asked about, what has
+  // been typed to prove it, and what to tell the parent afterwards — all local,
+  // none of it outlives the visit.
+  const [resetTarget, setResetTarget] = useState(null);
+  const [resetEntry, setResetEntry] = useState('');
+  const [resetNotice, setResetNotice] = useState(null);
+
+  const closeResetFlow = (notice) => {
+    setResetTarget(null);
+    setResetEntry('');
+    setResetNotice(notice ?? null);
+  };
 
   const notify = (tone, message) => setPinNotice({ tone, message });
 
@@ -199,8 +220,47 @@ export default function ParentDashboard() {
     }
   };
 
+  // One child's points, stickers and traced letters, and nothing else — never
+  // the passcode, never another child's keys. The store's resetChild only knows
+  // the CHILD_SCOPED_KEYS, so it cannot reach either of those.
+  //
+  // Behind the gate is not sufficient on its own: a parent walks away from an
+  // open dashboard, and the reset is the one action here that destroys something
+  // a child earned. So where a passcode exists (PR 11) it is asked for again,
+  // and where none does the panel says so and asks a second time instead.
+  const submitChildReset = async (child) => {
+    if (parentPinRecord) {
+      let matches = false;
+      try {
+        matches = await verifyPin(resetEntry, parentPinRecord);
+      } catch (err) {
+        console.error('Could not check the parent passcode', err);
+        setResetNotice({
+          tone: 'error',
+          message: 'This device cannot check the passcode — it needs https or localhost. Nothing was reset.'
+        });
+        return;
+      }
+
+      if (!matches) {
+        playSound('wrong');
+        setResetEntry('');
+        setResetNotice({ tone: 'error', message: `That is not the passcode. ${child.name}'s progress is untouched.` });
+        return;
+      }
+    }
+
+    resetChild(child.id);
+    playSound('success');
+    closeResetFlow({
+      tone: 'success',
+      message: `${child.name} is back to 0 points with no letters traced. Nothing else on this device changed.`
+    });
+  };
+
   const resetAllProgress = () => {
-    if (confirm("Are you sure you want to reset all points, unlocked stickers, and tracing records? This cannot be undone!")) {
+    const whose = activeChild?.name ?? 'this child';
+    if (confirm(`Are you sure you want to reset ${whose}'s points, unlocked stickers, and tracing records? This cannot be undone!`)) {
       setPoints(0);
       setUnlockedStickers([]);
       setProgressLog({ tracedCount: 0, quizScore: 0, completedLessons: [] });
@@ -247,8 +307,113 @@ export default function ParentDashboard() {
           </div>
           <div>
             <h3 className="text-xl font-black text-slate-800">Learning Analytics</h3>
-            <p className="text-slate-500 text-xs font-medium">Verify kid's daily progress and records</p>
+            {/* Whose numbers these are. Every figure below the header comes
+                from the active child's keys, and on a device with two children
+                that is not guessable from the figures. */}
+            <p className="text-slate-500 text-xs font-medium">
+              {activeChild ? `${activeChild.name}'s progress and records` : "Verify kid's daily progress and records"}
+            </p>
           </div>
+        </div>
+
+        {/* Children on this device */}
+        <div className="bg-slate-50 border border-slate-100 rounded-2xl p-5 flex flex-col gap-3">
+          <div className="flex items-center gap-2">
+            <Users size={15} className="text-indigo-600" />
+            <h4 className="font-extrabold text-sm text-slate-700 uppercase tracking-wider">Children</h4>
+          </div>
+          <p className="text-xs text-slate-500">
+            Points, stickers and traced letters are kept per child. Everything else on this page — the
+            gate, the passcode, sound, the brush and any waypoints you have corrected — is shared by
+            the whole device. Switch child from the header.
+          </p>
+
+          {childProfiles.map((child) => (
+            <div key={child.id} className="bg-white border border-slate-200 rounded-xl p-3 flex flex-col gap-2.5">
+              <div className="flex justify-between items-center gap-2">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <span aria-hidden="true" className="text-xl leading-none">{child.avatar ?? '🙂'}</span>
+                  <div className="flex flex-col min-w-0">
+                    <span className="font-extrabold text-sm text-slate-800 truncate">{child.name}</span>
+                    {child.id === activeChildId && (
+                      <span className="text-xxs font-extrabold uppercase tracking-wider text-indigo-600">Playing now</span>
+                    )}
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setResetNotice(null);
+                    setResetEntry('');
+                    setResetTarget(resetTarget === child.id ? null : child.id);
+                  }}
+                  aria-label={`Reset ${child.name}'s progress`}
+                  aria-expanded={resetTarget === child.id}
+                  className="min-h-[44px] min-w-[44px] flex-shrink-0 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs py-2.5 px-3.5 rounded-xl border border-rose-200 transition flex items-center justify-center gap-1.5"
+                >
+                  <RefreshCw size={14} />
+                  <span>Reset</span>
+                </button>
+              </div>
+
+              {resetTarget === child.id && (
+                <div className="border-t border-slate-100 pt-2.5 flex flex-col gap-2">
+                  <p className="text-xs text-slate-600 font-medium">
+                    This sets {child.name}'s points to 0, empties their sticker shelf and forgets which
+                    letters they have traced. It does not touch the passcode
+                    {childProfiles.length > 1 ? ', the other children' : ''} or any corrected waypoints.
+                  </p>
+
+                  {parentPinRecord ? (
+                    <label className="text-xs font-bold text-slate-500 flex flex-col gap-1.5">
+                      {`Enter the passcode to reset ${child.name}`}
+                      <input
+                        type="password"
+                        inputMode="numeric"
+                        maxLength={PASSCODE_LENGTH}
+                        placeholder="4 digits"
+                        value={resetEntry}
+                        onChange={(e) => setResetEntry(passcodeDigits(e.target.value))}
+                        className="w-28 border-2 border-slate-200 focus:border-indigo-500 focus:outline-none rounded-xl px-3 py-2 text-center text-sm font-bold"
+                      />
+                    </label>
+                  ) : (
+                    <p className="text-xs font-bold text-amber-700">
+                      No passcode is set on this device, so this cannot ask for one. Set a passcode
+                      below to protect resets.
+                    </p>
+                  )}
+
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => submitChildReset(child)}
+                      className="min-h-[44px] bg-rose-700 hover:bg-rose-800 text-white font-bold text-xs py-2.5 px-3.5 rounded-xl transition"
+                    >
+                      {parentPinRecord ? 'Reset progress' : `Yes, reset ${child.name}`}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => closeResetFlow()}
+                      className="min-h-[44px] bg-white border border-slate-200 hover:border-slate-300 text-slate-600 font-bold text-xs py-2.5 px-3.5 rounded-xl transition"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
+
+          {resetNotice && (
+            <p
+              role="alert"
+              className={`text-xs font-bold ${resetNotice.tone === 'error' ? 'text-rose-700' : 'text-emerald-700'}`}
+            >
+              {resetNotice.message}
+            </p>
+          )}
         </div>
 
         {/* Grid cards */}
@@ -635,7 +800,10 @@ export default function ParentDashboard() {
             className="w-full bg-rose-50 hover:bg-rose-100 text-rose-700 font-extrabold py-3.5 px-4 rounded-2xl flex justify-center items-center gap-2 transition"
           >
             <RefreshCw size={16} />
-            <span>Reset All Progress</span>
+            {/* Named, because it is one child's progress and not the device's:
+                the values it clears are the active child's keys. The Children
+                panel above is where the other children are reset. */}
+            <span>Reset {activeChild ? `${activeChild.name}'s` : 'All'} Progress</span>
           </button>
         </div>
       </div>
