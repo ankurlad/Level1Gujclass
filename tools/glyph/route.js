@@ -152,19 +152,25 @@ export const routeAnchors = (index, anchors, label = 'stroke') => {
   });
   const snapDistances = placed.filter((entry) => !entry.free).map((entry) => entry.distance);
   const points = [];
-  for (let i = 1; i < placed.length; i++) {
-    const from = placed[i - 1];
-    const to = placed[i];
-    const leg =
-      from.free || to.free ? [from.pixel, to.pixel] : shortestPath(index, from.pixel, to.pixel);
-    if (!leg) {
-      throw new Error(
-        `${label}: no path along the centreline from anchor ${i} to ${i + 1} ` +
-          `(${anchors[i - 1]} -> ${anchors[i]}). They are on different components.`
-      );
+  // Where each free anchor ended up along the routed line, so the resampler can
+  // be told not to throw it away.
+  const keep = [];
+  for (let i = 0; i < placed.length; i++) {
+    if (i > 0) {
+      const from = placed[i - 1];
+      const to = placed[i];
+      const leg =
+        from.free || to.free ? [from.pixel, to.pixel] : shortestPath(index, from.pixel, to.pixel);
+      if (!leg) {
+        throw new Error(
+          `${label}: no path along the centreline from anchor ${i} to ${i + 1} ` +
+            `(${anchors[i - 1]} -> ${anchors[i]}). They are on different components.`
+        );
+      }
+      points.push(...(points.length ? leg.slice(1) : leg));
     }
-    points.push(...(points.length ? leg.slice(1) : leg));
+    if (placed[i].free) keep.push(Math.max(0, points.length - 1));
   }
   if (!points.length && placed.length === 1) points.push(placed[0].pixel);
-  return { points, snapDistances };
+  return { points, snapDistances, keep };
 };

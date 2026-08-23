@@ -261,7 +261,7 @@ const pointAtDistance = (points, lengths, distance) => {
  * across a curve would score a correct trace as sloppy), and never place two
  * closer than `minGap` (two dots inside one fingertip are one dot).
  */
-export const resample = (points, { epsilon = 3.5, maxGap = 52, minGap = 15 } = {}) => {
+export const resample = (points, { epsilon = 3.5, maxGap = 52, minGap = 15, keep = [] } = {}) => {
   const lengths = cumulative(points);
   const total = lengths[lengths.length - 1];
   if (total < 1) return [points[0]];
@@ -283,21 +283,36 @@ export const resample = (points, { epsilon = 3.5, maxGap = 52, minGap = 15 } = {
     marks.push(lengths[best]);
   }
   marks.push(total);
+  // Hand-placed points are not suggestions. A free anchor (the loop on ન) is a
+  // corner of a shape that has no centreline to rediscover it from, so it
+  // survives the thinning below even if it lands inside minGap.
+  const required = new Set(keep.map((index) => lengths[Math.min(index, lengths.length - 1)]));
+  for (const mark of required) marks.push(mark);
   marks.sort((a, b) => a - b);
+  // A required mark that RDP also chose would otherwise be emitted twice.
+  const unique = marks.filter((mark, i) => i === 0 || mark - marks[i - 1] > 1e-6);
 
-  const filled = [marks[0]];
-  for (let i = 1; i < marks.length; i++) {
-    const gap = marks[i] - filled[filled.length - 1];
+  const filled = [unique[0]];
+  for (let i = 1; i < unique.length; i++) {
+    const gap = unique[i] - filled[filled.length - 1];
     if (gap > maxGap) {
       const steps = Math.ceil(gap / maxGap);
       for (let s = 1; s < steps; s++) filled.push(filled[filled.length - 1] + gap / steps);
     }
-    filled.push(marks[i]);
+    filled.push(unique[i]);
   }
 
   const trimmed = [filled[0]];
   for (const mark of filled.slice(1)) {
-    if (mark - trimmed[trimmed.length - 1] >= minGap) trimmed.push(mark);
+    const previous = trimmed[trimmed.length - 1];
+    if (mark - previous >= minGap) {
+      trimmed.push(mark);
+    } else if (required.has(mark)) {
+      // Too close to keep both: the required one wins, unless the one already
+      // there is required too.
+      if (!required.has(previous) && trimmed.length > 1) trimmed.pop();
+      trimmed.push(mark);
+    }
   }
   // The end of the stroke is not optional: drop the point before it instead.
   if (trimmed[trimmed.length - 1] !== total) {

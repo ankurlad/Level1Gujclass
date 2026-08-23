@@ -27,6 +27,7 @@ import {
   cleanStaircases,
   contractShortJunctions,
   mergeThroughNodes,
+  polylineLength,
   pruneWhiskers,
   thin,
 } from './skeleton.js';
@@ -129,17 +130,17 @@ export const strokesFor = (id, glyph) => {
 
   const override = OVERRIDES[id];
   if (override) {
-    const strokes = override.strokes.map((anchors, i) => {
-      const { points, snapDistances } = routeAnchors(index, anchors, `${id} stroke ${i + 1}`);
-      return { points, snapDistances };
-    });
+    const routed = override.strokes.map((anchors, i) =>
+      routeAnchors(index, anchors, `${id} stroke ${i + 1}`)
+    );
     return {
       mask,
       skel,
-      strokes: strokes.map((stroke) => stroke.points),
+      strokes: routed.map((stroke) => stroke.points),
+      keeps: routed.map((stroke) => stroke.keep),
       source: 'hand',
       note: override.note ?? '',
-      snap: Math.max(0, ...strokes.flatMap((stroke) => stroke.snapDistances)),
+      snap: Math.max(0, ...routed.flatMap((stroke) => stroke.snapDistances)),
     };
   }
 
@@ -148,13 +149,13 @@ export const strokesFor = (id, glyph) => {
   graph = pruneWhiskers(graph, WHISKER);
   graph = mergeThroughNodes(graph);
   const strokes = orderStrokes(mergeBranches(graph)).map((points) => bridgeGaps(index, points));
-  return { mask, skel, strokes, source: 'skeleton', note: '', snap: 0 };
+  return { mask, skel, strokes, keeps: strokes.map(() => []), source: 'skeleton', note: '', snap: 0 };
 };
 
-const toWaypoints = (strokes) => {
+const toWaypoints = (strokes, keeps = []) => {
   const waypoints = [];
   strokes.forEach((points, strokeIndex) => {
-    const sampled = resample(points);
+    const sampled = resample(points, { keep: keeps[strokeIndex] ?? [] });
     sampled.forEach(([x, y], i) => {
       const wp = { x: canvasToPathX(x), y: canvasToPathY(y), label: String(waypoints.length + 1) };
       if (strokeIndex > 0 && i === 0) wp.moveTo = true;
@@ -235,6 +236,32 @@ const rewriteCurriculum = (source, byId) => {
   return out;
 };
 
+// --dump=<id> prints the skeleton's landmarks in render pixels. It is the
+// worksheet for writing an override: the anchors in overrides.js are chosen
+// from these, so a hand fix is picked off the letter's own centreline rather
+// than eyeballed off a screenshot.
+const dumpLandmarks = (id, glyph) => {
+  const mask = toMask(glyph);
+  const skel = cleanStaircases(thin(mask, glyph.width, glyph.height), glyph.width, glyph.height);
+  let graph = buildGraph(skel, glyph.width, glyph.height);
+  graph = contractShortJunctions(graph, CROSSING);
+  const place = ([x, y]) => `(${Math.round(x)},${Math.round(y)})`;
+  console.log(`\n${id} — ${glyph.letter}  bbox ${JSON.stringify(glyph.bbox)}`);
+  for (const node of graph.nodes) {
+    console.log(`  node ${String(node.id).padStart(2)} ${node.kind.padEnd(8)} ${place([node.x, node.y])}`);
+  }
+  for (const edge of graph.edges) {
+    const mid = edge.points[Math.floor(edge.points.length / 2)];
+    const quarter = edge.points[Math.floor(edge.points.length / 4)];
+    const threeQuarter = edge.points[Math.floor((edge.points.length * 3) / 4)];
+    console.log(
+      `  edge ${String(edge.id).padStart(2)} ${String(edge.a).padStart(2)}->${String(edge.b).padStart(2)} ` +
+        `${polylineLength(edge.points).toFixed(0).padStart(4)}px  ` +
+        `${place(edge.points[0])} ${place(quarter)} ${place(mid)} ${place(threeQuarter)} ${place(edge.points.at(-1))}`
+    );
+  }
+};
+
 const main = () => {
   const only = argOf('letters');
   const lessons = CURRICULUM.filter((lesson) => !only || only.split(',').includes(lesson.id));
@@ -260,6 +287,11 @@ const main = () => {
     glyphs = loadInk(lessons.map((lesson) => lesson.id));
   }
 
+  if (hasFlag('dump')) {
+    for (const lesson of lessons) dumpLandmarks(lesson.id, glyphs[lesson.id]);
+    return;
+  }
+
   mkdirSync(PNG_DIR, { recursive: true });
   const rows = [];
   const byId = {};
@@ -267,7 +299,7 @@ const main = () => {
   for (const lesson of lessons) {
     const glyph = glyphs[lesson.id];
     const result = strokesFor(lesson.id, glyph);
-    const waypoints = toWaypoints(result.strokes);
+    const waypoints = toWaypoints(result.strokes, result.keeps);
     byId[lesson.id] = waypoints;
 
     const pixels = waypoints.map((wp) => [(wp.x / 100) * CANVAS_W, (wp.y / 100) * CANVAS_H]);

@@ -319,10 +319,25 @@ export const contractShortJunctions = (graph, maxLength) => {
   const nodes = graph.nodes.map((node) => ({ ...node }));
   let edges = graph.edges.map((edge) => ({ ...edge }));
   const alias = new Map();
+  const members = new Map(nodes.map((node) => [node.id, [[node.x, node.y]]]));
   const resolve = (id) => {
     let current = id;
     while (alias.has(current)) current = alias.get(current);
     return current;
+  };
+  // A crossing is about one stroke wide. Merging is capped by the *diameter* of
+  // the resulting cluster, not just by the length of the edge being swallowed,
+  // because short stubs chain: without the cap, ક's crossing walks along the
+  // curve it crosses and eats half the letter.
+  const spread = (a, b) => {
+    const all = [...members.get(a), ...members.get(b)];
+    let worst = 0;
+    for (let i = 0; i < all.length; i++) {
+      for (let j = i + 1; j < all.length; j++) {
+        worst = Math.max(worst, Math.hypot(all[i][0] - all[j][0], all[i][1] - all[j][1]));
+      }
+    }
+    return worst;
   };
 
   for (let guard = 0; guard < 200; guard++) {
@@ -333,13 +348,20 @@ export const contractShortJunctions = (graph, maxLength) => {
         a !== b &&
         nodes[a].kind === 'junction' &&
         nodes[b].kind === 'junction' &&
-        polylineLength(edge.points) < maxLength
+        polylineLength(edge.points) < maxLength &&
+        spread(a, b) <= maxLength
       );
     });
     if (!target) break;
     const a = resolve(target.a);
     const b = resolve(target.b);
-    nodes[a] = { ...nodes[a], x: (nodes[a].x + nodes[b].x) / 2, y: (nodes[a].y + nodes[b].y) / 2 };
+    members.set(a, [...members.get(a), ...members.get(b)]);
+    const cluster = members.get(a);
+    nodes[a] = {
+      ...nodes[a],
+      x: cluster.reduce((sum, [x]) => sum + x, 0) / cluster.length,
+      y: cluster.reduce((sum, [, y]) => sum + y, 0) / cluster.length,
+    };
     alias.set(b, a);
     edges = edges.filter((edge) => edge !== target);
   }
