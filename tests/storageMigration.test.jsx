@@ -98,10 +98,14 @@ describe('v0 -> v1 storage migration, end to end', () => {
   it('rewrites every key under the guj: namespace and drops the old ones', async () => {
     const unmount = await mountApp()
 
-    expect(localStorage.getItem('guj:version')).toBe('2')
-    expect(localStorage.getItem('guj:points')).toBe('250')
-    expect(localStorage.getItem('guj:progress')).toBe(V0_STORE.guj_progress)
-    expect(localStorage.getItem('guj:stickers')).toBe('["st1","st6"]')
+    expect(localStorage.getItem('guj:version')).toBe('3')
+    // The three per-child values land under the implicit first child (PR 13b);
+    // tests/childProfiles.test.jsx is where that hop is pinned down in full.
+    expect(localStorage.getItem('guj:child:c1:points')).toBe('250')
+    expect(localStorage.getItem('guj:child:c1:progress')).toBe(V0_STORE.guj_progress)
+    expect(localStorage.getItem('guj:child:c1:stickers')).toBe('["st1","st6"]')
+    // And the device-wide keys they used to sit beside are still device-wide.
+    expect(localStorage.getItem('guj:points')).toBeNull()
     expect(localStorage.getItem('guj:brush_color')).toBe('"#4f46e5"')
     expect(localStorage.getItem('guj:brush_width')).toBe('24')
     expect(localStorage.getItem('guj:sound_enabled')).toBe('false')
@@ -173,7 +177,7 @@ describe('v1 -> v2 waypoint coordinate migration, end to end', () => {
     )
     const unmount = await mountApp()
 
-    expect(localStorage.getItem('guj:version')).toBe('2')
+    expect(localStorage.getItem('guj:version')).toBe('3')
     expect(JSON.parse(localStorage.getItem('guj:custom_waypoints_ka'))).toEqual([
       { x: 52.89, y: 27.19, label: '1' },
       { x: 61.84, y: 42.81, label: '2', moveTo: true },

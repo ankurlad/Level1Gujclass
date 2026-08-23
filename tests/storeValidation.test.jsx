@@ -11,6 +11,12 @@ import { AppStoreProvider, useAppStore } from '../src/store/appStore.js'
 // holding — the provider is the only honest way in, since the read happens in
 // the hook's initialiser.
 
+// Where the three per-child values land as of PR 13b. Seeding the pre-13b
+// device-wide key and reading the corrected value back here is also the
+// smallest proof that the profile migration and the PR 12 guard compose: the
+// key moves, and the value is still clamped or pruned on the way through.
+const childKey = (key) => `guj:child:c1:${key}`
+
 // The provider itself needs no canvas: it reads localStorage, resolves the
 // brush colour off the document and builds the reducer. Everything below the
 // provider is a probe, so none of the views' browser APIs are involved.
@@ -55,7 +61,7 @@ describe('a points ledger stored out of range', () => {
     expect(console.warn).toHaveBeenCalled()
     // Corrected where it was wrong, not just where it was read: the write
     // effect persists what state actually holds.
-    expect(localStorage.getItem('guj:points')).toBe(String(POINTS_MAX))
+    expect(localStorage.getItem(childKey('points'))).toBe(String(POINTS_MAX))
 
     // And the store still works. A ledger at the cap does not go past it...
     act(() => store.store.setPoints((p) => p + 10))
@@ -65,7 +71,7 @@ describe('a points ledger stored out of range', () => {
     expect(store.store.points).toBe(120)
     act(() => store.store.setPoints((p) => p + 10))
     expect(store.store.points).toBe(130)
-    expect(localStorage.getItem('guj:points')).toBe('130')
+    expect(localStorage.getItem(childKey('points'))).toBe('130')
 
     store.unmount()
   })
@@ -76,7 +82,7 @@ describe('a points ledger stored out of range', () => {
     const store = mountStore()
 
     expect(store.store.points).toBe(0)
-    expect(localStorage.getItem('guj:points')).toBe('0')
+    expect(localStorage.getItem(childKey('points'))).toBe('0')
 
     store.unmount()
   })
@@ -93,7 +99,7 @@ describe('a sticker list with one bad entry', () => {
     // entry is what stops it claiming three stickers and drawing two.
     expect(store.store.unlockedStickers).toHaveLength(2)
     expect(console.warn.mock.calls.flat().join(' ')).toContain('st99')
-    expect(JSON.parse(localStorage.getItem('guj:stickers'))).toEqual(['st1', 'st6'])
+    expect(JSON.parse(localStorage.getItem(childKey('stickers')))).toEqual(['st1', 'st6'])
 
     store.unmount()
   })

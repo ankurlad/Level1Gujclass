@@ -1,11 +1,19 @@
-import { createContext, createElement, useContext, useEffect, useReducer, useRef } from 'react';
-import { useLocalStorage } from '../hooks/useLocalStorage';
+import { createContext, createElement, useContext, useEffect, useReducer, useRef, useState } from 'react';
+import { childScopedKey, useLocalStorage } from '../hooks/useLocalStorage';
 import { playSound as playSoundEffect } from '../lib/audio';
+import {
+  ACTIVE_CHILD_KEY,
+  CHILDREN_KEY,
+  FIRST_CHILD_ID,
+  addChildTo,
+  ensureChildProfiles,
+  resetChildKeys
+} from '../lib/childProfiles';
 import { loadSavedCurriculum } from '../lib/curriculumStorage';
 import { createPinRecord, takeLegacyPlaintextPin } from '../lib/parentPin';
 import { themeColor } from '../lib/theme';
 import { createTracingSession } from '../lib/tracingEngine';
-import { sanitizeStickerIds, toBrushWidth, toPoints } from '../lib/validate';
+import { sanitizeChildren, sanitizeStickerIds, toBrushWidth, toPoints } from '../lib/validate';
 import { CANVAS_H, CANVAS_W, canvasToPathXRaw } from '../lib/waypoints';
 
 // The state the views share, in one place.
@@ -15,10 +23,17 @@ import { CANVAS_H, CANVAS_W, canvasToPathXRaw } from '../lib/waypoints';
 // the remainder — everything two or more views read or write:
 //
 //   persisted   points, progress, stickers, brush, sound, editor mode, gate
-//               type, parent passcode digest, unlock-all, install dismissal.
-//               Each one still goes through useLocalStorage (PR 4), so the
-//               `guj:` keys, their coercions and the v0 adoption path are
-//               untouched — the store only changes who calls the hook.
+//               type, parent passcode digest, unlock-all, install dismissal,
+//               and the child profile list. Each one still goes through
+//               useLocalStorage (PR 4), so the `guj:` keys, their coercions and
+//               the v0 adoption path are untouched — the store only changes who
+//               calls the hook.
+//               Three of them are per child (PR 13b): points, progress and
+//               stickers read `guj:child:<id>:*`, where the id comes from
+//               `guj:active_child`. The key is what changes when a child
+//               switches, so there is no second copy of a ledger to keep in
+//               step; everything else on the list is device-wide, and
+//               src/lib/childProfiles.js says why for each one.
 //   session     the view on screen, the lesson being traced, the curriculum
 //               with its saved waypoint overrides, the parent gate, and the
 //               worksheet selection. A reducer, because these are the ones a
@@ -54,6 +69,14 @@ const NO_WAYPOINTS = [];
 // src/lib/validate.js instead, which do the same coercion and additionally
 // refuse a value outside the range the app can render.
 const toBoolean = (value) => value === true || value === 'true';
+
+// A child who has traced nothing. One factory, because the dashboard's reset
+// has to produce exactly what a new profile starts with.
+const emptyProgress = () => ({
+  tracedCount: 0,
+  quizScore: 0,
+  completedLessons: []
+});
 
 // The views GameZone answers for: its menu plus one per game. The nav bar
 // highlights Games for all five, which is the list it already carried.
@@ -137,19 +160,45 @@ const AppStoreContext = createContext(null);
 export function AppStoreProvider({ children }) {
   const [session, dispatch] = useReducer(reducer, undefined, initialSession);
 
+  // Who is playing, resolved before anything below reads a value that belongs
+  // to them. The initialiser runs once and is idempotent, which is what makes it
+  // safe under StrictMode's double invoke: it creates the implicit first child
+  // and adopts a pre-13b store on the first boot and does nothing on every one
+  // after. See src/lib/childProfiles.js.
+  const [bootstrap] = useState(ensureChildProfiles);
+
+  // `childProfiles`, not `children` — that name is already this component's
+  // React prop, and shadowing it would put the profile list where the app's
+  // whole tree belongs.
+  const [childProfiles, setChildProfiles] = useLocalStorage(
+    CHILDREN_KEY,
+    bootstrap.children,
+    undefined,
+    sanitizeChildren
+  );
+  const [activeChildId, setActiveChildId] = useLocalStorage(ACTIVE_CHILD_KEY, bootstrap.activeChildId);
+
+  // The two keys can disagree — a hand-edited `guj:active_child`, or a profile
+  // the validator dropped — so the list is what decides. Falling back to the
+  // first child keeps the scoped reads below pointing at a profile that exists
+  // rather than at `child:undefined:points`.
+  const activeChild = childProfiles.find((child) => child.id === activeChildId) ?? childProfiles[0];
+  const scopedChildId = activeChild?.id ?? FIRST_CHILD_ID;
+  const scoped = (key) => childScopedKey(scopedChildId, key);
+
   // The two validated reads. The fourth argument is the PR 12 guard: it runs on
-  // whatever comes back off disk, so `guj:points` holding 1e8 and
-  // `guj:stickers` holding one junk entry are corrected at the boundary instead
-  // of reaching a view that renders a six-digit badge or counts three stickers
-  // and draws two.
-  const [points, setStoredPoints] = useLocalStorage('points', 0, undefined, toPoints);
-  const [progressLog, setProgressLog] = useLocalStorage('progress', () => ({
-    tracedCount: 0,
-    quizScore: 0,
-    completedLessons: []
-  }));
+  // whatever comes back off disk, so `guj:child:c1:points` holding 1e8 and
+  // `guj:child:c1:stickers` holding one junk entry are corrected at the boundary
+  // instead of reaching a view that renders a six-digit badge or counts three
+  // stickers and draws two.
+  //
+  // These three are the per-child keys. The key itself changes when the active
+  // child changes, and useLocalStorage re-reads for the new key in the same
+  // render — nothing here has to clear or reload anything by hand.
+  const [points, setStoredPoints] = useLocalStorage(scoped('points'), 0, undefined, toPoints);
+  const [progressLog, setProgressLog] = useLocalStorage(scoped('progress'), emptyProgress);
   const [unlockedStickers, setStoredStickers] = useLocalStorage(
-    'stickers',
+    scoped('stickers'),
     () => [],
     undefined,
     sanitizeStickerIds
@@ -232,11 +281,59 @@ export function AppStoreProvider({ children }) {
   // did when App owned the view state. Everything else goes through dispatch.
   const setView = (nextView) => dispatch({ type: 'view/set', view: nextView });
 
+  // Handing the tablet to the other child.
+  //
+  // It changes one key. Everything scoped follows from that, because the scoped
+  // keys are derived from it — there is no second copy of a child's points to
+  // keep in step. It goes home because the screen belongs to whoever was just
+  // on it: a letter half traced, or a sticker shop showing a balance that is
+  // about to change.
+  //
+  // What it does not do is touch the gate. gateTarget is session state and is
+  // not cleared or set here, parent_pin_hash and gate_type are device keys and
+  // are not in CHILD_SCOPED_KEYS, and the gate has never had an "unlocked for
+  // this session" flag — it re-challenges on every entry. Switching child is
+  // therefore not a way into the parents' room.
+  const switchChild = (childId) => {
+    if (childId === activeChildId) return;
+    if (!childProfiles.some((child) => child.id === childId)) return;
+    setActiveChildId(childId);
+    setView('home');
+  };
+
+  // Returns the same {ok, message} shape the name rules produce, so the popover
+  // can say why a name was refused instead of silently doing nothing.
+  const addChild = (name) => {
+    const result = addChildTo(childProfiles, name);
+    if (!result.ok) return result;
+    setChildProfiles(result.children);
+    setActiveChildId(result.child.id);
+    setView('home');
+    return result;
+  };
+
+  // Wipes one child's keys, and only theirs. For the child currently on screen
+  // the live state has to come back to the same defaults the cleared keys would
+  // read as — the write effect then re-materialises them.
+  const resetChild = (childId) => {
+    resetChildKeys(childId);
+    if (childId !== scopedChildId) return;
+    setStoredPoints(0);
+    setStoredStickers([]);
+    setProgressLog(emptyProgress());
+  };
+
   const value = {
     // Session state
     ...session,
     currentLesson,
     dispatch,
+
+    // Child profiles: the list is device-wide, the values above are the active
+    // one's. activeChildId is the id the scoped keys actually use, which is the
+    // one a caller wants — see the fallback above.
+    childProfiles, activeChild, activeChildId: scopedChildId,
+    switchChild, addChild, resetChild,
 
     // Persisted state
     points, setPoints,
