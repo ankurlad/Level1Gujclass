@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import {
   CheckSquare,
   FileText,
@@ -42,9 +42,8 @@ import { useAppStore } from '../store/appStore';
 export default function ParentDashboard() {
   const {
     sessionCurriculum,
-    progressLog, setProgressLog,
-    unlockedStickers, setUnlockedStickers,
-    setPoints,
+    progressLog,
+    unlockedStickers,
     soundEnabled, setSoundEnabled,
     editorMode, setEditorMode,
     parentUnlockAll, setParentUnlockAll,
@@ -72,6 +71,7 @@ export default function ParentDashboard() {
   const [resetTarget, setResetTarget] = useState(null);
   const [resetEntry, setResetEntry] = useState('');
   const [resetNotice, setResetNotice] = useState(null);
+  const childrenPanelRef = useRef(null);
 
   const closeResetFlow = (notice) => {
     setResetTarget(null);
@@ -258,14 +258,18 @@ export default function ParentDashboard() {
     });
   };
 
-  const resetAllProgress = () => {
-    const whose = activeChild?.name ?? 'this child';
-    if (confirm(`Are you sure you want to reset ${whose}'s points, unlocked stickers, and tracing records? This cannot be undone!`)) {
-      setPoints(0);
-      setUnlockedStickers([]);
-      setProgressLog({ tracedCount: 0, quizScore: 0, completedLessons: [] });
-      setView('home');
-    }
+  // The Danger Zone button at the bottom of the page. It used to do its own
+  // reset behind a confirm(); now it opens the Children panel's flow for the
+  // child on screen, so there is one reset path and it asks for the passcode
+  // wherever a parent starts it. Two buttons doing the same thing to different
+  // rules is how the weaker one becomes the one that gets used.
+  const openActiveChildReset = () => {
+    setResetNotice(null);
+    setResetEntry('');
+    setResetTarget(activeChildId);
+    // Optional call: jsdom has no scrollIntoView, and the panel is a few
+    // hundred pixels up on a phone.
+    childrenPanelRef.current?.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
   };
 
   // Group progress breakdowns
@@ -317,7 +321,7 @@ export default function ParentDashboard() {
         </div>
 
         {/* Children on this device */}
-        <div className="bg-slate-50 border border-slate-100 rounded-2xl p-5 flex flex-col gap-3">
+        <div ref={childrenPanelRef} className="bg-slate-50 border border-slate-100 rounded-2xl p-5 flex flex-col gap-3">
           <div className="flex items-center gap-2">
             <Users size={15} className="text-indigo-600" />
             <h4 className="font-extrabold text-sm text-slate-700 uppercase tracking-wider">Children</h4>
@@ -796,13 +800,14 @@ export default function ParentDashboard() {
         {/* Danger Zone */}
         <div className="mt-auto border-t border-slate-100 pt-6">
           <button
-            onClick={resetAllProgress}
+            onClick={openActiveChildReset}
+            aria-label={`Go to the reset for ${activeChild?.name ?? 'this child'}`}
             className="w-full bg-rose-50 hover:bg-rose-100 text-rose-700 font-extrabold py-3.5 px-4 rounded-2xl flex justify-center items-center gap-2 transition"
           >
             <RefreshCw size={16} />
             {/* Named, because it is one child's progress and not the device's:
-                the values it clears are the active child's keys. The Children
-                panel above is where the other children are reset. */}
+                the values it clears are the active child's keys. It opens the
+                Children panel above, which is where every child is reset. */}
             <span>Reset {activeChild ? `${activeChild.name}'s` : 'All'} Progress</span>
           </button>
         </div>
