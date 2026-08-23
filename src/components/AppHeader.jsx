@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Download, Lock, Settings, Trophy, Unlock } from 'lucide-react';
+import ChildSwitcher from './ChildSwitcher';
 import { useAppStore } from '../store/appStore';
 
 // The bar across the top: home, install, the points badge, the kiosk-mode lock
@@ -36,19 +37,27 @@ export default function AppHeader({ isStandalone, triggerPwaInstall }) {
 
   return (
     <header className="bg-white/95 backdrop-blur-md border-b border-slate-200/80 px-4 py-3 sticky top-0 z-30 flex justify-between items-center shadow-sm">
-      <button 
-        className="flex items-center gap-2.5 cursor-pointer bg-transparent border-0 p-0 text-left transition hover:opacity-90" 
-        onClick={() => setView('home')}
-        aria-label="Akshar PWA Home"
-      >
-        <div className="bg-gradient-to-tr from-indigo-600 to-purple-600 text-white w-9 h-9 rounded-xl flex justify-center items-center text-xl font-gujarati shadow-sm">
-          અ
-        </div>
-        <span className="font-extrabold text-lg tracking-tight text-slate-800">
-          Akshar PWA
-        </span>
-      </button>
-      
+      {/* The brand area, and next to it the one control that says which child
+          the points and stickers belong to. The wordmark stands down below
+          400px so the switcher never has to fight it for room — the glyph tile
+          is the brand at that width, and every target stays 44px. */}
+      <div className="flex items-center gap-2 min-w-0">
+        <button
+          className="flex items-center gap-2.5 cursor-pointer bg-transparent border-0 p-0 text-left transition hover:opacity-90"
+          onClick={() => setView('home')}
+          aria-label="Akshar PWA Home"
+        >
+          <div className="bg-gradient-to-tr from-indigo-600 to-purple-600 text-white w-9 h-9 rounded-xl flex justify-center items-center text-xl font-gujarati shadow-sm flex-shrink-0">
+            અ
+          </div>
+          <span className="font-extrabold text-lg tracking-tight text-slate-800 hidden min-[400px]:inline">
+            Akshar PWA
+          </span>
+        </button>
+
+        <ChildSwitcher />
+      </div>
+
       <div className="flex items-center gap-2">
         {!isStandalone && (
           <button 
