@@ -110,7 +110,7 @@
 
   /* Trace-guide dashed path. Decorative only — the centreline snap probe in
      App.jsx reads its own offscreen canvas, not this. */
-  --color-trace-path: rgba(99, 102, 241, 0.15);
+  --color-trace-path: rgba(99, 102, 241, 0.45);
   --color-trace-path-editor: rgba(245, 158, 11, 0.45);
   --color-sandbox-surface: #ffffff;
 

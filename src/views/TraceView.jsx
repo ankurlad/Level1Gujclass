@@ -148,9 +148,13 @@ export default function TraceView() {
     ctx.fillStyle = '#f8fafc';
     ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
 
-    // Guide letter in huge light grey font
+    // Guide letter in light slate — visible enough for a child to see the
+    // letterform (PRD: WCAG 2.2 AA on the #f8fafc tracing surface), light
+    // enough that the child's own ink and the numbered dots stay the focus.
+    // The previous rgba(226,232,240,0.95) was white-on-white — effectively
+    // invisible on the phone, which is why the dots read as "floating dots".
     ctx.font = '220px "Noto Sans Gujarati", "Baloo Bhai 2", sans-serif';
-    ctx.fillStyle = 'rgba(226, 232, 240, 0.95)';
+    ctx.fillStyle = 'rgba(148, 163, 184, 0.75)';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(currentLesson.letter, CANVAS_W / 2, CANVAS_H / 2 + 10);
