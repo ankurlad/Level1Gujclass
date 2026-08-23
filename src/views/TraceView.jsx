@@ -148,13 +148,14 @@ export default function TraceView() {
     ctx.fillStyle = '#f8fafc';
     ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
 
-    // Guide letter in light slate — visible enough for a child to see the
-    // letterform (PRD: WCAG 2.2 AA on the #f8fafc tracing surface), light
-    // enough that the child's own ink and the numbered dots stay the focus.
-    // The previous rgba(226,232,240,0.95) was white-on-white — effectively
-    // invisible on the phone, which is why the dots read as "floating dots".
+    // Guide letter in slate-600 at 60% — strong enough to read clearly on a
+    // phone behind the small numbered dots (kid must see the letterform to
+    // judge where each stroke starts), light enough that the child's colored
+    // ink and the dots stay the focus. History: 226,232,240 was white-on-white
+    // (invisible); 148,163,184@0.75 read as a faint ghost and the dots
+    // dominated the letter — raised to a clearly visible gray.
     ctx.font = '220px "Noto Sans Gujarati", "Baloo Bhai 2", sans-serif';
-    ctx.fillStyle = 'rgba(148, 163, 184, 0.75)';
+    ctx.fillStyle = 'rgba(71, 85, 105, 0.6)';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(currentLesson.letter, CANVAS_W / 2, CANVAS_H / 2 + 10);
@@ -460,7 +461,7 @@ export default function TraceView() {
         {/* Canvas draw field */}
         <div 
           style={{ position: 'relative', aspectRatio: `${CANVAS_W}/${CANVAS_H}` }}
-          className="border-4 border-slate-200 rounded-3xl overflow-hidden shadow-inner bg-slate-100 w-full max-w-[380px] flex-1 flex items-center justify-center"
+          className="trace-surface border-4 border-slate-200 rounded-3xl overflow-hidden shadow-inner bg-slate-100 w-full max-w-[380px] flex-1 flex items-center justify-center"
         >
           <canvas
             ref={canvasRef}
@@ -509,7 +510,7 @@ export default function TraceView() {
                 }}
                 onMouseDown={(e) => handleWaypointMouseDown(e, idx)}
                 onTouchStart={(e) => handleWaypointTouchStart(e, idx)}
-                className={`w-8 h-8 rounded-full flex justify-center items-center font-bold text-xs shadow border-2 transition-all ${dotClass}`}
+                className={`w-6 h-6 rounded-full flex justify-center items-center font-bold text-[10px] leading-none shadow border-2 transition-all ${dotClass}`}
               >
                 {wp.label}
               </div>

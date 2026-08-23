@@ -386,6 +386,19 @@
     animation: pulse-glow 1.8s infinite ease-in-out;
   }
 
+  /* Tracing surface. The numbered waypoint dots are DOM nodes layered ON TOP
+     of the canvas, so they inherit none of the canvas's touch-none. Without
+     this guard the browser treats a drag that starts on a dot as a page
+     scroll / pinch-zoom and the whole view translates under the child's
+     finger while they draw (ink lands off-letter). Lock the gesture to the
+     canvas and kill rubber-band overscroll on the scroll container. */
+  .trace-surface {
+    touch-action: none;
+    overscroll-behavior: contain;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
   .kiosk-lock-overlay {
     position: fixed;
     inset: 0;
