@@ -353,6 +353,53 @@ export const OVERRIDES = {
     ],
   },
 
+  jha: {
+    note: 'C first (left part), then the right part (tick + stem + hook) as one stroke',
+    strokes: [
+      // Stroke 1: the C — top-left, curving right, ending bottom-left.
+      // The video shows this is drawn first (left curve, then right hook).
+      [
+        [133, 114], // top of the C, left
+        [164, 111], // top of the C, mid
+        [188, 132], // right bulge, upper
+        [191, 164], // right bulge, mid
+        [183, 194], // right bulge, lower
+        [153, 203], // bottom of the C, right of centre
+        [129, 193], // bottom-left tip of the C
+      ],
+      // Stroke 2: the right part — short tick on top, straight stem down the
+      // middle, then a hook that arcs right and back to the tail.
+      [
+        [222, 90], // top tick, tip
+        [222, 125], // down the stem
+        [233, 134], // hook junction, where the stem bends out
+        [246, 158], // right bulge of the hook
+        [238, 190], // lower right of the hook
+        [231, 199], // tail end (bottom of the hook)
+      ],
+    ],
+  },
+
+  dha: {
+    note: 'top bar left-to-right, diagonal to lower-left, up the left limb, right along the base, back up into the curl',
+    strokes: [
+      [
+        [163, 93], // dot 1 — start at the top-left of the bar (was marginal off-ink in the auto pass)
+        [193, 87], // across the top
+        [213, 100], // right end of the top bar
+        [211, 117], // turning back down
+        [195, 135], // the inner curl, lower
+        [175, 148], // curl exit
+        [155, 162], // left limb, upper
+        [152, 175], // left limb, mid
+        [155, 192], // left limb, lower
+        [175, 203], // bottom of the base, left
+        [205, 204], // bottom of the base, mid
+        [231, 199], // base end, right
+      ],
+    ],
+  },
+
   dha2: {
     note: 'curl and bowl are one stroke that rises up the stem; tick and flick after',
     strokes: [

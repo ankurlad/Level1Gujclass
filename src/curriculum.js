@@ -200,20 +200,18 @@ export const CONSONANTS = [
     emoji: '🌳',
     instructions: 'Draw a left curve shape, then draw a right hook shape connected next to it.',
     waypoints: [
-      { x: 58.42, y: 28.13, label: '1' },
-      { x: 58.42, y: 33.59, label: '2' },
-      { x: 58.42, y: 39.06, label: '3' },
-      { x: 35, y: 35.63, label: '4', moveTo: true },
-      { x: 43.33, y: 34.69, label: '5' },
-      { x: 49.31, y: 41.25, label: '6' },
-      { x: 50.26, y: 51.21, label: '7' },
-      { x: 48.1, y: 60.69, label: '8' },
-      { x: 40.36, y: 63.55, label: '9' },
-      { x: 33.42, y: 58.44, label: '10' },
-      { x: 50.53, y: 41.25, label: '11', moveTo: true },
-      { x: 58.89, y: 39.93, label: '12' },
-      { x: 64.74, y: 46.71, label: '13' },
-      { x: 64.21, y: 56.88, label: '14' }
+      { x: 35, y: 35.63, label: '1' },
+      { x: 43.1, y: 34.69, label: '2' },
+      { x: 48.95, y: 40.94, label: '3' },
+      { x: 50.26, y: 50.39, label: '4' },
+      { x: 48.42, y: 59.75, label: '5' },
+      { x: 41.44, y: 63.75, label: '6' },
+      { x: 34.21, y: 59.69, label: '7' },
+      { x: 58.42, y: 28.13, label: '8', moveTo: true },
+      { x: 58.42, y: 38.4, label: '9' },
+      { x: 64.12, y: 44.58, label: '10' },
+      { x: 64.94, y: 54.14, label: '11' },
+      { x: 60.79, y: 62.19, label: '12' }
     ]
   },
   {
@@ -287,17 +285,14 @@ export const CONSONANTS = [
     instructions: 'Start top-right, loop left, drop down, make a small circle at the end.',
     waypoints: [
       { x: 42.89, y: 29.06, label: '1' },
-      { x: 50.87, y: 27.19, label: '2' },
-      { x: 56.05, y: 33.74, label: '3' },
-      { x: 50.69, y: 41.06, label: '4' },
-      { x: 43.29, y: 46.09, label: '5' },
-      { x: 40, y: 55.35, label: '6' },
-      { x: 45.13, y: 62.96, label: '7' },
-      { x: 54.01, y: 63.75, label: '8' },
-      { x: 60.79, y: 58.55, label: '9' },
-      { x: 58, y: 50.12, label: '10' },
-      { x: 50.4, y: 53.28, label: '11' },
-      { x: 50.53, y: 63.44, label: '12' }
+      { x: 50.65, y: 27.03, label: '2' },
+      { x: 56.05, y: 33.09, label: '3' },
+      { x: 51.36, y: 40.63, label: '4' },
+      { x: 44.14, y: 45.4, label: '5' },
+      { x: 40, y: 53.73, label: '6' },
+      { x: 43.76, y: 62.19, label: '7' },
+      { x: 52.1, y: 63.75, label: '8' },
+      { x: 60, y: 60.94, label: '9' }
     ]
   },
   {
