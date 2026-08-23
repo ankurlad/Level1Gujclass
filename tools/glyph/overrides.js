@@ -354,48 +354,71 @@ export const OVERRIDES = {
   },
 
   jha: {
-    note: 'C first (left part), then the right part (tick + stem + hook) as one stroke',
+    note: 'C (blue) first, right hook (red) second, top-right tick (green) LAST — 3 strokes. Anchors from skeleton dump: nod7=(222,90) tick-top, j1=(221,126) junction, n8=(133,114) C-top-tip, n9=(127,187) C-bot-tip, j3=(243,142), n10=(231,199) hook-tail.',
     strokes: [
-      // Stroke 1: the C — top-left, curving right, ending bottom-left.
-      // The video shows this is drawn first (left curve, then right hook).
+      // Stroke 1 (C): top-left tip → right → down right side → along bottom → bottom-left tip
       [
-        [133, 114], // top of the C, left
-        [164, 111], // top of the C, mid
-        [188, 132], // right bulge, upper
-        [191, 164], // right bulge, mid
-        [183, 194], // right bulge, lower
-        [153, 203], // bottom of the C, right of centre
-        [129, 193], // bottom-left tip of the C
+        [133, 114], // node 8: top-left tip of the C (start)
+        [153, 110], // top arc, left of centre
+        [173, 115], // top arc, right of centre
+        [182, 124], // junction 0: top-right of the C
+        [191, 133], // junction 2: where the right limb begins
+        [190, 149], // down the right side of the C
+        [183, 193], // lower right of the C
+        [173, 202], // bottom of the C, right of centre
+        [156, 204], // bottom of the C, left of centre
+        [138, 198], // towards bottom-left
+        [135, 196], // node 6: bottom-left junction
+        [127, 187], // node 9: bottom-left tip of the C (end)
       ],
-      // Stroke 2: the right part — short tick on top, straight stem down the
-      // middle, then a hook that arcs right and back to the tail.
+      // Stroke 2 (right hook): from junction 1 (below the tick), right → down → tail
       [
-        [222, 90], // top tick, tip
-        [222, 125], // down the stem
-        [233, 134], // hook junction, where the stem bends out
-        [246, 158], // right bulge of the hook
-        [238, 190], // lower right of the hook
-        [231, 199], // tail end (bottom of the hook)
+        [221, 126], // junction 1: start, just below the tick
+        [231, 131], // heading right
+        [240, 137], // entering the hook bulge
+        [245, 146], // right side, upper
+        [248, 164], // rightmost point of the hook
+        [244, 182], // lower right, curve back
+        [234, 197], // approaching the tail
+        [231, 199], // node 10: tail end (bottom of the hook)
+      ],
+      // Stroke 3 (tick): top of tick → down to junction 1, drawn LAST
+      [
+        [222, 90],  // node 7: top of the tick (start)
+        [222, 107], // mid tick
+        [222, 125], // bottom of the tick, meets junction 1 (end)
       ],
     ],
   },
 
   dha: {
-    note: 'top bar left-to-right, diagonal to lower-left, up the left limb, right along the base, back up into the curl',
+    note: 'top bar left-to-right (start ON the bar), down the right, diagonally across the knot, down the left limb (inside the bowl), along the bottom of the bowl, up the right limb and back into the curl to close. Knot region gets more waypoints this time.',
     strokes: [
       [
-        [163, 93], // dot 1 — start at the top-left of the bar (was marginal off-ink in the auto pass)
-        [193, 87], // across the top
-        [213, 100], // right end of the top bar
-        [211, 117], // turning back down
-        [195, 135], // the inner curl, lower
-        [175, 148], // curl exit
-        [155, 162], // left limb, upper
-        [152, 175], // left limb, mid
-        [155, 192], // left limb, lower
-        [175, 203], // bottom of the base, left
-        [205, 204], // bottom of the base, mid
-        [231, 199], // base end, right
+        [168, 84],  // top of bar, left side — ON the bar ink (was off-ink before)
+        [185, 84],  // mid-bar
+        [203, 87],  // right end of bar (top of stroke 1, on the centreline)
+        [211, 103], // down the right limb
+        [209, 117], // right limb, just above the knot crossing
+        [202, 127], // entering the knot from the right, on the diagonal (was too few anchors here)
+        [195, 132], // knot centre — the exact crossing the child must trace
+        [186, 136], // knot exit, going left (junction 2)
+        [175, 144], // on the diagonal, mid-left of the crossing (inside the bowl wall)
+        [162, 152], // knot exit left, joining the left limb (junction 3)
+        [154, 165], // left limb, just below the crossing — upper bowl wall
+        [152, 176], // left limb, mid — outer bowl wall
+        [155, 188], // left limb, lower — inner bowl wall
+        [160, 193], // bottom-left of the bowl (junction 6)
+        [172, 201], // along the bowl bottom, left
+        [186, 204], // bowl bottom, centre (junction 8)
+        [200, 203], // bowl bottom, right (junction 7)
+        [213, 193], // up the right limb, approaching the right wall of the bowl
+        [224, 180], // right limb, mid (junction 4)
+        [214, 167], // right limb, upper — closing back into the knot from the right
+        [198, 162], // inside the bowl opening, heading left into the stroke 3 diagonal
+        [180, 155], // final approach into the knot from the bowl — stroke ends here,
+        //         // meeting the earlier pass at ~ (175,144); the child sees the same
+        //         // knot visited twice (once from the top diagonal, once from the bowl)
       ],
     ],
   },
