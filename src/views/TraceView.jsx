@@ -63,7 +63,18 @@ const PHONICS_GUIDE = {
   ha: { phonic: "ha", pron: "h as in home" },
   la2: { phonic: "la", pron: "l as in pearl (retroflex l)" },
   ksha: { phonic: "ksha", pron: "ksh as in action" },
-  gna: { phonic: "gna", pron: "gya as in gyan (nasalized)" }
+  gna: { phonic: "gna", pron: "gya as in gyan (nasalized)" },
+  // The vowels. Each pair is one sound held short or long, so the two entries
+  // are deliberately the same mouth shape with a different length written out —
+  // that contrast is the whole lesson.
+  a: { phonic: "a", pron: "a as in about (short)" },
+  aa: { phonic: "aa", pron: "aa as in father (long)" },
+  i: { phonic: "i", pron: "i as in sit (short)" },
+  ii: { phonic: "ee", pron: "ee as in feet (long)" },
+  u: { phonic: "u", pron: "u as in put (short)" },
+  uu: { phonic: "oo", pron: "oo as in food (long)" },
+  r: { phonic: "ru", pron: "ri as in rich (vocalic r)" },
+  l: { phonic: "lu", pron: "lri — a Sanskrit sound, rare in Gujarati" }
 };
 
 export default function TraceView() {

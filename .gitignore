@@ -24,3 +24,7 @@ dist-ssr
 *.sw?
 
 .vercel
+
+# scripts/tts-generate.sh: the edge-tts venv it owns, and its task list
+.tts-venv
+.tts-tasks.tsv

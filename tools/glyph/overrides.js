@@ -147,6 +147,212 @@ export const OVERRIDES = {
     ],
   },
 
+  // ---- vowels (PR 13a2) ----
+  //
+  // The vowels fail the automatic pass in one of two ways. અ/આ/ઌ are
+  // over-fragmented: a turn where the pen doubles back inside a bulb reads as
+  // two strokes meeting at a junction, so the one motion that draws the whole
+  // left form comes out as two or three. ઊ/ઋ are ordered backwards: the graph
+  // picks a start by bounding box and ends up sweeping right-to-left across a
+  // letter the child reads left-to-right, and — worse for ઊ — round the bowl
+  // the opposite way from ઉ, which is the same bowl.
+
+  a: {
+    note: 'left form is one motion through the bulb; crossbar, then stem',
+    strokes: [
+      [
+        [108, 91], // top-left tip
+        [126, 86],
+        [145, 89],
+        [157, 100], // over the shoulder and down
+        [159, 116],
+        [157, 131],
+        [138, 147],
+        [115, 147], // the bulb — the pen turns here, it does not lift
+        [129, 151],
+        [133, 164], // and away down into the bowl
+        [153, 178],
+        [168, 179], // along the bottom
+        [186, 176],
+        [200, 165], // up to the junction
+        [208, 146],
+        [208, 124], // rising into the spur
+      ],
+      [
+        [208, 147], // crossbar, left to right
+        [232, 152],
+        [256, 147],
+      ],
+      [
+        [257, 90], // the stem, top to bottom
+        [257, 118],
+        [257, 147],
+        [257, 170],
+        [259, 192],
+        [276, 201], // baseline flick
+      ],
+    ],
+  },
+
+  aa: {
+    note: 'અ shifted 29px left, then the ા bar last — "draw અ, then the long bar"',
+    strokes: [
+      [
+        [79, 91],
+        [97, 86],
+        [116, 89],
+        [128, 100],
+        [130, 116],
+        [128, 131],
+        [109, 147],
+        [86, 147], // the bulb
+        [100, 151],
+        [104, 164],
+        [124, 178],
+        [139, 179],
+        [157, 176],
+        [171, 165],
+        [179, 146],
+        [179, 124],
+      ],
+      [
+        [179, 147], // crossbar
+        [203, 152],
+        [227, 147],
+      ],
+      [
+        [228, 90], // અ's own stem
+        [228, 118],
+        [228, 147],
+        [228, 170],
+        [230, 192],
+        [247, 201],
+      ],
+      [
+        [286, 90], // the ા bar, full height, and its flick
+        [286, 143],
+        [291, 196],
+        [306, 201],
+      ],
+    ],
+  },
+
+  uu: {
+    note: 'the bowl runs the same way round as ઉ; then ઉ’s inner loop, then the tall bar',
+    strokes: [
+      [
+        [215, 40], // where ઉ starts, heading left along the top
+        [183, 35],
+        [155, 42],
+        [143, 50],
+        [124, 75],
+        [117, 96], // down the left
+        [114, 130],
+        [118, 162],
+        [126, 180],
+        [144, 198], // round the bottom
+        [167, 204],
+        [188, 202],
+        [206, 188],
+        [208, 168], // and up the inside of the right
+        [198, 146],
+        [195, 139],
+      ],
+      [
+        [155, 90], // the inner loop, exactly ઉ's
+        [175, 86],
+        [191, 87],
+        [206, 99],
+        [208, 115],
+        [201, 131],
+        [195, 139],
+        [183, 141],
+        [172, 142],
+      ],
+      [
+        [225, 45], // the tall bar, top to bottom
+        [240, 57],
+        [251, 73],
+        [257, 135],
+        [263, 197],
+        [277, 201], // baseline flick
+      ],
+    ],
+  },
+
+  r: {
+    note: 'one left-to-right sweep through the centre; lower arm, then stem last',
+    strokes: [
+      [
+        [111, 106], // upper-left arm, from its tip
+        [135, 101],
+        [156, 107],
+        [172, 121],
+        [180, 134], // the centre
+        [190, 135],
+        [209, 127], // out along the right arm
+        [235, 133],
+        [251, 130],
+        [260, 147], // into the hook
+        [261, 163],
+        [259, 175],
+        [250, 182],
+      ],
+      [
+        [176, 139], // lower-left arm, centre outwards
+        [163, 149],
+        [150, 157],
+        [132, 168],
+      ],
+      [
+        [196, 89], // the stem, top to bottom
+        [196, 110],
+        [196, 130],
+        [196, 165],
+        [199, 193],
+        [215, 202], // baseline flick
+      ],
+    ],
+  },
+
+  l: {
+    note: 'the body is one motion up the left and out along the tail; ticks after',
+    strokes: [
+      [
+        [150, 183], // bottom-left tip
+        [144, 175],
+        [134, 159], // up the left
+        [134, 133],
+        [148, 121],
+        [166, 120], // along the top-left arm
+        [185, 128],
+        [197, 129],
+        [205, 123],
+        [221, 119], // the centre
+        [235, 122],
+        [244, 131],
+        [247, 154], // down the right
+        [232, 176],
+        [222, 182],
+        [215, 192],
+        [217, 211],
+        [229, 220], // and out along the bottom tail
+        [252, 220],
+        [260, 217],
+      ],
+      [
+        [221, 89], // the tick above the centre, top down
+        [221, 103],
+        [221, 118],
+      ],
+      [
+        [186, 130], // the tick that hangs inside the bowl
+        [187, 142],
+        [182, 150],
+      ],
+    ],
+  },
+
   dha2: {
     note: 'curl and bowl are one stroke that rises up the stem; tick and flick after',
     strokes: [

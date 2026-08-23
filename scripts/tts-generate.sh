@@ -22,13 +22,28 @@
 # Needs python3 and node (node reads curriculum.js — it is the source of truth
 # for the ids and the words, and this script never hardcodes them).
 #
-# Usage: bash scripts/tts-generate.sh   (from the repo root)
+# Usage: bash scripts/tts-generate.sh                    (from the repo root)
+#        bash scripts/tts-generate.sh --letters=a,aa,i    one lesson's clips only
+#
+# --letters restricts the run to those curriculum ids and drops the seven fixed
+# phrases. It exists so adding letters to the curriculum does not mean
+# re-recording the ones already committed: a fresh render of an existing clip is
+# a diff on bytes nobody asked to change, and every re-record is another chance
+# for the remote service to hand back something subtly different.
 #
 # Rerunning overwrites in place. The clips are committed, so `git status` after
 # a run is the diff: the audio is regenerable, not irreplaceable, but the bytes
 # in the repo are what ships.
 
 set -euo pipefail
+
+ONLY=""
+for arg in "$@"; do
+  case "$arg" in
+    --letters=*) ONLY="${arg#--letters=}" ;;
+    *) echo "unknown argument: $arg" >&2; exit 1 ;;
+  esac
+done
 
 OUT="src/assets/audio"
 VOICE="gu-IN-DhwaniNeural"
@@ -57,21 +72,38 @@ mkdir -p "$OUT"
 
 # The tasks, as TSV: filename, text, rate. The letters come out of
 # curriculum.js; the phrases are written here.
-TASKS="$(mktemp)"
+# Beside the repo rather than in $TMPDIR: on Windows this script runs under Git
+# Bash but the venv interpreter is a native python, and the two disagree about
+# what `/tmp/tmp.XXXX` means. A relative path is the one spelling both read.
+TASKS="./.tts-tasks.tsv"
 trap 'rm -f "$TASKS"' EXIT
 
-node --input-type=module -e "
+ONLY="$ONLY" node --input-type=module -e "
   const { CURRICULUM } = await import('./src/curriculum.js');
+  const only = process.env.ONLY ? new Set(process.env.ONLY.split(',')) : null;
+  const lessons = CURRICULUM.filter((l) => !only || only.has(l.id));
+  if (only) {
+    const missing = [...only].filter((id) => !lessons.some((l) => l.id === id));
+    if (missing.length) throw new Error('no curriculum lesson with id ' + missing.join(', '));
+  }
   const rows = [];
-  for (const l of CURRICULUM) {
-    rows.push([\`letter_\${l.id}.mp3\`, l.letter, '$LETTER_RATE']);
-    rows.push([\`lesson_\${l.id}.mp3\`, \`\${l.letter}. \${l.word}.\`, '$LETTER_RATE']);
+  for (const l of lessons) {
+    // A lesson may carry a \`speech\` override for text the voice cannot say —
+    // see the note on ઌ in src/curriculum.js. The *filenames* never change, so
+    // resolveClip's mapping is untouched; only what was spoken into them is.
+    rows.push([\`letter_\${l.id}.mp3\`, l.speech?.letter ?? l.letter, '$LETTER_RATE']);
+    rows.push([
+      \`lesson_\${l.id}.mp3\`,
+      l.speech?.lesson ?? \`\${l.letter}. \${l.word}.\`,
+      '$LETTER_RATE',
+    ]);
   }
   process.stdout.write(rows.map((r) => r.join('\t')).join('\n') + '\n');
 " > "$TASKS"
 
-# Keep these in sync with PHRASE_CLIPS in src/lib/audio.js.
-cat >> "$TASKS" <<PHRASES
+# Keep these in sync with PHRASE_CLIPS in src/lib/audio.js. A --letters run is
+# recording new lessons, not re-cutting the fixed lines, so it skips them.
+[ -n "$ONLY" ] || cat >> "$TASKS" <<PHRASES
 phrase_correct.mp3	સાચો જવાબ.	$PHRASE_RATE
 phrase_wrong.mp3	ફરીથી પ્રયાસ કરો.	$PHRASE_RATE
 phrase_correct_exclaim.mp3	સાચો જવાબ!	$PHRASE_RATE

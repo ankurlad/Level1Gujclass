@@ -1,8 +1,22 @@
 import { CheckSquare, FileText, Grid, Printer } from 'lucide-react';
+import { CONSONANTS, VOWELS } from '../curriculum';
 import { useAppStore } from '../store/appStore';
 
+// The group names carry their own counts, so they are read off the curriculum
+// rather than typed — the ૩૪ in "All Letters (૩૪)" was already a number that
+// only stayed true as long as nobody added a letter.
+const gujaratiDigits = (value) =>
+  String(value).replace(/\d/g, (digit) => '૦૧૨૩૪૫૬૭૮૯'[Number(digit)]);
+
+const VOWEL_IDS = VOWELS.map((vowel) => vowel.id);
+
 const WORKSHEET_GROUPS = [
-  { id: 'all', name: 'All Letters (૩૪)', filter: () => true },
+  {
+    id: 'all',
+    name: `All Letters (${gujaratiDigits(CONSONANTS.length + VOWELS.length)})`,
+    filter: () => true
+  },
+  { id: 'vowels', name: 'Vowels / સ્વર (અ-ઌ)', filter: (item) => VOWEL_IDS.includes(item.id) },
   { id: 'guttural', name: 'Guttural / કંઠ્ય (ક-ઙ)', filter: (item) => ['ka', 'kha', 'ga', 'gha', 'nga'].includes(item.id) },
   { id: 'palatal', name: 'Palatal / તાલવ્ય (ચ-ઞ)', filter: (item) => ['cha', 'chha', 'ja', 'jha', 'nya'].includes(item.id) },
   { id: 'retroflex', name: 'Retroflex / મૂર્ધન્ય (ટ-ણ)', filter: (item) => ['ta', 'tha', 'da', 'dha', 'ana'].includes(item.id) },
@@ -201,8 +215,10 @@ export default function WorksheetsView() {
               {/* Header */}
               <div className="flex justify-between items-center pb-2 mb-2 border-b border-slate-300">
                 <div className="flex-1 text-center">
-                  <h2 className="text-2xl font-black text-slate-900 tracking-tight">Complete Kakko Tracing Sheet (ક થી જ્ઞ)</h2>
-                  <span className="text-xxs font-bold text-slate-500 uppercase tracking-wider">All 34 Gujarati Consonants</span>
+                  <h2 className="text-2xl font-black text-slate-900 tracking-tight">Complete Kakko Tracing Sheet (કક્કો અને સ્વર)</h2>
+                  <span className="text-xxs font-bold text-slate-500 uppercase tracking-wider">
+                    All {CONSONANTS.length} Gujarati Consonants and {VOWELS.length} Vowels
+                  </span>
                 </div>
                 <div className="text-right text-xs font-bold text-slate-700">
                   <div>Name: <span className="inline-block w-24 border-b border-slate-400"></span></div>

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { CURRICULUM } from '../src/curriculum.js'
+import { CONSONANTS, CURRICULUM, VOWELS } from '../src/curriculum.js'
 import {
   CANVAS_H,
   CANVAS_W,
@@ -19,9 +19,19 @@ const GUJARATI = /[઀-૿]/
 const TEXT_FIELDS = ['id', 'letter', 'english', 'word', 'wordEnglish', 'emoji', 'instructions']
 
 describe('CURRICULUM', () => {
-  it('teaches all 34 consonants', () => {
+  it('teaches all 34 consonants and all 8 vowels', () => {
     expect(Array.isArray(CURRICULUM)).toBe(true)
-    expect(CURRICULUM).toHaveLength(34)
+    expect(CONSONANTS).toHaveLength(34)
+    expect(VOWELS).toHaveLength(8)
+    expect(CURRICULUM).toHaveLength(42)
+  })
+
+  it('puts the consonants first, so the lock chain does not shift', () => {
+    // LessonMap and TraceView lock a lesson on "the one *before* it by index is
+    // cleared". Moving the vowels to the front would re-lock every consonant a
+    // child has already earned, so the order is asserted rather than assumed.
+    expect(CURRICULUM.slice(0, 34)).toEqual(CONSONANTS)
+    expect(CURRICULUM.slice(34)).toEqual(VOWELS)
   })
 
   it('has unique ids', () => {

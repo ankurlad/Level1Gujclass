@@ -47,7 +47,8 @@ Built with React 19, Vite, and Workbox PWA technology, the application operates 
 - **Completion Validation**: Tracing progress calculated via completed waypoints; triggers confetti particle animation and audio fanfare upon completion.
 
 ### 4.2 Curriculum & Phonics System
-- **Consonants Dataset**: Comprehensive data for Gujarati consonants (`ક` through `જ્ઞ`) stored in [`curriculum.js`](file:///C:/Users/ankur/OneDrive/Documents/Projects/Level1Gujclass/src/curriculum.js#L1).
+- **Consonants Dataset**: Comprehensive data for Gujarati consonants (`ક` through `જ્ઞ`) stored in [`curriculum.js`](file:///C:/Users/ankur/OneDrive/Documents/Projects/Level1Gujclass/src/curriculum.js#L1) as `CONSONANTS`.
+- **Vowels Dataset**: The 8 vowels (`અ` through `ઌ`) in the same file as `VOWELS`, each with a generated waypoint path and a `learningViews` sequence — the ordered list of existing app views a child works through to master one letter (trace, say, match, recall, practise). `CURRICULUM` is the two concatenated, consonants first, because the lesson lock chain is by index.
 - **Phonics & Transliteration**: English pronunciations, phonics helper guide, and associated vocabulary words with emojis (e.g., ક - કમળ / Lotus / 🪷).
 - **Speech Synthesis**: Web Speech API (`window.speechSynthesis`) for native letter audio playback; Web Audio API oscillator fallback.
 
@@ -243,7 +244,7 @@ bought.
 | **Phase 2** | Game Zone (Match, Quiz, Phonics, Memory) & Rewards | ✅ Completed |
 | **Phase 3** | Parent Dashboard & Custom Waypoint Editor | ✅ Completed |
 | **Phase 4** | Mobile-First Safe-Area & WCAG 2.2 AA Accessibility Audit | ✅ Completed |
-| **Phase 5** | Vowels (Swar) Expansion & Multi-Child Profiles | 🚧 Multi-child profiles done (6.3); vowels in progress |
+| **Phase 5** | Vowels (Swar) Expansion & Multi-Child Profiles | ✅ Multi-child profiles (6.3); 8 vowels અ-ઌ with generated waypoints, learning sequences and recorded audio (13a2) |
 | **Phase 6** | Android TWA & Google Play Store Packaging | ⏳ Planned |
 
 ---

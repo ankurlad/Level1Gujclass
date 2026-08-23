@@ -1,7 +1,7 @@
 # Akshar
 
-A fully-offline PWA that teaches a 6–8 year old to write the 34 Gujarati consonants,
-ક through જ્ઞ.
+A fully-offline PWA that teaches a 6–8 year old to write the Gujarati kakko: the 34
+consonants, ક through જ્ઞ, and the 8 vowels, અ through ઌ.
 
 The child traces each letter stroke by stroke over a guide glyph, following numbered
 waypoints in order; when the letter is finished there is confetti, a fanfare and points.
@@ -111,11 +111,12 @@ public/            Static, served as-is: fonts/ (4 self-hosted woff2 subsets + t
 src/
   App.jsx          Composition root: which view is on screen, the gate in front of it,
                    the nav bar under it. Nothing else.
-  curriculum.js    The 34 letters — glyph, transliteration, phonics, example word, and
-                   the waypoint array for each.
+  curriculum.js    The 42 letters — glyph, transliteration, phonics, example word, and
+                   the waypoint array for each. Exported as CONSONANTS, VOWELS and
+                   CURRICULUM (the two concatenated, consonants first).
   index.css        The single palette: a Tailwind v4 @theme block of semantic tokens,
                    plus safe-area rules, the 44px touch-target floor and keyframes.
-  assets/audio/    75 recorded gu-IN clips: 34 letters, 34 lesson lines, 7 phrases.
+  assets/audio/    91 recorded gu-IN clips: 42 letters, 42 lesson lines, 7 phrases.
                    Bundled (hashed and precached), not served as-is from public/.
   components/      Chrome that is on screen whatever the view is: header, child switcher,
                    bottom nav, parent gate, install and update cards.
@@ -229,14 +230,14 @@ calibrated against exactly what that file renders at 220px.
 
 ### Letter audio
 
-The Gujarati the app speaks is **recorded**, not synthesized. 75 clips in
-`src/assets/audio/` (898 KB), all one voice — **`gu-IN-DhwaniNeural`**, Microsoft's Gujarati
+The Gujarati the app speaks is **recorded**, not synthesized. 91 clips in
+`src/assets/audio/` (1.3 MB), all one voice — **`gu-IN-DhwaniNeural`**, Microsoft's Gujarati
 neural voice, via `edge-tts`:
 
 | Clips | Name | Text |
 | --- | --- | --- |
-| 34 | `letter_<id>.mp3` | the bare syllable — `ક` |
-| 34 | `lesson_<id>.mp3` | `<letter>. <word>.` — the line TraceView reads when a lesson opens |
+| 42 | `letter_<id>.mp3` | the bare syllable — `ક` |
+| 42 | `lesson_<id>.mp3` | `<letter>. <word>.` — the line TraceView reads when a lesson opens |
 | 7 | `phrase_<key>.mp3` | the fixed lines the games and the sandbox say |
 
 Letters and lesson lines are recorded at `-10%` rate, because a 6-year-old is tracing along
@@ -254,16 +255,22 @@ have no `gu-IN` voice at all — before this, the oscillator was what children a
 The clips are hashed build output, so they are **precached** (`mp3` is in the workbox
 `globPatterns`): the letters speak on a device that has been offline since install.
 
-`bash scripts/tts-generate.sh` regenerates all 75 from scratch — it makes its own `.tts-venv`,
+`bash scripts/tts-generate.sh` regenerates all 91 from scratch — it makes its own `.tts-venv`,
 installs `edge-tts`, reads the ids and words out of `curriculum.js`, and writes the same
-filenames back into `src/assets/audio/`. Needs `node` and `python3`. The seven phrase strings
+filenames back into `src/assets/audio/`. Needs `node` and `python3`.
+`--letters=a,aa,i` narrows a run to those curriculum ids (and skips the phrases), which is
+how new letters are recorded without re-cutting the clips already committed. A lesson may
+carry a `speech: { letter, lesson }` override for text the voice cannot say — ઌ is the one
+that does, because `gu-IN-DhwaniNeural` has no phoneme for it and edge-tts returns
+`NoAudioReceived`. The override changes what is spoken, never the filename, so
+`resolveClip`'s mapping is untouched. The seven phrase strings
 live in the script *and* in `PHRASE_CLIPS` in `src/lib/audio.js`; change a spoken line in a
 view and it has to change in both, or that line quietly drops back to the synthesizer.
 `npm test` guards the rest: `tests/audio.test.js` asserts every letter and every lesson line
 in the curriculum resolves to a clip.
 
 `gu-IN-DhwaniNeural` (female) and `gu-IN-NiranjanNeural` (male) are the two Gujarati voices
-edge-tts offers; `edge-tts --list-voices | grep gu-IN` confirms them. Loop the 34 entries in
+edge-tts offers; `edge-tts --list-voices | grep gu-IN` confirms them. Loop the 42 entries in
 `src/curriculum.js`, keying each file by the letter's `id`. Keep the oscillator fallback in
 place — a missing or unplayable clip must not leave a letter silent.
 

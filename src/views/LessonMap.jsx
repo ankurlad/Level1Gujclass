@@ -1,8 +1,8 @@
 import { CheckCircle, Lock, Sparkles } from 'lucide-react';
 import { useAppStore } from '../store/appStore';
 
-// The Akshar Path: all 34 letters as stepping stones, locked until the one
-// before them is done — unless the parent has switched that off.
+// The Akshar Path: every letter in the curriculum as a stepping stone, locked
+// until the one before it is done — unless the parent has switched that off.
 export default function LessonMap() {
   const {
     sessionCurriculum,
@@ -20,7 +20,7 @@ export default function LessonMap() {
           <span>🗺️ Akshar Path</span>
         </h2>
         <div className="text-xs bg-indigo-100 text-indigo-700 font-extrabold px-3 py-1.5 rounded-full font-sans">
-          {progressLog.completedLessons.length} / 34 Cleared
+          {progressLog.completedLessons.length} / {sessionCurriculum.length} Cleared
         </div>
       </div>
       
