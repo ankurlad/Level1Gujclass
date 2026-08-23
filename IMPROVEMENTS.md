@@ -172,7 +172,7 @@ PR 12 — Input validation (DONE)
 
 PR 13 — Phase 5
   - Glyph/waypoint/centerline engine + quality-bar ground truth: DONE (34 consonants, tool + tests + proof sheets)
-  - Vowels curriculum: pending (PR 13a2)
+  - Vowels curriculum: DONE (PR 13a2 — 8 vowels appended after consonants, centerline waypoints + audio + learning views; l-vowel has a speech override)
   - Multi-child profiles: DONE (PR 13b)
   - Shipped in 13b: src/lib/childProfiles.js is the split — CHILD_SCOPED_KEYS (points, progress,
     stickers, at guj:child:<id>:<key>) against DEVICE_SCOPED_KEYS, with the reason written next to
