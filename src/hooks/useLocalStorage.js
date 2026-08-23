@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 // The one place this app talks to localStorage.
 //
@@ -28,11 +28,25 @@ export const NAMESPACE = 'guj:';
 //       readWaypointOverride in src/App.jsx, which detects the old range
 //       rather than reading this key: the value's own shape is the more
 //       reliable signal, and it makes the conversion idempotent.
-export const SCHEMA_VERSION = 2;
+//   3 — the per-child values (points, progress, stickers) moved out of the
+//       device-wide key and under `child:<id>:` — see src/lib/childProfiles.js,
+//       which owns the list of which keys those are and the move itself. The
+//       migration keys off the absence of `guj:children` rather than off this
+//       number, for the same reason as v2: the store's own shape is the more
+//       reliable signal, and it makes the move idempotent.
+export const SCHEMA_VERSION = 3;
 export const VERSION_KEY = `${NAMESPACE}version`;
 
 // `guj:points`, from the bare key `points`.
 export const storageKey = (key) => `${NAMESPACE}${key}`;
+
+// The bare key of a value that belongs to one child rather than to the device:
+// `child:c1:points`, which lands on disk as `guj:child:c1:points`. It goes
+// through the same namespace, the same JSON encoding, the same version stamp
+// and the same validate guard as every other key — the only thing the profile
+// split changes is the name.
+export const CHILD_PREFIX = 'child:';
+export const childScopedKey = (childId, key) => `${CHILD_PREFIX}${childId}:${key}`;
 
 // The v0 name of the same value: every pre-namespace key was `guj_` + this
 // module's bare key, so the mapping needs no per-key table.
@@ -170,8 +184,41 @@ export function storedSchemaVersion() {
 // changed. With a `validate` guard it does one more thing: the corrected value
 // replaces the bad one on disk, so a clamped or pruned key is fixed rather than
 // re-corrected on every load.
+//
+// The key may change between renders, which is what switching child profiles
+// does (PR 13b): `child:c1:points` becomes `child:c2:points`. The state is
+// therefore held together with the key it was read for, and a mismatch re-reads
+// during the render rather than in an effect. Both halves matter:
+//
+//   - reading in an effect would put one render on screen showing the outgoing
+//     child's points under the incoming child's name;
+//   - and the write effect below would fire first, persisting the outgoing
+//     value under the incoming key — the switch would overwrite the other
+//     child's points with this one's before anything read them back.
+//
+// A render-phase setValue on this same component is React's documented way to
+// adjust state when an input changes: the render is discarded and re-run
+// immediately, before the browser paints and before any effect commits.
 export function useLocalStorage(key, initialValue, migrate, validate) {
-  const [value, setValue] = useState(() => readStored(key, initialValue, migrate, validate));
+  const [state, setState] = useState(() => ({
+    key,
+    value: readStored(key, initialValue, migrate, validate)
+  }));
+
+  let value = state.value;
+  if (state.key !== key) {
+    value = readStored(key, initialValue, migrate, validate);
+    setState({ key, value });
+  }
+
+  // Stable, and it updates the value without touching the key: a setter called
+  // from a stale closure must not resurrect the key it was created under.
+  const setValue = useCallback((next) => {
+    setState((prev) => ({
+      key: prev.key,
+      value: typeof next === 'function' ? next(prev.value) : next
+    }));
+  }, []);
 
   useEffect(() => {
     writeStored(key, value);

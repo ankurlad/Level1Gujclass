@@ -236,6 +236,74 @@ export function validateWaypointsValue(value, { minPoints = 0 } = {}) {
   return { ok: true, waypoints, converted: waypoints !== value };
 }
 
+// The child profile list, `guj:children` (PR 13b).
+//
+// Same shape of rule as the sticker list above: an entry the app cannot render
+// is dropped and logged rather than taking the whole list down, because the
+// other entries are children whose points and stickers are on this device. The
+// list is the index for every `guj:child:<id>:*` key, so a dropped entry
+// orphans that child's data rather than deleting it — the keys stay on disk and
+// a re-added child with the same id would find them again.
+export const CHILD_NAME_MAX = 16;
+export const CHILD_LIMIT = 8;
+
+// A name is a label on a button, not data: whitespace is collapsed so a name of
+// three spaces cannot render as an empty tab stop, and the length is capped
+// because the switcher is a popover on a 360px screen.
+export function childName(value, fallback = 'Child') {
+  if (typeof value !== 'string') return fallback;
+  const collapsed = value.replace(/\s+/g, ' ').trim();
+  if (collapsed === '') return fallback;
+  return collapsed.slice(0, CHILD_NAME_MAX);
+}
+
+const isChildId = (value) => typeof value === 'string' && value.trim() !== '' && value.length <= 64;
+
+export function sanitizeChildren(value) {
+  if (value === null || value === undefined) return [];
+  if (!Array.isArray(value)) {
+    warn(`the child profile list must be an array — starting empty instead of ${describeValue(value)}.`);
+    return [];
+  }
+
+  const kept = [];
+  const seen = new Set();
+  for (const entry of value) {
+    if (typeof entry !== 'object' || entry === null || Array.isArray(entry)) {
+      warn(`dropping a child profile that is not an object: ${describeValue(entry)}.`);
+      continue;
+    }
+    if (!isChildId(entry.id)) {
+      warn(`dropping a child profile with no usable id: ${describeValue(entry.id)}.`);
+      continue;
+    }
+    if (seen.has(entry.id)) {
+      warn(`dropping a repeated child profile id: ${describeValue(entry.id)}.`);
+      continue;
+    }
+    if (kept.length >= CHILD_LIMIT) {
+      warn(`this device holds ${CHILD_LIMIT} child profiles already — ignoring the rest of the list.`);
+      break;
+    }
+
+    seen.add(entry.id);
+    const name = childName(entry.name, `Child ${kept.length + 1}`);
+    const avatar = typeof entry.avatar === 'string' && entry.avatar.length <= 8 ? entry.avatar : undefined;
+    const createdAt = typeof entry.createdAt === 'string' ? entry.createdAt : undefined;
+    kept.push(
+      name === entry.name && avatar === entry.avatar && createdAt === entry.createdAt
+        ? entry
+        : { id: entry.id, name, ...(avatar ? { avatar } : {}), ...(createdAt ? { createdAt } : {}) }
+    );
+  }
+
+  // Identity when every entry came through untouched, so the store does not see
+  // a new array on every read.
+  return kept.length === value.length && kept.every((child, index) => child === value[index])
+    ? value
+    : kept;
+}
+
 // The editor's paste path: text in, either a usable array or one sentence
 // saying why not.
 export function parseWaypointsJson(text, options) {
