@@ -6,6 +6,10 @@ Gujarati consonants. 34 letters in src/curriculum.js, everything else in one src
 53 useState, 14 useEffect). Live at level1gujclass.vercel.app. The real product doc is prd.md
 (the README is still the Vite template).
 
+Status: PRs 0-12 merged, PR 13a merged (34 consonant waypoints regenerated from the glyph
+centreline), **PR 13b DONE — multi-child profiles** (see the PR 13 entry below). Next up is the
+vowels curriculum, PR 13a2.
+
 ## Hard constraints (do not violate in ANY PR)
 - Offline-first PWA: after PR 1 there must be NO runtime dependency on fonts.googleapis.com or any
   third-party call. Self-host assets; precache via service worker.
@@ -166,8 +170,37 @@ PR 12 — Input validation (DONE)
     right and bottom edges of the box, which is exactly the silent untraceable letter this PR is
     for.
 
-PR 13+ — Phase 5 (blocked on PR 4 — do not start earlier)
-  - Vowels curriculum; multi-child profiles.
+PR 13 — Phase 5
+  - Glyph/waypoint/centerline engine + quality-bar ground truth: DONE (34 consonants, tool + tests + proof sheets)
+  - Vowels curriculum: pending (PR 13a2)
+  - Multi-child profiles: DONE (PR 13b)
+  - Shipped in 13b: src/lib/childProfiles.js is the split — CHILD_SCOPED_KEYS (points, progress,
+    stickers, at guj:child:<id>:<key>) against DEVICE_SCOPED_KEYS, with the reason written next to
+    each device key. guj:children holds [{id, name, avatar, createdAt}] (at most 8) and
+    guj:active_child names the one playing. guj:version is 3.
+  - The v1 judgement calls, all of them recorded in prd.md 6.3: the parent passcode and gate type
+    are device-wide, because per-child passcodes would make switching child a way past whichever
+    one was in force; brush colour, brush width and sound stay device defaults (preferences, not
+    progress — a child may want to override one, and moving them later is one line plus a
+    migration); custom waypoints stay device-wide, because a corrected letterform is a curriculum
+    improvement every child gets; unlock-all is a parental control, not an earning.
+  - The migration is lossless and idempotent. First boot creates 'Child 1' (id c1) and moves the
+    three legacy device-wide keys under them via readStored, so a v0 un-namespaced key makes both
+    hops in one boot with v0's own decode rule applied once. The child key is written before the
+    old one is removed; after a complete run there is no legacy key to find, so a second boot
+    writes nothing; an interrupted run resumes, because the list is written before the sweep and
+    c1 is a constant. It keys off the absence of guj:children, not off guj:version.
+  - useLocalStorage now handles its key changing between renders — it holds the value together
+    with the key it was read for and re-reads during the render. Without that, a switch would
+    paint one child's points under the other's name and then persist them into the other's key.
+  - UI: a switcher in the header brand area (avatar, name, popover, New child), deliberately not
+    behind the gate; a Children panel in the parents' room with a per-child reset that asks for
+    the passcode again. The Danger Zone button now opens that same flow instead of its own
+    confirm(), so there is one reset path and one rule. Every target 44px.
+  - 9 tests in tests/childProfiles.test.jsx, all driving the real app: the migration (lossless,
+    idempotent by whole-store dump comparison, v0 in one boot), two independent ledgers, the
+    passcode surviving a switch with the gate still shut, and a reset reaching exactly one child.
+    421 -> 430 tests.
 
 ## Learning-mode improvements (ages 6–8; weave into the PRs marked)
 - Tracing modes (PR 6): numbered waypoints are training wheels that never come off — every trace is

@@ -117,19 +117,21 @@ src/
                    plus safe-area rules, the 44px touch-target floor and keyframes.
   assets/audio/    75 recorded gu-IN clips: 34 letters, 34 lesson lines, 7 phrases.
                    Bundled (hashed and precached), not served as-is from public/.
-  components/      Chrome that is on screen whatever the view is: header, bottom nav,
-                   parent gate, install and update cards.
+  components/      Chrome that is on screen whatever the view is: header, child switcher,
+                   bottom nav, parent gate, install and update cards.
   hooks/           useLocalStorage (namespacing + migration), usePwaInstall,
                    useServiceWorkerUpdate, useWaypointEditor.
   lib/             The headless parts: tracingEngine, waypoints (the path space), audio,
-                   canvas, curriculumStorage, parentPin, stickers, theme.
+                   canvas, childProfiles (which keys are a child's), curriculumStorage,
+                   parentPin, stickers, theme.
   store/           appStore.js — the state more than one view touches, as one context.
   views/           One file per screen: HomeView, LessonMap, TraceView, GameZone,
                    SandboxView, StickerShop, ParentDashboard, WaypointEditor,
                    WorksheetsView.
 tests/             Vitest. Unit tests for the engine, the path space, storage migration
                    and the PIN; jsdom tests that walk the real views through the real
-                   nav controls; an a11y pass over the tokens.
+                   nav controls, including the child profiles end to end; an a11y pass
+                   over the tokens.
 scripts/           Bash utilities that regenerate committed assets. Not part of the build.
 tools/             The oxlint plugin that bans hex literals in JSX.
 ```
@@ -164,6 +166,9 @@ The gate is a modal in front of the dashboard and the waypoint editor, in one of
   (`src/lib/parentPin.js`). The dashboard can report that a passcode is set; it cannot show
   it.
 
+One gate for the whole device: the passcode is not a per-child value, so switching child
+neither clears it nor steps around it (see *More than one child* below).
+
 **This is not a security boundary, and `prd.md` should not be read as claiming otherwise.**
 The hashing removes cleartext from disk, which was a real defect; it does not make the gate
 strong. Everything the gate protects is in `localStorage` on the same origin, readable and
@@ -173,13 +178,39 @@ anyone holding the storage. Treat it as a child-proof latch, not a lock.
 ### Where the state lives
 
 Every persisted value goes through `src/hooks/useLocalStorage.js` under one `guj:`
-namespace, JSON-encoded: `guj:points`, `guj:progress`, `guj:stickers`, `guj:brush_color`,
+namespace, JSON-encoded. Device-wide: `guj:children`, `guj:active_child`, `guj:brush_color`,
 `guj:brush_width`, `guj:sound_enabled`, `guj:editor_mode`, `guj:install_dismissed`,
 `guj:gate_type`, `guj:parent_pin_hash`, `guj:parent_unlock_all`, and one
-`guj:custom_waypoints_<letterId>` per customised letter. `guj:version` records the schema
-(currently 2); older keys are adopted lazily, per key, on first read. Because it is one
-prefix, a whole install can be enumerated, exported or wiped in a loop — which is the
-prerequisite for the multi-child profiles in Phase 5.
+`guj:custom_waypoints_<letterId>` per customised letter. Per child:
+`guj:child:<id>:points`, `guj:child:<id>:progress` and `guj:child:<id>:stickers`.
+`guj:version` records the schema (currently 3); older keys are adopted lazily, per key, on
+first read. Because it is one prefix, a whole install can be enumerated, exported or wiped
+in a loop — and one child can be, by the longer prefix.
+
+### More than one child
+
+`src/lib/childProfiles.js` is the whole of it: a device-wide `guj:children` list of
+`{ id, name, avatar, createdAt }` (at most 8), `guj:active_child` naming the one playing,
+and three keys per child — the points ledger, the progress log and the unlocked stickers.
+Everything a child *earns* is theirs; everything else is the device's, and the reason is
+written next to each key in that file. The short version: one gate for the whole device
+(per-child passcodes would make switching child a way past whichever one was in force),
+brush and sound are preferences and not progress so they stay device defaults for v1, and a
+corrected letterform is a curriculum improvement every child gets.
+
+Switching child is the popover next to the wordmark in the header, not a parental setting —
+handing the tablet to a sibling should not need a parent in the room. It writes
+`guj:active_child` and nothing else, and it cannot open the parents' section: the passcode
+is not a per-child key and the gate re-challenges on every entry regardless. The parents'
+room has a **Children** panel that resets one child's three keys, asking for the passcode
+again where one is set.
+
+The first boot after the update creates `Child 1` and moves the old device-wide `guj:points`,
+`guj:progress` and `guj:stickers` under them. That move is lossless (the child key is written
+before the old one is removed, with the value `readStored` returned, so a v0 un-namespaced
+key makes both hops in one boot) and idempotent (after a complete run there is no legacy key
+left to find; `tests/childProfiles.test.jsx` proves it by comparing the whole store dump
+across two mounts).
 
 ## Assets
 

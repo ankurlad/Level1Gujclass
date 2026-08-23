@@ -62,7 +62,8 @@ Built with React 19, Vite, and Workbox PWA technology, the application operates 
 - **Points Ledger**: Earn +10 points per completed tracing exercise.
 - **Sticker Shop**: Purchase collectible stickers (`Lion`, `Monkey`, `Unicorn`, `Rocket`, `Panda`, `Watermelon`) using accumulated points.
 - **Local Persistence**: Purchases and progress persisted in browser `localStorage` under the single
-  `guj:` namespace (see 6.1).
+  `guj:` namespace (see 6.1), per child (see 6.3) — the points a child earns and the stickers they
+  buy are theirs, not the device's.
 
 ### 4.5 Parent Dashboard & Waypoint Editor
 - **Parent Verification Lock**: Math problem verification (`num1 + num2`) or passcode check before entering management view. This is a child-proof latch, not a security boundary: everything behind it sits in `localStorage` on the same origin, readable and writable from devtools, and 10,000 candidate PINs is an instant brute force for anyone holding the storage. The passcode is stored only as a salted SHA-256 digest (see 6.1) — never in cleartext, and there is no shipped default: the first parent to reach the PIN prompt chooses one and confirms it in a second field, and nothing is stored unless the two agree. The dashboard reports whether a passcode is set, it cannot show it; it can change or remove that passcode, and both actions require the current one first.
@@ -105,6 +106,7 @@ Built with React 19, Vite, and Workbox PWA technology, the application operates 
        ├── App.jsx (State Engine, Tracing, Games, Dashboard)
        ├── curriculum.js (Letter Data & Waypoints)
        ├── hooks/useLocalStorage.js (Namespaced Persistence & Schema Migration)
+       ├── lib/childProfiles.js (Child Profiles: Which Keys Are Whose, & The Migration)
        └── lib/parentPin.js (Salted Passcode Digest)
 ```
 
@@ -121,18 +123,20 @@ Built with React 19, Vite, and Workbox PWA technology, the application operates 
 Everything on disk goes through `src/hooks/useLocalStorage.js`. Component code does not call
 `localStorage` directly.
 
-- **One namespace**: every key is `guj:<name>` — `guj:points`, `guj:progress`, `guj:stickers`,
+- **One namespace**: every key is `guj:<name>`. Device-wide: `guj:children`, `guj:active_child`,
   `guj:brush_color`, `guj:brush_width`, `guj:sound_enabled`, `guj:editor_mode`,
   `guj:install_dismissed`, `guj:gate_type`, `guj:parent_unlock_all`, `guj:parent_pin_hash`, and one
-  `guj:custom_waypoints_<letterId>` per customised letter. A whole install can be enumerated,
-  exported or wiped by prefix, which is the prerequisite for multi-child profiles (Phase 5).
+  `guj:custom_waypoints_<letterId>` per customised letter. Per child: `guj:child:<id>:points`,
+  `guj:child:<id>:progress` and `guj:child:<id>:stickers` — see 6.3. A whole install can be
+  enumerated, exported or wiped by prefix, and one child can be, by the longer prefix.
 - **One encoding**: values are JSON, so read and write are a single pair of rules.
-- **Versioned**: `guj:version` records the schema the store was last written by. Version 2 stores
-  waypoint overrides in the 0-100 path space; version 1 is the namespaced, JSON, hashed-passcode
+- **Versioned**: `guj:version` records the schema the store was last written by. Version 3 keeps the
+  three per-child values under `guj:child:<id>:`; version 2 stores waypoint overrides in the 0-100
+  path space with every value still device-wide; version 1 is the namespaced, JSON, hashed-passcode
   shape with waypoints still in canvas pixels; version 0 is the pre-namespace `guj_*` store. A key
   written by an older version is adopted on first read — the old key is deleted and the new one
   written in the same step — so migration is lazy, per key, and safe to interrupt. Bump the version
-  when a stored *value* shape changes.
+  when a stored *value* shape changes, or when a key moves.
 - **Waypoint overrides carry their own format tag**: the v1 -> v2 conversion keys off the value, not
   off `guj:version` — a coordinate past 100 in either axis can only be pixels, since a letterform in
   path space never reaches the edge of the box. Detection by shape makes the conversion idempotent
@@ -144,7 +148,8 @@ Everything on disk goes through `src/hooks/useLocalStorage.js`. Component code d
 - **No cleartext passcode**: `guj:parent_pin_hash` holds `{algorithm, salt, hash}` — a per-install
   16-byte salt and the SHA-256 of `salt:pin` via `crypto.subtle`. This needs a secure context
   (https or localhost); serving the built app over plain http on a LAN address cannot set or check a
-  passcode and says so.
+  passcode and says so. It is a **device** key: one gate for the whole device, unaffected by which
+  child is playing (6.3).
 
 ### 6.2 Input & Storage Validation
 
@@ -158,6 +163,8 @@ failed. Nothing is dropped without a record, nothing bad is taken quietly, and n
 | :--- | :--- | :--- | :--- |
 | `guj:points` | read + every write | finite number, clamped to `0..999999` | out-of-range clamps, non-numeric starts at 0, both `console.warn`; the corrected value replaces the bad one on disk |
 | `guj:stickers` | read + every write | array of ids the catalogue in `src/lib/stickers.js` actually has, each once | bad and repeated entries are dropped one at a time and logged, the rest are kept — an unlocked sticker is never discarded because a neighbour was junk, and the dashboard count can no longer claim more than it draws |
+| `guj:children` | read | array of `{id, name, ...}`, ids unique, at most 8, names 1-16 chars | a profile that is not usable is dropped and logged; its `guj:child:<id>:*` keys are left on disk, because dropping the index is not deciding the data is worthless |
+| A new child's name | keystroke + submit | 1-16 characters after whitespace collapse, not a name already on the device | refused with the reason in a `role="alert"` line in the switcher; nothing is created |
 | `guj:brush_width` | read | finite number, clamped to `1..64` | clamped or reset to 16, logged; the value reaches `ctx.lineWidth` directly |
 | `guj:custom_waypoints_<letterId>` | read | the waypoint schema below | a bad override is ignored with the reason logged and the letter falls back to its calibrated default; the key is left on disk, because it is the only copy of what the parent recorded |
 | Parent passcode fields (gate first run, dashboard set/change/remove) | keystroke + submit | field holds digits only, max 4; exactly 4 digits to be accepted | a non-passcode never reaches `crypto.subtle`; the reason is one `role="alert"` line under the fields |
@@ -175,6 +182,57 @@ and then converted by `normalizeWaypoints`. It is never clamped — clamping a s
 import the letterform crushed against the right and bottom edges of the box, which is a letter that
 looks fine in the editor and cannot be traced.
 
+### 6.3 Multi-Child Profiles
+
+One device, more than one child. Before this, every persisted value was device-wide, so two children
+on the same tablet shared one points ledger, one sticker shelf and one set of completed letters — the
+second child started at the first one's score and could not earn anything the first one had already
+bought.
+
+- **The list**: `guj:children` holds `[{ id, name, avatar, createdAt }]`, and `guj:active_child`
+  names the one playing. A device keeps at most 8; a name is 1–16 characters, whitespace-collapsed,
+  and must not repeat one already on the device. `src/lib/childProfiles.js` owns the shape and
+  `sanitizeChildren` in `src/lib/validate.js` is its boundary — a profile the app cannot draw is
+  dropped and logged like a bad sticker id, and its `guj:child:<id>:*` keys are **left on disk**
+  rather than deleted, because dropping the index is not the same as deciding the data is worthless.
+- **What is per child**: `points`, `progress` (traced count, quiz score, completed letters) and
+  `stickers` — everything a child *earned*. They live at `guj:child:<id>:<key>`, still through
+  `useLocalStorage`, so the namespace, the JSON encoding, the version stamp and the 6.2 validate
+  guard all still apply. The key is what changes when a child switches; there is no second copy of a
+  ledger to keep in step.
+- **What is device-wide, and why**: the passcode digest and the gate type (one gate for the device —
+  per-child passcodes would mean the gate asks a different question depending on who last used the
+  tablet, and switching child would be a way past whichever one was in force); unlock-all (a
+  parental control, not an earning); **brush colour, brush width and sound (device defaults for
+  v1 — a child does pick these, so there is an argument for scoping them, but they are preferences
+  and not progress, nothing is lost when the other child changes one, and per-child sound is a
+  setting a parent expects to set once for the room. Moving them later is one line plus a
+  migration)**; editor mode; install dismissal; and the waypoint overrides (a corrected letterform
+  is a curriculum improvement — the parent who fixes ક's stroke order fixes it for every child).
+- **The migration is lossless and idempotent**. On the first boot after the update, an implicit child
+  `c1` named *Child 1* is created and the three legacy device-wide keys become that child's. The old
+  decode rules are not re-implemented: `readStored` reads the old key, so a v0 `guj_points` holding
+  the bare string `250` is adopted, parsed and deleted by exactly the code that has always done
+  that, and only then does the value move — two hops in one boot, once ever. The child key is
+  written *before* the old key is removed. After a complete run there is no legacy key left to find,
+  so a second boot writes nothing (the tests compare the whole store dump across two mounts). A run
+  interrupted half way resumes on the next boot, because the list is written before the sweep and
+  the implicit child's id is a constant. A legacy key that survives next to a child key that already
+  has a value is dropped rather than moved, with a `console.warn` — the child's own value is the
+  newer one. The trigger is the absence of `guj:children`, not `guj:version`, for the same reason
+  the v2 conversion keys off the coordinate range: the store's own shape is the more reliable signal.
+- **Switching child is not an unlock**. It writes `guj:active_child` and nothing else, and returns to
+  the home screen. The gate has never had an "unlocked for this session" flag — it re-challenges on
+  every entry — and the passcode is not in the per-child set, so no switch can clear it, replace it
+  or step around it.
+- **Where the UI is**: a switcher in the header brand area (avatar, name, a popover listing every
+  child with the active one checked, and *New child* with a name field — every target 44px). It is
+  deliberately *not* behind the gate: handing the tablet to a sibling is not a parental setting, and
+  a gate there would mean a parent has to be in the room before the other child can start. The
+  parents' room gains a **Children** panel listing each child with a per-child reset; the reset
+  clears only that child's three keys, and asks for the passcode again where one is set (the Danger
+  Zone button at the foot of the page opens the same flow rather than a second, weaker one).
+
 ---
 
 ## 7. Release Milestones & Status
@@ -185,7 +243,7 @@ looks fine in the editor and cannot be traced.
 | **Phase 2** | Game Zone (Match, Quiz, Phonics, Memory) & Rewards | ✅ Completed |
 | **Phase 3** | Parent Dashboard & Custom Waypoint Editor | ✅ Completed |
 | **Phase 4** | Mobile-First Safe-Area & WCAG 2.2 AA Accessibility Audit | ✅ Completed |
-| **Phase 5** | Vowels (Swar) Expansion & Multi-Child Profiles | ⏳ Planned |
+| **Phase 5** | Vowels (Swar) Expansion & Multi-Child Profiles | 🚧 Multi-child profiles done (6.3); vowels in progress |
 | **Phase 6** | Android TWA & Google Play Store Packaging | ⏳ Planned |
 
 ---
