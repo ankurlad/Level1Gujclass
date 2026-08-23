@@ -152,10 +152,10 @@ export const strokesFor = (id, glyph) => {
   return { mask, skel, strokes, keeps: strokes.map(() => []), source: 'skeleton', note: '', snap: 0 };
 };
 
-const toWaypoints = (strokes, keeps = []) => {
+const toWaypoints = (strokes, keeps = [], uniform = false, targetGap = 34) => {
   const waypoints = [];
   strokes.forEach((points, strokeIndex) => {
-    const sampled = resample(points, { keep: keeps[strokeIndex] ?? [] });
+    const sampled = resample(points, { keep: keeps[strokeIndex] ?? [], uniform, targetGap });
     sampled.forEach(([x, y], i) => {
       const wp = { x: canvasToPathX(x), y: canvasToPathY(y), label: String(waypoints.length + 1) };
       if (strokeIndex > 0 && i === 0) wp.moveTo = true;
@@ -299,7 +299,7 @@ const main = () => {
   for (const lesson of lessons) {
     const glyph = glyphs[lesson.id];
     const result = strokesFor(lesson.id, glyph);
-    const waypoints = toWaypoints(result.strokes, result.keeps);
+    const waypoints = toWaypoints(result.strokes, result.keeps, hasFlag('uniform'), 34);
     byId[lesson.id] = waypoints;
 
     const pixels = waypoints.map((wp) => [(wp.x / 100) * CANVAS_W, (wp.y / 100) * CANVAS_H]);

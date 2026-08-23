@@ -255,16 +255,35 @@ const pointAtDistance = (points, lengths, distance) => {
 /**
  * Dense centreline -> the handful of dots the child chases.
  *
- * Three rules, in order: keep the corners (RDP), never leave a gap longer than
- * `maxGap` (a long straight stem still needs something to aim at, and the
- * engine measures deviation from the chord between waypoints, so a long chord
- * across a curve would score a correct trace as sloppy), and never place two
- * closer than `minGap` (two dots inside one fingertip are one dot).
+ * Two modes:
+ *
+ * Corner mode (default): keep the corners (RDP), never leave a gap longer
+ * than `maxGap` (a long straight stem still needs something to aim at), and
+ * never place two closer than `minGap` (two dots inside one fingertip are
+ * one dot).
+ *
+ * Uniform mode: exactly equidistant dots along the arc, first and last on
+ * the stroke ends. This is what the tracing surface wants, for two reasons:
+ * (1) the numbered dots read as an even count-up, so a child can track "I'm
+ * on 7 of 19" instead of a clump in the corner and a desert on the sweep;
+ * (2) the judgment engine scores deviation from the chord between
+ * consecutive waypoints, so equal chords score a correct curve fairly
+ * instead of forgiving a 15px chord in a clump and demanding near-exact
+ * ink over a 90px chord across a curve. The glyph shape is untouched — dots
+ * are still sampled from the same centreline.
  */
-export const resample = (points, { epsilon = 3.5, maxGap = 52, minGap = 15, keep = [] } = {}) => {
+export const resample = (points, { epsilon = 3.5, maxGap = 52, minGap = 15, keep = [], uniform = false, targetGap = 34 } = {}) => {
   const lengths = cumulative(points);
   const total = lengths[lengths.length - 1];
   if (total < 1) return [points[0]];
+
+  if (uniform) {
+    const n = Math.max(2, Math.round(total / targetGap));
+    const step = total / n;
+    const out = [];
+    for (let k = 0; k <= n; k++) out.push(pointAtDistance(points, lengths, k * step));
+    return out;
+  }
 
   const kept = simplify(points, epsilon);
   // Re-express the kept points as distances along the dense line so gaps can be
