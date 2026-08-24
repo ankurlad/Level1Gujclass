@@ -549,11 +549,14 @@ export default function TraceView() {
             const sp = STROKE_PALETTE_TOKENS[si];
             const isStrokeStart = idx === 0 || currentLesson.waypoints[idx - 1].moveTo;
 
-            // Dots are PALE tints of each stroke hue with a darker ring and
-            // the number in the full hue. Deliberately washed out so no
-            // brush color ever reads as "this is a dot" — the child's ink
-            // stays saturated and vivid against a field of soft markers.
-            const tintFill = `color-mix(in srgb, var(${sp.token}) 18%, white)`;
+            // Dots are translucent tints of each stroke hue (mixed with
+            // TRANSPARENT, not white) so the guide glyph's ink line shows
+            // straight through them — the child sees "the stroke path runs
+            // under these markers" instead of a paint patch hiding it. The
+            // ring is solid for stroke identity; the number stays dark and
+            // legible over the faint line. Deliberately soft so no brush
+            // color ever reads as "this is a dot."
+            const tintFill = `color-mix(in srgb, var(${sp.token}) 22%, transparent)`;
             let dotStyle = { borderColor: 'var(--color-slate-300)' };
             let dotClass =
               "bg-white border-slate-300 text-slate-500";
@@ -561,19 +564,22 @@ export default function TraceView() {
               dotClass = "bg-amber-500 border-amber-600 text-ink scale-105 shadow z-20 animate-pulse cursor-move select-none";
               dotStyle = {};
             } else if (isCompleted) {
-              // Done: white dot, thick stroke-color ring —
-              // the letter accumulates a small colored legend as it's drawn.
-              dotClass = "bg-white scale-90";
+              // Done: translucent tint (glyph line still visible under it),
+              // thick solid stroke-color ring — the letter accumulates a
+              // small colored legend as it's drawn without masking the form.
+              dotClass = "scale-90";
               dotStyle = {
+                backgroundColor: tintFill,
                 borderColor: `var(${sp.border})`,
                 borderWidth: '3px',
               };
             } else if (isNext) {
-              // Next: brighter tint, pulsing halo in its stroke hue,
-              // full-hue number so the target pops among its siblings.
+              // Next: brighter translucent tint, pulsing halo in its stroke
+              // hue — the target pops among its siblings without hiding the
+              // glyph line under it.
               dotClass = "pulse-glow-dot scale-110 z-10";
               dotStyle = {
-                backgroundColor: `color-mix(in srgb, var(${sp.token}) 35%, white)`,
+                backgroundColor: `color-mix(in srgb, var(${sp.token}) 38%, transparent)`,
                 borderColor: `var(${sp.border})`,
                 '--dot-glow': `var(${sp.border})`,
               };
