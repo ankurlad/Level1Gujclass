@@ -41,6 +41,77 @@ export const DEFAULT_SNAP_RADIUS = 5;
 // Divide-by-zero guard for degenerate (zero length) segments.
 const EPSILON = 1e-9;
 
+// Closest point on a cubic Bézier to a given query.
+//
+// Why: the ideal path between waypoints is a Catmull-Rom spline, which the
+// trace view renders as a cubic Bézier (one per segment). To score ink
+// against that visible curve we need the true distance to the curve, not to
+// the chord (a chord under-scores a curve-following trace by the sag
+// amount) and not a nearby sample (a 10-point grid leaves a 3px grid error).
+// Newton on f(t) = (B(t)−Q)·B'(t) converges to the exact minimizer in <10
+// iterations from a coarse 16-point initial guess — enough for a
+// sub-0.01-precision deviation read at 380px canvas scale.
+const bezPoint = (P0, P1, P2, P3, t) => {
+  const u = 1 - t;
+  return {
+    x: u * u * u * P0.x + 3 * u * u * t * P1.x + 3 * u * t * t * P2.x + t * t * t * P3.x,
+    y: u * u * u * P0.y + 3 * u * u * t * P1.y + 3 * u * t * t * P2.y + t * t * t * P3.y,
+  };
+};
+const bezD1 = (P0, P1, P2, P3, t) => {
+  const u = 1 - t;
+  return {
+    x: 3 * u * u * (P1.x - P0.x) + 6 * u * t * (P2.x - P1.x) + 3 * t * t * (P3.x - P2.x),
+    y: 3 * u * u * (P1.y - P0.y) + 6 * u * t * (P2.y - P1.y) + 3 * t * t * (P3.y - P2.y),
+  };
+};
+const bezD2 = (P0, P1, P2, P3, t) => {
+  const u = 1 - t;
+  return {
+    x: 6 * u * (P2.x - 2 * P1.x + P0.x) + 6 * t * (P3.x - 2 * P2.x + P1.x),
+    y: 6 * u * (P2.y - 2 * P1.y + P0.y) + 6 * t * (P3.y - 2 * P2.y + P1.y),
+  };
+};
+// Distance from Q to the closest point on the cubic, plus that closest point.
+const nearestOnBezier = (Q, P0, P1, P2, P3) => {
+  // Coarse initial t: 16 samples is enough because the curve is thin and we
+  // only need a t in the right basin for Newton.
+  let bestT = 0;
+  let bestD = Infinity;
+  for (let k = 0; k <= 16; k++) {
+    const t = k / 16;
+    const p = bezPoint(P0, P1, P2, P3, t);
+    const dx = p.x - Q.x, dy = p.y - Q.y;
+    const d = dx * dx + dy * dy;
+    if (d < bestD) { bestD = d; bestT = t; }
+  }
+  // Newton: minimize |B(t) − Q|². f = (B−Q)·B', f' = |B'|² + (B−Q)·B''.
+  for (let iter = 0; iter < 10; iter++) {
+    const t = bestT;
+    const p = bezPoint(P0, P1, P2, P3, t);
+    const d1 = bezD1(P0, P1, P2, P3, t);
+    const d2 = bezD2(P0, P1, P2, P3, t);
+    const f = (p.x - Q.x) * d1.x + (p.y - Q.y) * d1.y;
+    const g = d1.x * d1.x + d1.y * d1.y + (p.x - Q.x) * d2.x + (p.y - Q.y) * d2.y;
+    if (Math.abs(g) < 1e-12) break;
+    let next = t - f / g;
+    if (next < 0) next = 0;
+    else if (next > 1) next = 1;
+    if (Math.abs(next - t) < 1e-7) { bestT = next; break; }
+    bestT = next;
+  }
+  const p = bezPoint(P0, P1, P2, P3, bestT);
+  const dist = Math.hypot(p.x - Q.x, p.y - Q.y);
+  // Path space is 0-100. Rounding to 10 decimals keeps us within 1e-8 of the
+  // true value (1e-6 unit = 4e-5 px at 380px canvas) while avoiding the
+  // 50 → 50.00000000000001 artifact that trips strict-equality assertions.
+  return {
+    x: Math.round(p.x * 1e10) / 1e10,
+    y: Math.round(p.y * 1e10) / 1e10,
+    distance: Math.round(dist * 1e10) / 1e10,
+  };
+};
+
 const isFiniteNumber = (value) => typeof value === 'number' && Number.isFinite(value);
 
 const isPoint = (wp) => Boolean(wp) && isFiniteNumber(wp.x) && isFiniteNumber(wp.y);
@@ -127,38 +198,51 @@ export const createTracingSession = (waypoints, opts = {}) => {
 
   // Nearest point on the whole ideal path, in metric space, with its distance.
   // A one-waypoint subpath has no segment, so it is measured as a point.
+  //
+  // The segments are the SAME curves the trace view renders (Catmull-Rom
+  // splines through the waypoints, reduced to cubic Béziers), NOT the raw
+  // chords: the child traces what they see, so the accuracy must measure
+  // against the visible guide. A chord-based ideal would quietly dock points
+  // for following the curve that was drawn for them.
   const nearestOnIdeal = (mx, my) => {
     let best = null;
-    let bestDistSq = Infinity;
+    let bestDist = Infinity;
+    const consider = (candidate) => {
+      if (candidate.distance < bestDist) {
+        bestDist = candidate.distance;
+        best = { x: candidate.x, y: candidate.y };
+      }
+    };
 
     for (const subpath of subpaths) {
       if (subpath.length === 1) {
         const only = subpath[0];
-        const dx = mx - only.x;
-        const dy = my - only.y;
-        const distSq = dx * dx + dy * dy;
-        if (distSq < bestDistSq) {
-          bestDistSq = distSq;
-          best = only;
-        }
+        consider({ x: only.x, y: only.y, distance: Math.hypot(mx - only.x, my - only.y) });
         continue;
       }
-      for (let i = 1; i < subpath.length; i++) {
-        const a = subpath[i - 1];
-        const b = subpath[i];
-        const candidate = projectOnSegment(mx, my, a.x, a.y, b.x, b.y);
-        const dx = mx - candidate.x;
-        const dy = my - candidate.y;
-        const distSq = dx * dx + dy * dy;
-        if (distSq < bestDistSq) {
-          bestDistSq = distSq;
-          best = candidate;
+      const Q = { x: mx, y: my };
+      for (let i = 0; i < subpath.length - 1; i++) {
+        const a = subpath[i];
+        const b = subpath[i + 1];
+        if (subpath.length === 2) {
+          // Two dots are rendered as a straight line.
+          const candidate = projectOnSegment(mx, my, a.x, a.y, b.x, b.y);
+          consider({ x: candidate.x, y: candidate.y, distance: Math.hypot(mx - candidate.x, my - candidate.y) });
+          continue;
         }
+        // Catmull-Rom → cubic Bézier, identical to TraceView.drawTraceGuide.
+        const p0 = i === 0 ? a : subpath[i - 1];
+        const c = i + 2 < subpath.length ? subpath[i + 2] : b;
+        const P0 = { x: a.x, y: a.y };
+        const P3 = { x: b.x, y: b.y };
+        const P1 = { x: a.x + (b.x - p0.x) / 6, y: a.y + (b.y - p0.y) / 6 };
+        const P2 = { x: b.x - (c.x - a.x) / 6, y: b.y - (c.y - a.y) / 6 };
+        consider(nearestOnBezier(Q, P0, P1, P2, P3));
       }
     }
 
     if (!best) return null;
-    return { x: best.x, y: best.y, distance: Math.sqrt(bestDistSq) };
+    return { x: best.x, y: best.y, distance: bestDist };
   };
 
   const nextWaypoint = () => {
