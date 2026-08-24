@@ -691,7 +691,7 @@ export default function TraceView() {
                 }}
                 onMouseDown={(e) => handleWaypointMouseDown(e, idx)}
                 onTouchStart={(e) => handleWaypointTouchStart(e, idx)}
-                className={`w-5 h-5 rounded-full flex justify-center items-center font-bold text-[8px] leading-none shadow border-2 transition-all ${dotClass}`}
+                className={`w-4 h-4 rounded-full flex justify-center items-center font-bold text-[8px] leading-none shadow border-2 transition-all ${dotClass}`}
               >
                 {wp.label}
               </div>
