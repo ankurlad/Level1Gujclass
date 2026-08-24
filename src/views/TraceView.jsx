@@ -648,8 +648,10 @@ export default function TraceView() {
             } else if (isNext) {
               // Next: brighter translucent tint, pulsing halo in its stroke
               // hue — the target pops among its siblings without hiding the
-              // glyph line under it.
-              dotClass = "pulse-glow-dot scale-110 z-10";
+              // glyph line under it. Size stays at the base 20px (no scale-up):
+              // the dot must never grow bigger than the local stroke band or it
+              // reads as "off the centerline" (the overhang illusion, round 10).
+              dotClass = "pulse-glow-dot z-10";
               dotStyle = {
                 backgroundColor: `color-mix(in srgb, var(${sp.token}) 38%, transparent)`,
                 borderColor: `var(${sp.border})`,
@@ -689,7 +691,7 @@ export default function TraceView() {
                 }}
                 onMouseDown={(e) => handleWaypointMouseDown(e, idx)}
                 onTouchStart={(e) => handleWaypointTouchStart(e, idx)}
-                className={`w-6 h-6 rounded-full flex justify-center items-center font-bold text-[10px] leading-none shadow border-2 transition-all ${dotClass}`}
+                className={`w-5 h-5 rounded-full flex justify-center items-center font-bold text-[8px] leading-none shadow border-2 transition-all ${dotClass}`}
               >
                 {wp.label}
               </div>

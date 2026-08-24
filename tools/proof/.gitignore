@@ -1,0 +1,4 @@
+# Generated analysis artifacts (proof renders / band probes)
+*.ppm
+*.png
+*.rgb
