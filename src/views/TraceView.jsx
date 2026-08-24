@@ -212,34 +212,74 @@ export default function TraceView() {
         : 'rgba(100, 116, 139, 0.75)'; // slate-500 at 75%
 
       strokes.forEach((seg) => {
-        if (seg.length > 1) {
-          ctx.beginPath();
-          ctx.strokeStyle = guideCol;
-          ctx.lineWidth = 4;
-          ctx.setLineDash([6, 6]);
-          ctx.moveTo(pathToCanvasX(seg[0].x), pathToCanvasY(seg[0].y));
-          for (let i = 1; i < seg.length; i++) {
-            ctx.lineTo(pathToCanvasX(seg[i].x), pathToCanvasY(seg[i].y));
+        // Draw the dashed path as a Catmull-Rom curve (converted to cubic
+        // Béziers) through every waypoint.
+        //
+        // Why: the old code drew straight "chords" between adjacent dots with
+        // lineTo. A chord cuts inside every curve in the stroke, so the guide
+        // visibly drifted off the band's center at each bend (a child who
+        // followed it traced off-center). The uniform Catmull-Rom spline
+        // passes through every waypoint and follows the local tangent, so
+        // the dashed line hugs the stroke's center between the dots.
+        //
+        // For the segment a→b with neighbors p0 and c:
+        //   c1 = a + (b − p0) / 6
+        //   c2 = b − (c − a) / 6
+        //   ctx.bezierCurveTo(c1, c2, b)
+        const pts = seg.map((wp) => [pathToCanvasX(wp.x), pathToCanvasY(wp.y)]);
+        if (pts.length < 2) return;
+
+        ctx.beginPath();
+        ctx.strokeStyle = guideCol;
+        ctx.lineWidth = 4;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.setLineDash([6, 6]);
+        ctx.moveTo(pts[0][0], pts[0][1]);
+        if (pts.length === 2) {
+          ctx.lineTo(pts[1][0], pts[1][1]);
+        } else {
+          for (let i = 0; i < pts.length - 1; i++) {
+            const p0 = i === 0 ? pts[0] : pts[i - 1];
+            const a = pts[i];
+            const b = pts[i + 1];
+            const c = i + 2 < pts.length ? pts[i + 2] : pts[pts.length - 1];
+            ctx.bezierCurveTo(
+              a[0] + (b[0] - p0[0]) / 6,
+              a[1] + (b[1] - p0[1]) / 6,
+              b[0] - (c[0] - a[0]) / 6,
+              b[1] - (c[1] - a[1]) / 6,
+              b[0],
+              b[1]
+            );
           }
-          ctx.stroke();
-          ctx.setLineDash([]);
         }
-        // Small directional tick on the first dot of each stroke, pointing
-        // toward the second — an "entice" cue for kids who don't read
-        // numbers: the arrow says which way to drag from this dot.
-        if (seg.length > 1) {
-          const a0 = { x: pathToCanvasX(seg[0].x), y: pathToCanvasY(seg[0].y) };
-          const a1 = { x: pathToCanvasX(seg[1].x), y: pathToCanvasY(seg[1].y) };
-          const ang = Math.atan2(a1.y - a0.y, a1.x - a0.x);
-          const L = 13;
-          ctx.beginPath();
-          ctx.strokeStyle = guideCol;
-          ctx.lineWidth = 3;
-          ctx.lineCap = 'round';
-          ctx.moveTo(a0.x, a0.y);
-          ctx.lineTo(a0.x + L * Math.cos(ang), a0.y + L * Math.sin(ang));
-          ctx.stroke();
-        }
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // Direction arrow between the stroke's first two dots — the
+        // "entice" cue for kids who don't read numbers: it sits in the
+        // clear band between them and points the way the pen travels.
+        // Placed at 52% of the first segment so it never lands inside a
+        // dot's ring.
+        const [sx, sy] = pts[0];
+        const [nx, ny] = pts[1];
+        const ang = Math.atan2(ny - sy, nx - sx);
+        const t = 0.52;
+        const baseX = sx + (nx - sx) * t;
+        const baseY = sy + (ny - sy) * t;
+        const barb = 10;
+        // Arrowhead: tip + two barbs, all pointing along the travel.
+        const tipX = baseX + Math.cos(ang) * barb * 0.5;
+        const tipY = baseY + Math.sin(ang) * barb * 0.5;
+        ctx.beginPath();
+        ctx.strokeStyle = guideCol;
+        ctx.lineWidth = 3;
+        ctx.lineCap = 'round';
+        ctx.moveTo(tipX + Math.cos(ang + 2.7) * barb, tipY + Math.sin(ang + 2.7) * barb);
+        ctx.lineTo(tipX, tipY);
+        ctx.lineTo(tipX + Math.cos(ang - 2.7) * barb, tipY + Math.sin(ang - 2.7) * barb);
+        ctx.stroke();
       });
     }
   };
