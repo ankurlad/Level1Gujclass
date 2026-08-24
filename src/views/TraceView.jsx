@@ -183,11 +183,13 @@ export default function TraceView() {
     ctx.textBaseline = 'middle';
     ctx.fillText(currentLesson.letter, CANVAS_W / 2, CANVAS_H / 2 + 10);
 
-    // Draw dashed guide paths, one per stroke, each in its stroke color.
-    // Waypoints are 0-100, so each one is scaled by the logical canvas size
-    // here — the one place the path space becomes pixels for the guide.
-    // Color is the shared language with the DOM dots: blue = stroke 1,
-    // red = stroke 2, green = stroke 3, amber = stroke 4.
+    // Draw dashed guide paths, one per stroke.
+    //
+    // Colors live on the DOTS, not the guide: the guide here is neutral
+    // slate so the child's brush ink (any of the 5 palette colors, several
+    // of which sit in the same hue family as the stroke dots) always reads
+    // as "what I drew" against "what to draw." Stroke identity + order is
+    // carried by the dot hue (blue → red → green → amber) and the numbers.
     if (currentLesson.waypoints && currentLesson.waypoints.length > 1) {
       const wps = currentLesson.waypoints;
       const strokes = [];
@@ -202,15 +204,17 @@ export default function TraceView() {
       }
       strokes.push(cur);
 
-      strokes.forEach((seg, si) => {
-        const strokeToken =
-          editorMode && editorActive
-            ? '--color-trace-path-editor'
-            : STROKE_PALETTE_TOKENS[si % STROKE_PALETTE_TOKENS.length].token;
-        const col = themeColor(strokeToken);
+      // Neutral guide ink — deliberately NOT one of the brush colors and
+      // NOT a stroke-dot hue, so traced ink always stands out.
+      // oxlint-disable-next-line theme/no-raw-hex
+      const guideCol = editorMode && editorActive
+        ? themeColor('--color-trace-path-editor')
+        : 'rgba(100, 116, 139, 0.75)'; // slate-500 at 75%
+
+      strokes.forEach((seg) => {
         if (seg.length > 1) {
           ctx.beginPath();
-          ctx.strokeStyle = col;
+          ctx.strokeStyle = guideCol;
           ctx.lineWidth = 4;
           ctx.setLineDash([6, 6]);
           ctx.moveTo(pathToCanvasX(seg[0].x), pathToCanvasY(seg[0].y));
@@ -229,7 +233,7 @@ export default function TraceView() {
           const ang = Math.atan2(a1.y - a0.y, a1.x - a0.x);
           const L = 13;
           ctx.beginPath();
-          ctx.strokeStyle = col;
+          ctx.strokeStyle = guideCol;
           ctx.lineWidth = 3;
           ctx.lineCap = 'round';
           ctx.moveTo(a0.x, a0.y);
@@ -545,6 +549,11 @@ export default function TraceView() {
             const sp = STROKE_PALETTE_TOKENS[si];
             const isStrokeStart = idx === 0 || currentLesson.waypoints[idx - 1].moveTo;
 
+            // Dots are PALE tints of each stroke hue with a darker ring and
+            // the number in the full hue. Deliberately washed out so no
+            // brush color ever reads as "this is a dot" — the child's ink
+            // stays saturated and vivid against a field of soft markers.
+            const tintFill = `color-mix(in srgb, var(${sp.token}) 18%, white)`;
             let dotStyle = { borderColor: 'var(--color-slate-300)' };
             let dotClass =
               "bg-white border-slate-300 text-slate-500";
@@ -552,30 +561,30 @@ export default function TraceView() {
               dotClass = "bg-amber-500 border-amber-600 text-ink scale-105 shadow z-20 animate-pulse cursor-move select-none";
               dotStyle = {};
             } else if (isCompleted) {
-              // Done: white dot, thick stroke-color ring — the letter
-              // accumulates a small colored legend as it's drawn.
+              // Done: white dot, thick stroke-color ring —
+              // the letter accumulates a small colored legend as it's drawn.
               dotClass = "bg-white scale-90";
               dotStyle = {
                 borderColor: `var(${sp.border})`,
                 borderWidth: '3px',
-                color: `var(${sp.token})`,
               };
             } else if (isNext) {
-              // Next: pulsing in its stroke color + scale up so it pops
-              // out in a field of same-hued siblings. --dot-glow feeds
-              // the pulse-glow keyframe so the halo matches the hue.
-              dotClass = "pulse-glow-dot scale-110 z-10 text-white";
+              // Next: brighter tint, pulsing halo in its stroke hue,
+              // full-hue number so the target pops among its siblings.
+              dotClass = "pulse-glow-dot scale-110 z-10";
               dotStyle = {
-                backgroundColor: `var(${sp.token})`,
+                backgroundColor: `color-mix(in srgb, var(${sp.token}) 35%, white)`,
                 borderColor: `var(${sp.border})`,
-                '--dot-glow': `var(${sp.token})`,
+                '--dot-glow': `var(${sp.border})`,
               };
             } else {
-              // Unvisited: solid stroke color with white number, thin
-              // darker border so it's legible over the guide glyph.
-              dotClass = "text-white";
+              // Unvisited: pale tint fill, thin dark ring. The number is
+              // --color-ink in every child state (~9:1 on the lightest tint)
+              // so it stays AA-legible regardless of stroke hue; identity
+              // lives in the ring + fill tint, not the digit.
+              dotClass = "text-ink";
               dotStyle = {
-                backgroundColor: `var(${sp.token})`,
+                backgroundColor: tintFill,
                 borderColor: `var(${sp.border})`,
               };
             }
