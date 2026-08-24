@@ -5,6 +5,7 @@ import { useWaypointEditor } from '../hooks/useWaypointEditor';
 import { speak } from '../lib/audio';
 import { canvasRefCoords, setupCanvasScaling } from '../lib/canvas';
 import { BRUSH_TOKENS, themeColor } from '../lib/theme';
+import { ensureGujaratiFont } from '../lib/ensureGujaratiFont';
 import {
   CANVAS_H,
   CANVAS_W,
@@ -145,16 +146,47 @@ export default function TraceView() {
   };
 
   // Canvas Tracing Draw setup
+  //
+  // FONT GATE — the cross-device fix. Every draw path in this component
+  // renders the guide glyph in "Noto Sans Gujarati"; on a device whose
+  // browser has not yet attached that font (iPhone, iPad, Kindle Fire,
+  // Android phone or tablet) the browser silently falls back to a system
+  // Gujarati font and the glyph lands WIDER and differently shaped — every
+  // committed dot then sits "off the centerline", exactly the phone defect
+  // we are chasing. index.html preloads the woff2 and index.css declares
+  // @font-face, so on a healthy device the gate resolves in well under a
+  // second. On a slow or broken one it waits the hard timeout before giving
+  // up — better to draw late with the right font than instantly with the
+  // wrong one, and on a truly dead font we still end up drawing (the app
+  // must never hang a classroom).
+  //
+  // The cancelled-flag + guards make the late repaint idempotent and safe.
+  // The gate is cached module-wide, so it resolves in ~0 ms on every call
+  // after the first — the late repaint only matters once, on the very first
+  // load of the app, when the font is still downloading.
+  const paintGuideRef = useRef(() => {});
+  useEffect(() => { paintGuideRef.current = () => drawTraceGuide(canvasRef.current); });
   useEffect(() => {
-    if (view === 'learn') {
-      if (document.fonts) {
-        document.fonts.ready.then(() => {
-          initCanvas();
-        });
-      } else {
-        initCanvas();
-      }
-    }
+    if (view !== 'learn') return;
+    const started = () => {
+      const s = getTraceSession();
+      return !!(s && s.points && s.points.length) ||
+        !!(completedWaypoints && completedWaypoints.length);
+    };
+    let cancelled = false;
+    ensureGujaratiFont().then(() => {
+      if (cancelled) return;
+      if (view !== 'learn') return;
+      if (!canvasRef.current) return;
+      if (started()) return;
+      // Late repaint: the font finally attached between the first paint and
+      // now. Redraw the guide on the right font — but NEVER over the ink of
+      // a child who started tracing in the meantime (clearing the canvas is
+      // not a trade we take against a few seconds of their stroke).
+      paintGuideRef.current();
+    });
+    initCanvas();
+    return () => { cancelled = true; };
   }, [view, currentLessonIndex, editorWaypoints]);
 
   // Repaint the background, guide letter and dashed waypoint path. Kept apart

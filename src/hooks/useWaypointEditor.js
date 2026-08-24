@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { CURRICULUM } from '../curriculum';
 import { canvasRefCoords } from '../lib/canvas';
+import { ensureGujaratiFont } from '../lib/ensureGujaratiFont';
 import { waypointsKey } from '../lib/curriculumStorage';
 import { WAYPOINT_MIN_POINTS, parseWaypointsJson } from '../lib/validate';
 import {
@@ -74,9 +75,13 @@ export function useWaypointEditor({ canvasRef }) {
 
   // Pulls a logical-pixel point onto the centre of mass of the guide glyph
   // under it. In and out are both logical pixels: the probe below is a pixel
-  // grid, so conversion to the path space happens in the callers.
-  const snapToCenterline = (x, y) => {
+  //  grid, so conversion to the path space happens in the callers.
+  const snapToCenterline = async (x, y) => {
     try {
+      // FONT GATE — the probe draws the same guide glyph, so it must run on
+      // the same font the committed waypoints were calibrated against.
+      // (See src/lib/ensureGujaratiFont.js for the cross-device rationale.)
+      await ensureGujaratiFont();
       // Offscreen probe in the logical space — no DPR scaling, the result is a
       // logical coordinate either way.
       const tempCanvas = document.createElement('canvas');
@@ -119,8 +124,21 @@ export function useWaypointEditor({ canvasRef }) {
             const g = imgData[pixelIndex + 1];
             const b = imgData[pixelIndex + 2];
             
-            // The background is 248, 250, 252. The letter is darker: 226, 232, 240
-            if (r < 240 && g < 240 && b < 240) {
+            // The letter is drawn at rgba(226,232,240,0.95) OVER the
+            // #f8fafc background, so a fully-inset letter pixel composites
+            // to about (227, 233, 240) and an antialiased edge pixel lands
+            // between that and (248, 250, 252). The OLD test "b < 240"
+            // matched ZERO letter pixels (the composite blue is 240-241),
+            // which silently disabled snapping on every device: every
+            // click/drag/record point landed where the child tapped, never
+            // corrected to the centerline. Test the summed distance from
+            // the background instead — a real letter pixel is ~49 away from
+            // the background in total channel distance, antialiased edges
+            // are part of that, the background is 0. 24 keeps the letter
+            // core and strong AA out of the average without catching the
+            // background.
+            const dist = (248 - r) + (250 - g) + (252 - b);
+            if (dist > 24) {
               sumX += px;
               sumY += py;
               count++;
@@ -144,19 +162,21 @@ export function useWaypointEditor({ canvasRef }) {
   // x/y arrive as logical pixels from the drag listener; canvasToPath clamps to
   // the box and rounds, so what lands in state is already storable.
   const updateWaypointPosition = (index, x, y) => {
-    const point = canvasToPath(snapToCenterline(x, y));
+    snapToCenterline(x, y).then((snapped) => {
+      const point = canvasToPath(snapped);
 
-    setEditorWaypoints(prev => {
-      const updated = [...prev];
-      updated[index] = {
-        ...updated[index],
-        x: point.x,
-        y: point.y
-      };
+      setEditorWaypoints(prev => {
+        const updated = [...prev];
+        updated[index] = {
+          ...updated[index],
+          x: point.x,
+          y: point.y
+        };
 
-      setLessonWaypoints(updated);
+        setLessonWaypoints(updated);
 
-      return updated;
+        return updated;
+      });
     });
   };
 
@@ -207,26 +227,28 @@ export function useWaypointEditor({ canvasRef }) {
   const handleCanvasClick = (e) => {
     if (!editorMode || !editorActive) return;
     const { x, y } = getCoords(e);
-    const snapped = canvasToPath(snapToCenterline(x, y));
+    snapToCenterline(x, y).then((snapped) => {
+      const point = canvasToPath(snapped);
 
-    setEditorWaypoints(prev => {
-      const newPoint = {
-        x: snapped.x,
-        y: snapped.y,
-        label: (prev.length + 1).toString()
-      };
-      if (editorMoveTo) {
-        newPoint.moveTo = true;
-        setEditorMoveTo(false); // Reset
-      }
-      const updated = [...prev, newPoint];
+      setEditorWaypoints(prev => {
+        const newPoint = {
+          x: point.x,
+          y: point.y,
+          label: (prev.length + 1).toString()
+        };
+        if (editorMoveTo) {
+          newPoint.moveTo = true;
+          setEditorMoveTo(false); // Reset
+        }
+        const updated = [...prev, newPoint];
 
-      setLessonWaypoints(updated);
+        setLessonWaypoints(updated);
 
-      return updated;
+        return updated;
+      });
+
+      playSound('waypoint');
     });
-    
-    playSound('waypoint');
   };
 
   // Save waypoints to device memory
@@ -343,61 +365,64 @@ export function useWaypointEditor({ canvasRef }) {
   const handleAutoCenterRows = () => {
     if (editorWaypoints.length === 0) return;
 
-    try {
-      const wps = editorWaypoints.map(wp => ({ ...wp }));
-      const letter = currentLesson.letter;
-      // The probe is a pixel raster, so it runs in the logical canvas size and
-      // each waypoint crosses into pixels and back per row.
-      const canvasWidth = CANVAS_W;
-      const canvasHeight = CANVAS_H;
+    // FONT GATE — same glyph, same calibrated font (see file-top rationale).
+    (async () => {
+      try {
+        await ensureGujaratiFont();
 
-      const tempCanvas = document.createElement('canvas');
-      tempCanvas.width = canvasWidth;
-      tempCanvas.height = canvasHeight;
-      const tempCtx = tempCanvas.getContext('2d');
-      
-      tempCtx.font = '220px "Baloo Bhai 2", "Noto Sans Gujarati", sans-serif';
-      tempCtx.fillStyle = 'black';
-      tempCtx.textAlign = 'center';
-      tempCtx.textBaseline = 'middle';
-      tempCtx.fillText(letter, canvasWidth / 2, canvasHeight / 2 + 10);
-      
-      wps.forEach(point => {
-        const labelNum = parseInt(point.label);
-        if (labelNum >= 1 && labelNum <= 10) {
-          const y = Math.floor(pathToCanvasY(point.y));
-          const imageData = tempCtx.getImageData(0, y, canvasWidth, 1).data;
-          
-          let minX = -1;
-          let maxX = -1;
-          const alphaThreshold = 10;
-          
-          for (let x = 0; x < canvasWidth; x++) {
-            const alphaIndex = (x * 4) + 3;
-            const alpha = imageData[alphaIndex];
-            if (alpha > alphaThreshold) {
-              if (minX === -1) minX = x;
-              maxX = x;
+        const wps = editorWaypoints.map(wp => ({ ...wp }));
+        const letter = currentLesson.letter;
+        const canvasWidth = CANVAS_W;
+        const canvasHeight = CANVAS_H;
+
+        const tempCanvas = document.createElement('canvas');
+        tempCanvas.width = canvasWidth;
+        tempCanvas.height = canvasHeight;
+        const tempCtx = tempCanvas.getContext('2d');
+        
+        tempCtx.font = '220px "Baloo Bhai 2", "Noto Sans Gujarati", sans-serif';
+        tempCtx.fillStyle = 'black';
+        tempCtx.textAlign = 'center';
+        tempCtx.textBaseline = 'middle';
+        tempCtx.fillText(letter, canvasWidth / 2, canvasHeight / 2 + 10);
+        
+        wps.forEach(point => {
+          const labelNum = parseInt(point.label);
+          if (labelNum >= 1 && labelNum <= 10) {
+            const y = Math.floor(pathToCanvasY(point.y));
+            const imageData = tempCtx.getImageData(0, y, canvasWidth, 1).data;
+            
+            let minX = -1;
+            let maxX = -1;
+            const alphaThreshold = 10;
+            
+            for (let x = 0; x < canvasWidth; x++) {
+              const alphaIndex = (x * 4) + 3;
+              const alpha = imageData[alphaIndex];
+              if (alpha > alphaThreshold) {
+                if (minX === -1) minX = x;
+                maxX = x;
+              }
+            }
+            
+            if (minX !== -1 && maxX !== -1) {
+              point.x = canvasToPathX((minX + maxX) / 2);
             }
           }
-          
-          if (minX !== -1 && maxX !== -1) {
-            point.x = canvasToPathX((minX + maxX) / 2);
-          }
-        }
-      });
-      
-      setEditorWaypoints(wps);
+        });
+        
+        setEditorWaypoints(wps);
 
-      setLessonWaypoints(wps);
+        setLessonWaypoints(wps);
 
-      playSound('success');
-      setSaveStatus('Auto-centered rows! ⚖️');
-      setTimeout(() => setSaveStatus(''), 3000);
-    } catch (e) {
-      console.error("Auto centering failed", e);
-      alert("Failed to auto-center waypoints.");
-    }
+        playSound('success');
+        setSaveStatus('Auto-centered rows! ⚖️');
+        setTimeout(() => setSaveStatus(''), 3000);
+      } catch (e) {
+        console.error("Auto centering failed", e);
+        alert("Failed to auto-center waypoints.");
+      }
+    })();
   };
 
   // Record mode: the same append the click path does, from a pen that is
@@ -405,22 +430,24 @@ export function useWaypointEditor({ canvasRef }) {
   // recorded stroke carries moveTo unless it is the very first point of the
   // letter, which is the rule startDrawing has always applied.
   const appendRecordedWaypoint = (x, y, breakStroke) => {
-    const snapped = canvasToPath(snapToCenterline(x, y));
+    snapToCenterline(x, y).then((snapped) => {
+      const point = canvasToPath(snapped);
 
-    setEditorWaypoints(prev => {
-      const newPoint = {
-        x: snapped.x,
-        y: snapped.y,
-        label: (prev.length + 1).toString()
-      };
-      if (breakStroke && prev.length > 0) {
-        newPoint.moveTo = true;
-      }
-      const updated = [...prev, newPoint];
+      setEditorWaypoints(prev => {
+        const newPoint = {
+          x: point.x,
+          y: point.y,
+          label: (prev.length + 1).toString()
+        };
+        if (breakStroke && prev.length > 0) {
+          newPoint.moveTo = true;
+        }
+        const updated = [...prev, newPoint];
 
-      setLessonWaypoints(updated);
+        setLessonWaypoints(updated);
 
-      return updated;
+        return updated;
+      });
     });
   };
 
