@@ -29,6 +29,29 @@ import WaypointEditor from './WaypointEditor';
 // operations, this component hands it the pointer events the canvas receives
 // and renders its panel underneath.
 
+// A waypoint with moveTo:true starts a new stroke. Colors are the one shared
+// language between the canvas dashed guide, the DOM dots, and the legend:
+// each stroke owns a hue, so where two strokes cross (a knot/overlap) the
+// child sees two different-colored dot clusters in the same place — "two
+// strokes live here, drawn at different times." Order is the drawing order:
+// blue first, red second, green third, amber fourth (4 is the practical
+// max for the 42-letter set).
+const STROKE_PALETTE_TOKENS = [
+  { token: '--color-primary', border: '--color-primary-shade' }, // blue
+  { token: '--color-danger', border: '--color-danger-shade' }, // red
+  { token: '--color-success', border: '--color-success-shade' }, // green
+  { token: '--color-reward', border: '--color-reward-shade' }, // amber
+];
+
+// Assign each waypoint index to its stroke (0-based). A moveTo waypoint is
+// the FIRST dot of a new stroke; indices before it belong to the previous
+// one. Single-stroke letters all land on 0.
+const strokeIndexOf = (waypoints, idx) => {
+  let s = 0;
+  for (let i = 0; i < idx; i++) if (waypoints[i] && waypoints[i].moveTo) s++;
+  return Math.min(s, STROKE_PALETTE_TOKENS.length - 1);
+};
+
 const PHONICS_GUIDE = {
   ka: { phonic: "ka", pron: "k as in cup" },
   kha: { phonic: "kha", pron: "kh as in Khan (aspirated)" },
@@ -160,27 +183,60 @@ export default function TraceView() {
     ctx.textBaseline = 'middle';
     ctx.fillText(currentLesson.letter, CANVAS_W / 2, CANVAS_H / 2 + 10);
 
-    // Draw dashed guide paths connecting waypoints (respecting moveTo skips).
+    // Draw dashed guide paths, one per stroke, each in its stroke color.
     // Waypoints are 0-100, so each one is scaled by the logical canvas size
     // here — the one place the path space becomes pixels for the guide.
+    // Color is the shared language with the DOM dots: blue = stroke 1,
+    // red = stroke 2, green = stroke 3, amber = stroke 4.
     if (currentLesson.waypoints && currentLesson.waypoints.length > 1) {
-      ctx.beginPath();
-      ctx.strokeStyle = themeColor(
-        editorMode && editorActive ? '--color-trace-path-editor' : '--color-trace-path'
-      );
-      ctx.lineWidth = 4;
-      ctx.setLineDash([6, 6]);
-      ctx.moveTo(pathToCanvasX(currentLesson.waypoints[0].x), pathToCanvasY(currentLesson.waypoints[0].y));
-      for (let i = 1; i < currentLesson.waypoints.length; i++) {
-        const wp = currentLesson.waypoints[i];
-        if (wp.moveTo) {
-          ctx.moveTo(pathToCanvasX(wp.x), pathToCanvasY(wp.y));
+      const wps = currentLesson.waypoints;
+      const strokes = [];
+      let cur = [wps[0]];
+      for (let i = 1; i < wps.length; i++) {
+        if (wps[i].moveTo) {
+          strokes.push(cur);
+          cur = [wps[i]];
         } else {
-          ctx.lineTo(pathToCanvasX(wp.x), pathToCanvasY(wp.y));
+          cur.push(wps[i]);
         }
       }
-      ctx.stroke();
-      ctx.setLineDash([]);
+      strokes.push(cur);
+
+      strokes.forEach((seg, si) => {
+        const strokeToken =
+          editorMode && editorActive
+            ? '--color-trace-path-editor'
+            : STROKE_PALETTE_TOKENS[si % STROKE_PALETTE_TOKENS.length].token;
+        const col = themeColor(strokeToken);
+        if (seg.length > 1) {
+          ctx.beginPath();
+          ctx.strokeStyle = col;
+          ctx.lineWidth = 4;
+          ctx.setLineDash([6, 6]);
+          ctx.moveTo(pathToCanvasX(seg[0].x), pathToCanvasY(seg[0].y));
+          for (let i = 1; i < seg.length; i++) {
+            ctx.lineTo(pathToCanvasX(seg[i].x), pathToCanvasY(seg[i].y));
+          }
+          ctx.stroke();
+          ctx.setLineDash([]);
+        }
+        // Small directional tick on the first dot of each stroke, pointing
+        // toward the second — an "entice" cue for kids who don't read
+        // numbers: the arrow says which way to drag from this dot.
+        if (seg.length > 1) {
+          const a0 = { x: pathToCanvasX(seg[0].x), y: pathToCanvasY(seg[0].y) };
+          const a1 = { x: pathToCanvasX(seg[1].x), y: pathToCanvasY(seg[1].y) };
+          const ang = Math.atan2(a1.y - a0.y, a1.x - a0.x);
+          const L = 13;
+          ctx.beginPath();
+          ctx.strokeStyle = col;
+          ctx.lineWidth = 3;
+          ctx.lineCap = 'round';
+          ctx.moveTo(a0.x, a0.y);
+          ctx.lineTo(a0.x + L * Math.cos(ang), a0.y + L * Math.sin(ang));
+          ctx.stroke();
+        }
+      });
     }
   };
 
@@ -477,25 +533,60 @@ export default function TraceView() {
             className="w-full h-full cursor-pointer touch-none"
           />
 
-          {/* Guidance Waypoints */}
+          {/* Guidance Waypoints — color-coded per stroke: blue = stroke 1,
+              red = stroke 2, green = stroke 3, amber = stroke 4. The
+              colored cluster itself is the "you're here in this stroke"
+              signal for kids who don't read numbers; the number is still
+              on the dot for parents and kids who do. */}
           {currentLesson.waypoints.map((wp, idx) => {
             const isCompleted = completedWaypoints.includes(idx);
             const isNext = completedWaypoints.length === idx;
-            
-            let dotClass = "bg-white border-slate-300 text-slate-500";
+            const si = strokeIndexOf(currentLesson.waypoints, idx);
+            const sp = STROKE_PALETTE_TOKENS[si];
+            const isStrokeStart = idx === 0 || currentLesson.waypoints[idx - 1].moveTo;
+
+            let dotStyle = { borderColor: 'var(--color-slate-300)' };
+            let dotClass =
+              "bg-white border-slate-300 text-slate-500";
             if (editorMode && editorActive) {
               dotClass = "bg-amber-500 border-amber-600 text-ink scale-105 shadow z-20 animate-pulse cursor-move select-none";
+              dotStyle = {};
             } else if (isCompleted) {
-              dotClass = "bg-emerald-700 border-emerald-800 text-white scale-90";
+              // Done: white dot, thick stroke-color ring — the letter
+              // accumulates a small colored legend as it's drawn.
+              dotClass = "bg-white scale-90";
+              dotStyle = {
+                borderColor: `var(${sp.border})`,
+                borderWidth: '3px',
+                color: `var(${sp.token})`,
+              };
             } else if (isNext) {
-              dotClass = "bg-indigo-600 border-indigo-700 text-white pulse-glow-dot scale-110 z-10";
+              // Next: pulsing in its stroke color + scale up so it pops
+              // out in a field of same-hued siblings. --dot-glow feeds
+              // the pulse-glow keyframe so the halo matches the hue.
+              dotClass = "pulse-glow-dot scale-110 z-10 text-white";
+              dotStyle = {
+                backgroundColor: `var(${sp.token})`,
+                borderColor: `var(${sp.border})`,
+                '--dot-glow': `var(${sp.token})`,
+              };
+            } else {
+              // Unvisited: solid stroke color with white number, thin
+              // darker border so it's legible over the guide glyph.
+              dotClass = "text-white";
+              dotStyle = {
+                backgroundColor: `var(${sp.token})`,
+                borderColor: `var(${sp.border})`,
+              };
             }
 
-            // Dash border indicator for moveTo starting new strokes
-            const strokeStyle = wp.moveTo
-              ? { borderStyle: 'dashed', borderWidth: '3px', borderColor: 'var(--color-primary)' }
+            // Stroke-start dots get a dashed outer ring — the "pen goes
+            // down here" cue — independent of the colored fill so it
+            // also works for editor mode.
+            const strokeStartStyle = isStrokeStart && !(editorMode && editorActive)
+              ? { borderStyle: 'dashed', borderWidth: '3px' }
               : {};
-            
+
             return (
               <div
                 key={idx}
@@ -506,7 +597,8 @@ export default function TraceView() {
                   left: `${wp.x}%`,
                   top: `${wp.y}%`,
                   transform: 'translate(-50%, -50%)',
-                  ...strokeStyle
+                  ...dotStyle,
+                  ...strokeStartStyle
                 }}
                 onMouseDown={(e) => handleWaypointMouseDown(e, idx)}
                 onTouchStart={(e) => handleWaypointTouchStart(e, idx)}

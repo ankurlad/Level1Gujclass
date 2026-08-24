@@ -174,7 +174,9 @@
   50% {
     transform: scale(1.1);
     opacity: 1;
-    box-shadow: 0 0 16px color-mix(in srgb, var(--color-primary) 50%, transparent);
+    /* Glow follows the dot's own stroke color (--dot-glow, set per dot),
+       so the "next" pulse matches the hue the child is meant to trace. */
+    box-shadow: 0 0 16px color-mix(in srgb, var(--dot-glow, var(--color-primary)) 60%, transparent);
   }
 }
 
