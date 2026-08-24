@@ -32,6 +32,7 @@ import {
   thin,
 } from './skeleton.js';
 import { mergeBranches, orderStrokes, resample } from './strokes.js';
+import { tipExtend } from './caps.js';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const REPO = path.resolve(HERE, '../..');
@@ -130,13 +131,21 @@ export const strokesFor = (id, glyph) => {
 
   const override = OVERRIDES[id];
   if (override) {
-    const routed = override.strokes.map((anchors, i) =>
-      routeAnchors(index, anchors, `${id} stroke ${i + 1}`)
-    );
+    const routed = override.strokes.map((anchors, i) => ({
+      ...routeAnchors(index, anchors, `${id} stroke ${i + 1}`),
+      tipStart: anchors.length && anchors[0][2] === 'tip',
+      tipEnd: anchors.length && anchors[anchors.length - 1][2] === 'tip',
+    }));
     return {
       mask,
       skel,
-      strokes: routed.map((stroke) => stroke.points),
+      strokes: routed.map((stroke) => {
+        const extended = tipExtend(mask, glyph.width, glyph.height, stroke.points, {
+          start: stroke.tipStart,
+          end: stroke.tipEnd,
+        });
+        return extended.points;
+      }),
       keeps: routed.map((stroke) => stroke.keep),
       source: 'hand',
       note: override.note ?? '',
@@ -148,7 +157,12 @@ export const strokesFor = (id, glyph) => {
   graph = contractShortJunctions(graph, CROSSING);
   graph = pruneWhiskers(graph, WHISKER);
   graph = mergeThroughNodes(graph);
-  const strokes = orderStrokes(mergeBranches(graph)).map((points) => bridgeGaps(index, points));
+  // Both ends of an auto stroke are free ends (degree-1 caps) by the chain
+  // construction, so both are extended to the visible ink tip; the open-cap
+  // test inside tipExtend still refuses any point where the ink continues.
+  const strokes = orderStrokes(mergeBranches(graph))
+    .map((points) => bridgeGaps(index, points))
+    .map((points) => tipExtend(mask, glyph.width, glyph.height, points, { start: true, end: true }).points);
   return { mask, skel, strokes, keeps: strokes.map(() => []), source: 'skeleton', note: '', snap: 0 };
 };
 

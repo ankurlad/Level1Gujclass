@@ -27,7 +27,7 @@ export const OVERRIDES = {
     note: 'right limb rises as the end of stroke 1; flick is stroke 2',
     strokes: [
       [
-        [133, 92], // hook tip, top left
+        [133, 92, 'tip'], // hook tip, top left
         [152, 95],
         [156, 119], // down the left limb
         [159, 151],
@@ -35,12 +35,12 @@ export const OVERRIDES = {
         [197, 165], // along the bottom
         [222, 158], // the junction
         [222, 123], // rising
-        [222, 89], // top of the right limb
+        [222, 89, 'tip'], // top of the right limb
       ],
       [
         [222, 158], // back at the junction
         [227, 196],
-        [242, 201], // baseline flick
+        [242, 201, 'tip'], // baseline flick
       ],
     ],
   },
@@ -49,7 +49,7 @@ export const OVERRIDES = {
     note: 'S and crossbar share 16px of centreline; automation split it into three',
     strokes: [
       [
-        [210, 86], // top right tip
+        [210, 86, 'tip'], // top right tip
         [187, 87],
         [167, 103], // down the left of the upper curl
         [170, 122],
@@ -60,15 +60,15 @@ export const OVERRIDES = {
         [222, 180],
         [203, 203], // along the bottom
         [174, 202],
-        [149, 193], // bottom left tip
+        [149, 193, 'tip'], // bottom left tip
       ],
       [
-        [150, 159], // crossbar, left to right
+        [150, 159, 'tip'], // crossbar, left to right
         [164, 149],
         [182, 139],
         [198, 139],
         [219, 129],
-        [231, 125],
+        [231, 125, 'tip'],
       ],
     ],
   },
@@ -77,7 +77,7 @@ export const OVERRIDES = {
     note: 'S through the crossing, then the pigtail; crossbar last, left to right',
     strokes: [
       [
-        [210, 86], // top right tip
+        [210, 86, 'tip'], // top right tip
         [187, 87],
         [167, 103],
         [170, 122],
@@ -91,15 +91,15 @@ export const OVERRIDES = {
         [156, 195], // arrive left
         [178, 219], // back across itself — the pigtail crossing
         [190, 232],
-        [212, 240], // tail exits right
+        [212, 240, 'tip'], // tail exits right
       ],
       [
-        [150, 159], // crossbar, left to right
+        [150, 159, 'tip'], // crossbar, left to right
         [164, 149],
         [182, 139],
         [198, 139],
         [219, 129],
-        [231, 125],
+        [231, 125, 'tip'],
       ],
     ],
   },
@@ -108,7 +108,7 @@ export const OVERRIDES = {
     note: 'one stroke, not two: the knot doubles back rather than lifting',
     strokes: [
       [
-        [154, 97], // top left tip
+        [154, 97, 'tip'], // top left tip
         [170, 87],
         [192, 87],
         [211, 97],
@@ -119,7 +119,7 @@ export const OVERRIDES = {
         [161, 156], // into the knot
         [181, 164], // and back out of it
         [196, 186],
-        [228, 201], // bottom right
+        [228, 201, 'tip'], // bottom right
       ],
     ],
   },
@@ -135,14 +135,14 @@ export const OVERRIDES = {
         [168, 148, 'free'], // and back up to where it started
         [172, 132],
         [190, 130], // the bar, left to right
-        [219, 130],
+        [219, 130, 'tip'],
       ],
       [
-        [220, 90], // the stem, top to bottom
+        [220, 90, 'tip'], // the stem, top to bottom
         [220, 130],
         [220, 170],
         [227, 196],
-        [239, 201],
+        [239, 201, 'tip'],
       ],
     ],
   },
@@ -161,7 +161,7 @@ export const OVERRIDES = {
     note: 'left form is one motion through the bulb; crossbar, then stem',
     strokes: [
       [
-        [108, 91], // top-left tip
+        [108, 91, 'tip'], // top-left tip
         [126, 86],
         [145, 89],
         [157, 100], // over the shoulder and down
@@ -181,15 +181,15 @@ export const OVERRIDES = {
       [
         [208, 147], // crossbar, left to right
         [232, 152],
-        [256, 147],
+        [256, 147, 'tip'],
       ],
       [
-        [257, 90], // the stem, top to bottom
+        [257, 90, 'tip'], // the stem, top to bottom
         [257, 118],
         [257, 147],
         [257, 170],
         [259, 192],
-        [276, 201], // baseline flick
+        [276, 201, 'tip'], // baseline flick
       ],
     ],
   },
@@ -198,7 +198,7 @@ export const OVERRIDES = {
     note: 'અ shifted 29px left, then the ા bar last — "draw અ, then the long bar"',
     strokes: [
       [
-        [79, 91],
+        [79, 91, 'tip'],
         [97, 86],
         [116, 89],
         [128, 100],
@@ -218,21 +218,21 @@ export const OVERRIDES = {
       [
         [179, 147], // crossbar
         [203, 152],
-        [227, 147],
+        [227, 147, 'tip'],
       ],
       [
-        [228, 90], // અ's own stem
+        [228, 90, 'tip'], // અ's own stem
         [228, 118],
         [228, 147],
         [228, 170],
         [230, 192],
-        [247, 201],
+        [247, 201, 'tip'],
       ],
       [
-        [286, 90], // the ા bar, full height, and its flick
+        [286, 90, 'tip'], // the ા bar, full height, and its flick
         [286, 143],
         [291, 196],
-        [306, 201],
+        [306, 201, 'tip'],
       ],
     ],
   },
@@ -241,7 +241,7 @@ export const OVERRIDES = {
     note: 'the bowl runs the same way round as ઉ; then ઉ’s inner loop, then the tall bar',
     strokes: [
       [
-        [215, 40], // where ઉ starts, heading left along the top
+        [215, 40, 'tip'], // where ઉ starts, heading left along the top
         [183, 35],
         [155, 42],
         [143, 50],
@@ -270,12 +270,12 @@ export const OVERRIDES = {
         [172, 142],
       ],
       [
-        [225, 45], // the tall bar, top to bottom
+        [225, 45, 'tip'], // the tall bar, top to bottom
         [240, 57],
         [251, 73],
         [257, 135],
         [263, 197],
-        [277, 201], // baseline flick
+        [277, 201, 'tip'], // baseline flick
       ],
     ],
   },
@@ -284,7 +284,7 @@ export const OVERRIDES = {
     note: 'one left-to-right sweep through the centre; lower arm, then stem last',
     strokes: [
       [
-        [111, 106], // upper-left arm, from its tip
+        [111, 106, 'tip'], // upper-left arm, from its tip
         [135, 101],
         [156, 107],
         [172, 121],
@@ -296,21 +296,21 @@ export const OVERRIDES = {
         [260, 147], // into the hook
         [261, 163],
         [259, 175],
-        [250, 182],
+        [250, 182, 'tip'],
       ],
       [
         [176, 139], // lower-left arm, centre outwards
         [163, 149],
         [150, 157],
-        [132, 168],
+        [132, 168, 'tip'],
       ],
       [
-        [196, 89], // the stem, top to bottom
+        [196, 89, 'tip'], // the stem, top to bottom
         [196, 110],
         [196, 130],
         [196, 165],
         [199, 193],
-        [215, 202], // baseline flick
+        [215, 202, 'tip'], // baseline flick
       ],
     ],
   },
@@ -319,7 +319,7 @@ export const OVERRIDES = {
     note: 'the body is one motion up the left and out along the tail; ticks after',
     strokes: [
       [
-        [150, 183], // bottom-left tip
+        [150, 183, 'tip'], // bottom-left tip
         [144, 175],
         [134, 159], // up the left
         [134, 133],
@@ -338,10 +338,10 @@ export const OVERRIDES = {
         [217, 211],
         [229, 220], // and out along the bottom tail
         [252, 220],
-        [260, 217],
+        [260, 217, 'tip'],
       ],
       [
-        [221, 89], // the tick above the centre, top down
+        [221, 89, 'tip'], // the tick above the centre, top down
         [221, 103],
         [221, 118],
       ],
@@ -358,7 +358,7 @@ export const OVERRIDES = {
     strokes: [
       // Stroke 1 (C): top-left tip → right → down right side → along bottom → bottom-left tip
       [
-        [133, 114], // node 8: top-left tip of the C (start)
+        [133, 114, 'tip'], // node 8: top-left tip of the C (start)
         [153, 110], // top arc, left of centre
         [173, 115], // top arc, right of centre
         [182, 124], // junction 0: top-right of the C
@@ -369,7 +369,7 @@ export const OVERRIDES = {
         [156, 204], // bottom of the C, left of centre
         [138, 198], // towards bottom-left
         [135, 196], // node 6: bottom-left junction
-        [127, 187], // node 9: bottom-left tip of the C (end)
+        [127, 187, 'tip'], // node 9: bottom-left tip of the C (end)
       ],
       // Stroke 2 (right hook): from junction 1 (below the tick), right → down → tail
       [
@@ -380,11 +380,11 @@ export const OVERRIDES = {
         [248, 164], // rightmost point of the hook
         [244, 182], // lower right, curve back
         [234, 197], // approaching the tail
-        [231, 199], // node 10: tail end (bottom of the hook)
+        [231, 199, 'tip'], // node 10: tail end (bottom of the hook)
       ],
       // Stroke 3 (tick): top of tick → down to junction 1, drawn LAST
       [
-        [222, 90],  // node 7: top of the tick (start)
+        [222, 90, 'tip'],  // node 7: top of the tick (start)
         [222, 107], // mid tick
         [222, 125], // bottom of the tick, meets junction 1 (end)
       ],
@@ -395,7 +395,7 @@ export const OVERRIDES = {
     note: 'top bar left-to-right (start ON the bar), down the right, diagonally across the knot, down the left limb (inside the bowl), along the bottom of the bowl, up the right limb and back into the curl to close. Knot region gets more waypoints this time.',
     strokes: [
       [
-        [168, 84],  // top of bar, left side — ON the bar ink (was off-ink before)
+        [168, 84, 'tip'],  // top of bar, left side — ON the bar ink (was off-ink before)
         [185, 84],  // mid-bar
         [203, 87],  // right end of bar (top of stroke 1, on the centreline)
         [211, 103], // down the right limb
@@ -427,7 +427,7 @@ export const OVERRIDES = {
     note: 'curl and bowl are one stroke that rises up the stem; tick and flick after',
     strokes: [
       [
-        [164, 79], // top of the curl
+        [164, 79, 'tip'], // top of the curl
         [152, 87],
         [143, 101], // round the left
         [147, 120],
@@ -439,17 +439,17 @@ export const OVERRIDES = {
         [208, 173],
         [226, 150], // the junction, then rising
         [226, 110],
-        [226, 89], // top of the stem
+        [226, 89, 'tip'], // top of the stem
       ],
       [
         [157, 131], // the tick, left to right
         [171, 129],
-        [184, 128],
+        [184, 128, 'tip'],
       ],
       [
         [226, 169], // back at the junction
         [229, 193],
-        [246, 201], // baseline flick
+        [246, 201, 'tip'], // baseline flick
       ],
     ],
   },
