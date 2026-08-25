@@ -27,9 +27,17 @@ export const ACTIVE_CHILD_KEY = 'active_child';
 // The keys that move under `child:<id>:`.
 //
 // Everything a child *earned*: the points ledger, the progress log (traced
-// count, quiz score, completed letters) and the unlocked stickers. These are
-// the three values that made a shared device unusable.
-export const CHILD_SCOPED_KEYS = ['points', 'progress', 'stickers'];
+// count, quiz score, completed letters), the unlocked stickers, and the
+// per-letter accuracy record behind mastery, streaks and the dashboard's trends
+// (see src/lib/mastery.js). These are the values that made a shared device
+// unusable — `accuracy` most sharply of all, since it is the one a parent reads
+// as "how is *this* child doing" and a shared one would average two hands.
+//
+// `accuracy` has no v0 spelling to adopt: it is new in this PR, so the sweep
+// below finds nothing for it on every device that has ever existed. It is on
+// the list because the list is also what resetChildKeys clears, and a child's
+// reset has to forget how neatly they traced along with everything else.
+export const CHILD_SCOPED_KEYS = ['points', 'progress', 'stickers', 'accuracy'];
 
 // Everything else stays device-wide, and each one is a deliberate call:
 //
@@ -40,6 +48,11 @@ export const CHILD_SCOPED_KEYS = ['points', 'progress', 'stickers'];
 //   gate_type         Same gate, so the same kind of challenge.
 //   parent_unlock_all A parental control, not a child's earning: it says how
 //                     this household wants the letter map to behave.
+//   trace_mode        Guided / Challenge / Free. A preference, and the same
+//                     argument as the brush below: it says how the tablet is
+//                     set up, not what a child has done. What the mode
+//                     *produces* — the per-letter accuracy record — is scoped,
+//                     which is the half that must not be shared.
 //   brush_color       Device defaults for v1, and worth saying why: a child
 //   brush_width       does pick these, so there is an argument for scoping
 //   sound_enabled     them. They are preferences and not progress, nothing is
@@ -60,6 +73,7 @@ export const CHILD_SCOPED_KEYS = ['points', 'progress', 'stickers'];
 export const DEVICE_SCOPED_KEYS = [
   CHILDREN_KEY,
   ACTIVE_CHILD_KEY,
+  'trace_mode',
   'brush_color',
   'brush_width',
   'sound_enabled',

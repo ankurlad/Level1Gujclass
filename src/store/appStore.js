@@ -10,8 +10,10 @@ import {
   resetChildKeys
 } from '../lib/childProfiles';
 import { loadSavedCurriculum } from '../lib/curriculumStorage';
+import { emptyAccuracyRecords, sanitizeAccuracyRecords } from '../lib/mastery';
 import { createPinRecord, takeLegacyPlaintextPin } from '../lib/parentPin';
 import { themeColor } from '../lib/theme';
+import { DEFAULT_TRACE_MODE, toTraceMode } from '../lib/traceModes';
 import { createTracingSession } from '../lib/tracingEngine';
 import { sanitizeChildren, sanitizeStickerIds, toBrushWidth, toPoints } from '../lib/validate';
 import { CANVAS_H, CANVAS_W, canvasToPathXRaw } from '../lib/waypoints';
@@ -22,14 +24,15 @@ import { CANVAS_H, CANVAS_W, canvasToPathXRaw } from '../lib/waypoints';
 // what App held was local to one section and moved with it; this module holds
 // the remainder — everything two or more views read or write:
 //
-//   persisted   points, progress, stickers, brush, sound, editor mode, gate
-//               type, parent passcode digest, unlock-all, install dismissal,
-//               and the child profile list. Each one still goes through
+//   persisted   points, progress, stickers, per-letter accuracy records, the
+//               tracing mode, brush, sound, editor mode, gate type, parent
+//               passcode digest, unlock-all, install dismissal, and the child
+//               profile list. Each one still goes through
 //               useLocalStorage (PR 4), so the `guj:` keys, their coercions and
 //               the v0 adoption path are untouched — the store only changes who
 //               calls the hook.
-//               Three of them are per child (PR 13b): points, progress and
-//               stickers read `guj:child:<id>:*`, where the id comes from
+//               Four of them are per child (PR 13b): points, progress,
+//               stickers and accuracy read `guj:child:<id>:*`, where the id comes from
 //               `guj:active_child`. The key is what changes when a child
 //               switches, so there is no second copy of a ledger to keep in
 //               step; everything else on the list is device-wide, and
@@ -204,6 +207,18 @@ export function AppStoreProvider({ children }) {
     sanitizeStickerIds
   );
 
+  // How neatly this child has traced each letter, per mode: the ledger behind
+  // mastery, streaks and the parent dashboard's trend column. Scoped for the
+  // same reason points are — it is the one figure a parent reads as a statement
+  // about one child — and guarded by the same kind of validator, which corrects
+  // a junk entry rather than costing the child the whole record.
+  const [accuracyRecords, setStoredAccuracyRecords] = useLocalStorage(
+    scoped('accuracy'),
+    emptyAccuracyRecords,
+    undefined,
+    sanitizeAccuracyRecords
+  );
+
   // Both setters validate too, so the boundary is not only the read: every
   // award, purchase and reset lands in state through the same rule that let the
   // value in, and the ledger cannot walk past its cap at +10 a letter.
@@ -211,6 +226,20 @@ export function AppStoreProvider({ children }) {
     setStoredPoints((prev) => toPoints(typeof next === 'function' ? next(prev) : next));
   const setUnlockedStickers = (next) =>
     setStoredStickers((prev) => sanitizeStickerIds(typeof next === 'function' ? next(prev) : next));
+  const setAccuracyRecords = (next) =>
+    setStoredAccuracyRecords((prev) => sanitizeAccuracyRecords(typeof next === 'function' ? next(prev) : next));
+
+  // Which of the three tracing modes the tablet is set to. A device preference,
+  // not a child's: see DEVICE_SCOPED_KEYS in src/lib/childProfiles.js for why
+  // the mode is shared while the scores it produces are not.
+  const [traceMode, setStoredTraceMode] = useLocalStorage(
+    'trace_mode',
+    DEFAULT_TRACE_MODE,
+    undefined,
+    toTraceMode
+  );
+  const setTraceMode = (next) =>
+    setStoredTraceMode((prev) => toTraceMode(typeof next === 'function' ? next(prev) : next));
 
   const [brushColor, setBrushColor] = useLocalStorage(
     'brush_color',
@@ -321,6 +350,7 @@ export function AppStoreProvider({ children }) {
     setStoredPoints(0);
     setStoredStickers([]);
     setProgressLog(emptyProgress());
+    setStoredAccuracyRecords(emptyAccuracyRecords());
   };
 
   const value = {
@@ -339,6 +369,8 @@ export function AppStoreProvider({ children }) {
     points, setPoints,
     progressLog, setProgressLog,
     unlockedStickers, setUnlockedStickers,
+    accuracyRecords, setAccuracyRecords,
+    traceMode, setTraceMode,
     brushColor, setBrushColor,
     brushWidth, setBrushWidth,
     soundEnabled, setSoundEnabled,
