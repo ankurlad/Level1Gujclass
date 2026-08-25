@@ -73,6 +73,41 @@ export const OVERRIDES = {
     ],
   },
 
+  kha: {
+    note: 'NOTE (video 133-138s): ખ is TWO strokes, not the three the skeleton read. One motion draws the whole S body — top-left hook, down the left, across the bowl bottom, up the right of the bowl, through the centre curl and straight on out along the connector to the stem. Only then does the pen lift; the stem is one top-to-bottom motion past the baseline. The committed data had the connector as its own right-to-left crossbar (ક has a crossbar, ખ does not) and the stem as a third stroke, and its stem dots sat off the centreline.',
+    strokes: [
+      [
+        [116, 89, 'tip'], // node 7: the hook tip, top left
+        [127, 91], // round the hook
+        [134, 105],
+        [136, 123], // down the left limb
+        [139, 151],
+        [147, 161], // into the bottom-left of the bowl
+        [157, 166],
+        [169, 166], // along the bowl bottom
+        [182, 162],
+        [189, 154], // up the right of the bowl
+        [193, 141], // node 2: the centre junction
+        [193, 116], // node 9: up into the centre curl — in the video the pen
+        //            loops here; the font draws the loop as a stub, so the one
+        //            centreline is walked up and back rather than round
+        [193, 141], // back at the junction
+        [217, 144], // out along the connector, left to right
+        [241, 139], // node 1: arriving where the stem will cross. NO pen-up
+        //            until here — this is the whole of stroke 1
+      ],
+      [
+        [242, 90, 'tip'], // node 8: top of the stem
+        [242, 114],
+        [241, 139], // straight down across the connector
+        [242, 166],
+        [244, 192],
+        [252, 200], // and out along the foot, past the baseline
+        [261, 201, 'tip'], // node 10
+      ],
+    ],
+  },
+
   pha: {
     note: 'S through the crossing, then the pigtail; crossbar last, left to right',
     strokes: [

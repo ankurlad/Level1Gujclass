@@ -4,6 +4,7 @@
 //   node tools/glyph/generate.js --render     re-render the ink from the font
 //   node tools/glyph/generate.js              rebuild waypoints from committed ink
 //   node tools/glyph/generate.js --letters=pa,pha --dry-run
+//   node tools/glyph/generate.js --corner     QA only: the old RDP spacing
 //
 // Render (browser, see render.js) -> thin to a centreline -> branch graph ->
 // merge branches into strokes -> order them -> resample -> write
@@ -31,7 +32,7 @@ import {
   pruneWhiskers,
   thin,
 } from './skeleton.js';
-import { mergeBranches, orderStrokes, resample } from './strokes.js';
+import { chooseStep, mergeBranches, orderStrokes, resample, spreadOf } from './strokes.js';
 import { tipExtend } from './caps.js';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
@@ -49,6 +50,11 @@ const PNG_DIR = path.join(HERE, 'png');
 // mesh a crossing makes, narrow enough to leave ફ's real pigtail alone.
 const WHISKER = 12;
 const CROSSING = 18;
+
+// The distance the resampler aims to leave between consecutive dots, same units.
+// A dozen-ish dots on a letter: far enough apart that two never land under one
+// fingertip, close enough that a child always has the next one in view.
+const TARGET_GAP = 34;
 
 const argOf = (name) => {
   const hit = process.argv.find((arg) => arg.startsWith(`--${name}=`));
@@ -166,10 +172,19 @@ export const strokesFor = (id, glyph) => {
   return { mask, skel, strokes, keeps: strokes.map(() => []), source: 'skeleton', note: '', snap: 0 };
 };
 
-const toWaypoints = (strokes, keeps = [], uniform = false, targetGap = 34) => {
+// Uniform is what ships. The dots a child chases are an even count-up along the
+// stroke, not a clump at every corner and a desert across every sweep, and the
+// judgment engine scores each chord equally, so equal chords are the only way a
+// curve is scored the same wherever on the letter it falls. --corner brings the
+// old RDP spacing back for a side-by-side, but it does not ship.
+const toWaypoints = (strokes, keeps = [], uniform = true, targetGap = TARGET_GAP) => {
+  // Every stroke of the letter is spaced on the same gap, chosen once from all
+  // of their runs — a gap that suits one stroke and strands another is the
+  // uneven spacing this is here to fix.
+  const gap = uniform ? chooseStep(strokes, targetGap) : targetGap;
   const waypoints = [];
   strokes.forEach((points, strokeIndex) => {
-    const sampled = resample(points, { keep: keeps[strokeIndex] ?? [], uniform, targetGap });
+    const sampled = resample(points, { keep: keeps[strokeIndex] ?? [], uniform, targetGap: gap });
     sampled.forEach(([x, y], i) => {
       const wp = { x: canvasToPathX(x), y: canvasToPathY(y), label: String(waypoints.length + 1) };
       if (strokeIndex > 0 && i === 0) wp.moveTo = true;
@@ -177,6 +192,27 @@ const toWaypoints = (strokes, keeps = [], uniform = false, targetGap = 34) => {
     });
   });
   return waypoints;
+};
+
+/**
+ * The gaps between consecutive dots, in render pixels.
+ *
+ * Only within a stroke: the jump across a pen-up is not a gap a child traces,
+ * so counting it would report every multi-stroke letter as badly spaced.
+ *
+ * @returns {{ gaps: number[], mean: number, min: number, max: number, spread: number }}
+ *   spread is the widest departure from the mean as a fraction of it — the one
+ *   number that says "these dots are evenly spaced" (0) or "they are not" (1).
+ */
+const spacingOf = (waypoints, pixels) => {
+  const gaps = [];
+  for (let i = 1; i < waypoints.length; i++) {
+    if (waypoints[i].moveTo) continue;
+    gaps.push(Math.hypot(pixels[i][0] - pixels[i - 1][0], pixels[i][1] - pixels[i - 1][1]));
+  }
+  if (!gaps.length) return { gaps, mean: 0, min: 0, max: 0, spread: 0 };
+  const mean = gaps.reduce((sum, gap) => sum + gap, 0) / gaps.length;
+  return { gaps, mean, min: Math.min(...gaps), max: Math.max(...gaps), spread: spreadOf(gaps) };
 };
 
 const proofSheet = (glyph, result, waypoints) => {
@@ -313,7 +349,7 @@ const main = () => {
   for (const lesson of lessons) {
     const glyph = glyphs[lesson.id];
     const result = strokesFor(lesson.id, glyph);
-    const waypoints = toWaypoints(result.strokes, result.keeps, hasFlag('uniform'), 34);
+    const waypoints = toWaypoints(result.strokes, result.keeps, !hasFlag('corner'), TARGET_GAP);
     byId[lesson.id] = waypoints;
 
     const pixels = waypoints.map((wp) => [(wp.x / 100) * CANVAS_W, (wp.y / 100) * CANVAS_H]);
@@ -348,6 +384,7 @@ const main = () => {
       inkDistance,
       centre,
       sag,
+      spacing: spacingOf(waypoints, pixels),
       source: result.source,
       note: result.note,
     });
@@ -371,6 +408,28 @@ const main = () => {
         `${px(row.centre)} ${px(row.sag)}  ${row.source}${row.note ? ` — ${row.note}` : ''}`
     );
   }
+
+  // The spacing report. `spread` is what tests/waypointSpacing.test.js asserts:
+  // how far the widest gap, or the narrowest, falls from that letter's mean, as
+  // a fraction of it. In uniform mode a run's own dots are exactly equal, so
+  // whatever spread is left is one run's gap differing from another's — each
+  // has to hold a whole number of them.
+  console.log(
+    `\n${'id'.padEnd(6)} ${'ch'.padEnd(3)} ${'gaps'} ${'mean'.padStart(6)} ${'min'.padStart(6)} ` +
+      `${'max'.padStart(6)}  spread`
+  );
+  for (const row of rows) {
+    const { gaps, mean, min, max, spread } = row.spacing;
+    console.log(
+      `${row.id.padEnd(6)} ${row.letter.padEnd(3)} ${String(gaps.length).padStart(4)} ` +
+        `${px(mean)} ${px(min)} ${px(max)}  ${(spread * 100).toFixed(1).padStart(5)}%`
+    );
+  }
+  const worst = rows.reduce((a, b) => (b.spacing.spread > a.spacing.spread ? b : a));
+  console.log(
+    `\nworst spread: ${worst.id} at ${(worst.spacing.spread * 100).toFixed(1)}% of its ` +
+      `${worst.spacing.mean.toFixed(2)}px mean gap`
+  );
 };
 
 // Which stroke a waypoint belongs to: strokes start at index 0 and at every

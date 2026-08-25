@@ -69,9 +69,20 @@ machine genuinely cannot help: stroke order, direction, and knots.
    width out, and the endpoint is left where it was. The correction is opt-in:
    auto strokes offer both chain ends, hand strokes only the anchors written
    `[x, y, 'tip']`.
-6. **Resample** (`strokes.js`). Ramer-Douglas-Peucker keeps the corners, a
-   maximum gap keeps a long stem from being two dots a hand-span apart, and a
-   minimum gap keeps two dots from landing inside one fingertip.
+6. **Resample** (`strokes.js`). Equidistant dots along the arc. The centreline
+   is cut wherever the pen turns hard — over 65 degrees measured across half a
+   stroke width, which on this letterset separates ખ's stem corner and ફ's
+   pigtail from ordinary curvature with nothing in between — and each run is
+   divided into whole equal gaps, so a corner always gets a dot and a hairpin
+   cannot drop two dots on the same spot. Runs are not all the same length, so
+   the letter first picks the one gap that rounds best across all of its own
+   runs (`chooseStep`), scored on the distances the dots come out at rather
+   than on arc arithmetic, and charged for how far it moved off the 34px
+   target. `tests/waypointSpacing.test.js` holds the result to a third of each
+   letter's own mean. `--corner` brings back the old Ramer-Douglas-Peucker
+   spacing for a side-by-side; it does not ship, because keeping every corner
+   clumps the dots inside tight curls and strands them across long sweeps —
+   on the data it produced, no letter was inside 33% of its own mean gap.
 7. **Emit** (`generate.js`). Pixels become the 0-100 path space through
    `canvasToPathX/Y` from `src/lib/waypoints.js` — the same conversion the
    editor writes with, so the contract from PR 5 holds — labels are 1-based in
@@ -108,7 +119,7 @@ the record that the dot the child is told to start on has its *centre* on the
 stroke's start. The proof sheets above are drawn from the tool's own ink, so
 only a shot of the app itself can show that.
 
-Three numbers per letter:
+The run prints two tables. Three numbers per letter in the first:
 
 - **ink** — the furthest any waypoint sits from the rendered glyph. 0.00 means
   every waypoint of that letter is *on* the ink. This is the number the old
@@ -119,13 +130,27 @@ Three numbers per letter:
   drawn between consecutive waypoints. This is the one the tracing engine
   feels: `getAccuracy` measures the child's ink against the waypoint polyline,
   not against the glyph, so `sag` is the error a perfect trace would still be
-  charged. It is kept well inside the 5-path-unit (19px) snap radius.
+  charged. Evenly spaced dots cannot hug a corner the way corner mode's could,
+  so this rose when uniform spacing landed — worst 13.5px on ધ, against 8.5px
+  before — and is still well inside the engine's 7.5-path-unit (28px) hit
+  radius, let alone what a six-year-old's finger does.
+
+And the second table is the spacing report: how many gaps the letter has,
+their mean, the narrowest, the widest, and `spread` — how far the worst of
+them falls from the mean, as a fraction of it. That last one is what
+`tests/waypointSpacing.test.js` asserts, and the run ends by naming the
+letter with the worst of it.
 
 ## Constants worth knowing
 
 - `WHISKER = 12px`, `CROSSING = 18px` in `generate.js`: half a stroke width and
   just under one, at the app's 220px font. Both would need revisiting at a
   different font size.
+- `TARGET_GAP = 34px` in `generate.js`, and `REVERSAL_LOOK = 12px`,
+  `REVERSAL_TURN = 65°`, `MIN_PIECE = 20px`, `FLEX = [0.85, 1.2]` in
+  `strokes.js`: the spacing. Same caveat — they are all in render pixels at
+  220px, so a font-size change wants a fresh look at the turn histogram behind
+  the 65°.
 - The ink test in `config.js` binarises at half coverage of the red channel.
   Note it is deliberately *not* the test in `useWaypointEditor.js`
   `snapToCenterline`, which asks for `b < 240` and so rejects the guide glyph's

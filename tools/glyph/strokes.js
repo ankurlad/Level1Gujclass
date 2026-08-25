@@ -252,25 +252,90 @@ const pointAtDistance = (points, lengths, distance) => {
   return points[points.length - 1];
 };
 
+// Where the pen turns hard: ખ's stem corner and ઢ's bowl at 80-95 degrees, ફ's
+// pigtail crossing and અ's bulb at nearly 180. Measured over a look of about
+// half a stroke width, so a staircase pixel cannot fake one and a real hairpin
+// cannot hide inside one.
+//
+// 65 degrees is where the letterset itself divides. Over the 42 letters the
+// turn measured this way is under 60 for 99% of the centreline — that is a
+// curve bending — then thins to a scattering of 65-100 (corners) and a second
+// clump above 130 (the pen doubling back), with nothing at all in between.
+const TURN_LOOK = 12;
+const HARD_TURN = (65 * Math.PI) / 180;
+// A cut this close to an end, or to the previous cut, would leave a stub that
+// gets one gap far under target — worse than the turn it was cutting for.
+const MIN_PIECE = 20;
+
+/**
+ * Cut a stroke into runs, at the arc distances where the pen turns hard.
+ *
+ * Two things go wrong if it does not. A hairpin: equal steps ALONG THE ARC are
+ * not equal distances ON THE PAGE, so where the pen travels 30 pixels of ink to
+ * end up 4 pixels from where it started, an arc-length sampler drops two dots
+ * on top of each other and the child sees one. A corner: sampled straight
+ * through, the nearest dots land past it on both sides, and the guide line
+ * between them cuts it off — the child is shown a diagonal where the letter
+ * turns. Sampling each side separately puts exactly one dot ON the turn, which
+ * is also the dot that says "turn here".
+ *
+ * @returns {Array<{ from: number, length: number }>} in arc distance
+ */
+const splitAtTurns = (points, lengths) => {
+  const total = lengths[lengths.length - 1];
+  const at = (distance) => pointAtDistance(points, lengths, distance);
+  const marks = [];
+  let best = null;
+  const flush = () => {
+    if (best) marks.push(best.distance);
+    best = null;
+  };
+  for (let i = 0; i < points.length; i++) {
+    const distance = lengths[i];
+    if (distance < TURN_LOOK || total - distance < TURN_LOOK) {
+      flush();
+      continue;
+    }
+    const turn = angleDelta(
+      angleOf(points[i], at(distance + TURN_LOOK)),
+      angleOf(at(distance - TURN_LOOK), points[i])
+    );
+    // A run of pixels all read as the turn; the sharpest of them is its corner.
+    if (turn < HARD_TURN) flush();
+    else if (!best || turn > best.turn) best = { distance, turn };
+  }
+  flush();
+
+  const pieces = [];
+  let from = 0;
+  for (const distance of marks) {
+    if (distance - from < MIN_PIECE || total - distance < MIN_PIECE) continue;
+    pieces.push({ from, length: distance - from });
+    from = distance;
+  }
+  pieces.push({ from, length: total - from });
+  return pieces;
+};
+
 /**
  * Dense centreline -> the handful of dots the child chases.
  *
  * Two modes:
  *
- * Corner mode (default): keep the corners (RDP), never leave a gap longer
- * than `maxGap` (a long straight stem still needs something to aim at), and
- * never place two closer than `minGap` (two dots inside one fingertip are
- * one dot).
+ * Corner mode (`--corner`, kept for QA): keep the corners (RDP), never leave
+ * a gap longer than `maxGap` (a long straight stem still needs something to
+ * aim at), and never place two closer than `minGap` (two dots inside one
+ * fingertip are one dot).
  *
- * Uniform mode: exactly equidistant dots along the arc, first and last on
- * the stroke ends. This is what the tracing surface wants, for two reasons:
- * (1) the numbered dots read as an even count-up, so a child can track "I'm
- * on 7 of 19" instead of a clump in the corner and a desert on the sweep;
- * (2) the judgment engine scores deviation from the chord between
- * consecutive waypoints, so equal chords score a correct curve fairly
- * instead of forgiving a 15px chord in a clump and demanding near-exact
- * ink over a 90px chord across a curve. The glyph shape is untouched — dots
- * are still sampled from the same centreline.
+ * Uniform mode (what ships): equidistant dots along the arc, first and last
+ * on the stroke ends, restarting at each place the pen turns hard. This is
+ * what the tracing surface wants, for two reasons: (1) the numbered dots read
+ * as an even count-up, so a child can track "I'm on 7 of 19" instead of a
+ * clump in the corner and a desert on the sweep; (2) the judgment engine
+ * scores deviation from the chord between consecutive waypoints, so equal
+ * chords score a correct curve fairly instead of forgiving a 15px chord in a
+ * clump and demanding near-exact ink over a 90px chord across a curve. The
+ * glyph shape is untouched — dots are still sampled from the same centreline.
  */
 export const resample = (points, { epsilon = 3.5, maxGap = 52, minGap = 15, keep = [], uniform = false, targetGap = 34 } = {}) => {
   const lengths = cumulative(points);
@@ -278,10 +343,17 @@ export const resample = (points, { epsilon = 3.5, maxGap = 52, minGap = 15, keep
   if (total < 1) return [points[0]];
 
   if (uniform) {
-    const n = Math.max(2, Math.round(total / targetGap));
-    const step = total / n;
     const out = [];
-    for (let k = 0; k <= n; k++) out.push(pointAtDistance(points, lengths, k * step));
+    for (const piece of splitAtTurns(points, lengths)) {
+      // One gap is the floor, not two: a 22px tick forced to three dots puts
+      // them 11px apart, which is the clump this mode exists to remove. Round
+      // the piece's own length to a whole number of gaps and divide.
+      const n = Math.max(1, Math.round(piece.length / targetGap));
+      const step = piece.length / n;
+      for (let k = out.length ? 1 : 0; k <= n; k++) {
+        out.push(pointAtDistance(points, lengths, piece.from + k * step));
+      }
+    }
     return out;
   }
 
@@ -340,4 +412,67 @@ export const resample = (points, { epsilon = 3.5, maxGap = 52, minGap = 15, keep
   }
 
   return trimmed.map((distance) => pointAtDistance(points, lengths, distance));
+};
+
+/** The on-page distances between consecutive dots, per stroke, in one list. */
+export const gapsOf = (sampled) => {
+  const gaps = [];
+  for (const stroke of sampled) {
+    for (let i = 1; i < stroke.length; i++) {
+      gaps.push(Math.hypot(stroke[i][0] - stroke[i - 1][0], stroke[i][1] - stroke[i - 1][1]));
+    }
+  }
+  return gaps;
+};
+
+/** How far the widest and narrowest gap fall from the mean, as a fraction of it. */
+export const spreadOf = (gaps) => {
+  if (!gaps.length) return 0;
+  const mean = gaps.reduce((sum, gap) => sum + gap, 0) / gaps.length;
+  if (mean < 1e-9) return 0;
+  return Math.max(Math.max(...gaps) - mean, mean - Math.min(...gaps)) / mean;
+};
+
+// How far a letter may move its gap off the target to even itself out, and how
+// dearly that move is charged. FLEX is narrow on purpose: a letter free to
+// shrink its gap would even itself out beautifully at 20 pixels and hand a
+// child twice the dots. DRIFT_COST is set so a point of evenness is worth about
+// three points of gap — enough to buy ઘ's 46-pixel run out of trouble, not
+// enough to buy a letter a wholesale rescale for a rounding crumb.
+const FLEX = [0.85, 1.2];
+const DRIFT_COST = 0.35;
+const PROBE = 0.05;
+
+/**
+ * One gap for a whole letter.
+ *
+ * A run has to hold a whole number of gaps, so a run of 46 pixels asked for 34
+ * gives ONE gap of 46 — a desert — and asked for 23 gives two of 23 — a clump.
+ * That is not the run's fault and no single target fixes it for every letter:
+ * 34 is a wish, and the only thing a child can see is whether THIS letter's
+ * dots are evenly spread. So each letter tries the gaps around the target and
+ * keeps the one whose dots come out most even, paying for how far it moved.
+ *
+ * It scores the dots it would actually emit rather than the arc arithmetic,
+ * because those are two different numbers: a short curved tick 26 pixels along
+ * its arc puts its two dots 21 apart on the page, and 21 is what the child sees
+ * and what the judgment engine measures.
+ *
+ * @param {Array<Array<[number, number]>>} strokes the letter's centrelines
+ * @param {number} targetGap the gap to aim for
+ */
+export const chooseStep = (strokes, targetGap) => {
+  let best = targetGap;
+  let bestCost = Infinity;
+  for (let step = targetGap * FLEX[0]; step <= targetGap * FLEX[1] + 1e-9; step += PROBE) {
+    const gaps = gapsOf(strokes.map((points) => resample(points, { uniform: true, targetGap: step })));
+    if (!gaps.length) continue;
+    const mean = gaps.reduce((sum, gap) => sum + gap, 0) / gaps.length;
+    const cost = spreadOf(gaps) + (DRIFT_COST * Math.abs(mean - targetGap)) / targetGap;
+    if (cost < bestCost) {
+      best = step;
+      bestCost = cost;
+    }
+  }
+  return best;
 };
