@@ -515,6 +515,69 @@
   }
 }
 
+/* The adult register.
+   ------------------------------------------------------------------------
+   Two audiences use this app and only one of them is six. The child surfaces
+   are pillows: 14-26px radii, generous padding, gradients, emoji. A parent
+   reading a progress table wants a document — and a parent who has to hunt a
+   number through a soft playful card reads it as decoration and stops looking.
+
+   Same tokens, different geometry. Nothing below introduces a colour: it
+   tightens the radii, closes the rows up, turns the numerals tabular so a
+   column of percentages lines up on the decimal, and flattens the one gradient
+   on the page. Scope is the two parent-facing surfaces — ParentDashboard and
+   WaypointEditor — and nothing else may wear the class.
+
+   WHY ATTRIBUTE SELECTORS. The alternative is editing ~70 classNames across
+   two files by hand, which is 70 chances to change a layout while claiming to
+   change a register. `[class~='rounded-2xl']` matches the utility as a whole
+   word, so the override is exactly "wherever that utility is used, inside this
+   surface" — and it applies to a control added tomorrow without anyone
+   remembering this file exists.
+
+   WHY UNLAYERED. Tailwind v4 declares `@layer theme, base, components,
+   utilities`, and a cascade layer beats specificity: a rule in the components
+   layer loses to `.rounded-2xl` in the utilities layer no matter how specific
+   it is. Unlayered styles outrank every layer, which is what these have to do.
+
+   `rounded-full` is deliberately not in the list — it is on pills, progress
+   bars and toggle tracks, where "full" is the shape and not a radius choice. */
+.surface-adult {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1;
+}
+
+.surface-adult:is([class~='rounded-xl'], [class~='rounded-2xl'], [class~='rounded-3xl']),
+.surface-adult :is([class~='rounded-xl'], [class~='rounded-2xl'], [class~='rounded-3xl']) {
+  border-radius: 0.5rem;
+}
+
+/* Denser rows. The 44px interactive floor in the base layer is untouched — this
+   closes up cards and stacks, never a touch target. */
+.surface-adult [class~='p-6'] {
+  padding: 1rem;
+}
+
+.surface-adult [class~='p-5'] {
+  padding: 0.875rem;
+}
+
+.surface-adult [class~='gap-6'] {
+  gap: 1rem;
+}
+
+.surface-adult [class~='py-3.5'] {
+  padding-top: 0.625rem;
+  padding-bottom: 0.625rem;
+}
+
+/* No gradients. The flat fill is the same primary token at the same weight the
+   gradient started on, so the card keeps its place in the page's colour order. */
+.surface-adult [class*='bg-gradient-'] {
+  background-image: none;
+  background-color: color-mix(in srgb, var(--color-primary) 5%, white);
+}
+
 /* Fluent view slide transitions */
 main > div {
   animation: var(--animate-fluent-slide-in);

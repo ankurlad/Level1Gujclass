@@ -10,8 +10,16 @@ import {
 } from 'lucide-react';
 import { removeStored } from '../hooks/useLocalStorage';
 import { readWaypointOverride, waypointsKey } from '../lib/curriculumStorage';
+import {
+  MASTERY_ACCURACY,
+  TREND_WINDOW,
+  isMastered,
+  letterTrend,
+  masteredLetters
+} from '../lib/mastery';
 import { createPinRecord, verifyPin } from '../lib/parentPin';
-import { STICKERS } from '../lib/stickers';
+import { stickerById } from '../lib/stickers';
+import { traceMode as traceModeById } from '../lib/traceModes';
 import { PASSCODE_LENGTH, isPasscode, passcodeDigits } from '../lib/validate';
 import { CURRICULUM } from '../curriculum';
 import { useAppStore } from '../store/appStore';
@@ -44,6 +52,8 @@ export default function ParentDashboard() {
     sessionCurriculum,
     progressLog,
     unlockedStickers,
+    accuracyRecords,
+    traceMode,
     soundEnabled, setSoundEnabled,
     editorMode, setEditorMode,
     parentUnlockAll, setParentUnlockAll,
@@ -170,7 +180,8 @@ export default function ParentDashboard() {
       // Load standard curriculum back
       dispatch({ type: 'curriculum/set', curriculum: CURRICULUM });
       playSound('success');
-      alert("All waypoints successfully reverted to default! 🔄");
+      // No emoji: this dialog belongs to the adult register.
+      alert("All waypoints successfully reverted to default.");
     }
   };
 
@@ -291,8 +302,54 @@ export default function ParentDashboard() {
     });
   };
 
+  // The accuracy table's rows: the letters this child has actually worked on.
+  //
+  // A letter with no record of any kind is not a row of dashes — it is a letter
+  // they have not reached yet, and forty of those would bury the eight rows
+  // that mean something. A letter that HAS been traced but never in Challenge is
+  // a row, with dashes, because "traced twelve times, never once on the clock"
+  // is exactly the thing a parent should be able to see.
+  const accuracyRows = sessionCurriculum
+    .filter(
+      (item) =>
+        Boolean(accuracyRecords.letters?.[item.id]) || progressLog.completedLessons.includes(item.id)
+    )
+    .map((item) => ({
+      item,
+      trend: letterTrend(accuracyRecords, item.id),
+      mastered: isMastered(accuracyRecords, item.id)
+    }));
+
+  const masteredCount = masteredLetters(accuracyRecords).length;
+
+  // The delta arrow. Geometric shapes, not emoji: this is the adult register,
+  // and the arrow carries a text label for a screen reader because a triangle
+  // on its own reads as "black up-pointing triangle".
+  const deltaCell = (delta) => {
+    if (delta === null) return <span className="text-slate-500">—</span>;
+    if (delta > 0) {
+      return (
+        <span className="text-emerald-700 font-bold" aria-label={`up ${delta} points`}>
+          ▲ {delta}
+        </span>
+      );
+    }
+    if (delta < 0) {
+      return (
+        <span className="text-rose-700 font-bold" aria-label={`down ${Math.abs(delta)} points`}>
+          ▼ {Math.abs(delta)}
+        </span>
+      );
+    }
+    return (
+      <span className="text-slate-600 font-bold" aria-label="no change">
+        – 0
+      </span>
+    );
+  };
+
   return (
-    <div className="flex-1 flex flex-col">
+    <div className="surface-adult flex-1 flex flex-col">
       <div className="flex justify-between items-center mb-4">
         <button 
           onClick={() => setView('home')} 
@@ -468,6 +525,82 @@ export default function ParentDashboard() {
               </div>
             </div>
           ))}
+        </div>
+
+        {/* Per-letter tracing accuracy.
+            The completion figures above say how MUCH has been traced; this says
+            how WELL. Both come off the same child-scoped keys, so switching
+            child in the header switches this table with everything else. */}
+        <div className="flex flex-col gap-3">
+          <div className="flex justify-between items-center gap-2 flex-wrap">
+            <h4 className="font-extrabold text-sm text-slate-700 uppercase tracking-wider">
+              Tracing Accuracy
+            </h4>
+            <span className="text-xs font-bold text-slate-600">
+              {masteredCount} / {sessionCurriculum.length} mastered
+              {' · '}
+              streak {accuracyRecords.streak.current} (best {accuracyRecords.streak.longest})
+            </span>
+          </div>
+
+          <p className="text-xs text-slate-500">
+            Challenge-mode scores only. <strong>Best</strong> is the highest score for that letter,{' '}
+            <strong>Avg</strong> the mean of its last {TREND_WINDOW} sessions, and <strong>Δ</strong>{' '}
+            the newest session measured against the ones before it. A letter counts as mastered at{' '}
+            {MASTERY_ACCURACY}% or better. Guided and Free traces are recorded but are not scored
+            here — they draw part of the path for the child, so their numbers are not comparable.
+            The tracing screen is currently set to {traceModeById(traceMode).label}.
+          </p>
+
+          {accuracyRows.length > 0 ? (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="border-b border-slate-200">
+                    <th scope="col" className="text-xxs font-extrabold uppercase tracking-wider text-slate-500 py-1.5 pr-2">
+                      Letter
+                    </th>
+                    <th scope="col" className="text-xxs font-extrabold uppercase tracking-wider text-slate-500 py-1.5 px-2 text-right">
+                      Best
+                    </th>
+                    <th scope="col" className="text-xxs font-extrabold uppercase tracking-wider text-slate-500 py-1.5 px-2 text-right">
+                      Avg {TREND_WINDOW}
+                    </th>
+                    <th scope="col" className="text-xxs font-extrabold uppercase tracking-wider text-slate-500 py-1.5 pl-2 text-right">
+                      Δ
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {accuracyRows.map(({ item, trend, mastered }) => (
+                    <tr key={item.id} className="border-b border-slate-100">
+                      <th scope="row" className="py-1.5 pr-2 font-bold text-sm text-slate-800">
+                        <span className="font-gujarati">{item.letter}</span>{' '}
+                        <span className="text-xs font-medium text-slate-500">{item.english}</span>
+                        {mastered && (
+                          <span className="ml-1.5 text-xxs font-extrabold uppercase tracking-wider text-emerald-700">
+                            mastered
+                          </span>
+                        )}
+                      </th>
+                      <td className="py-1.5 px-2 text-right text-sm font-bold text-slate-800">
+                        {trend.hasRecords ? `${trend.best}%` : <span className="text-slate-500">—</span>}
+                      </td>
+                      <td className="py-1.5 px-2 text-right text-sm text-slate-700">
+                        {trend.hasRecords ? `${trend.average}%` : <span className="text-slate-500">—</span>}
+                      </td>
+                      <td className="py-1.5 pl-2 text-right text-sm">{deltaCell(trend.delta)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <p className="text-slate-500 text-sm font-medium italic">
+              No traces recorded yet. Every finished letter is scored from now on, in whichever mode
+              it was traced.
+            </p>
+          )}
         </div>
 
         {/* Printable Worksheets Studio Card */}
@@ -778,22 +911,43 @@ export default function ParentDashboard() {
           )}
         </div>
 
-        {/* Sticker Collection */}
+        {/* Sticker Collection. Split by how it was got: a sticker bought with
+            points says the child played, a mastery or streak sticker says they
+            traced a letter well — and a parent reading this page is asking the
+            second question. */}
         <div>
-          <h4 className="font-extrabold text-sm text-slate-700 mb-3 uppercase tracking-wider">Unlocked Emojis ({unlockedStickers.length})</h4>
+          <h4 className="font-extrabold text-sm text-slate-700 mb-3 uppercase tracking-wider">
+            Stickers ({unlockedStickers.length})
+          </h4>
           {unlockedStickers.length > 0 ? (
-            <div className="flex gap-3 text-3xl">
-              {unlockedStickers.map(id => {
-                const item = STICKERS.find(s => s.id === id);
-                return item ? (
-                  <span key={id} title={item.label} className="drop-shadow">
-                    {item.emoji}
-                  </span>
-                ) : null;
+            <div className="flex flex-col gap-2">
+              {[
+                { kind: 'points', label: 'Bought with points' },
+                { kind: 'mastery', label: 'Earned by mastering a letter' },
+                { kind: 'streak', label: 'Earned by a streak' }
+              ].map((shelf) => {
+                const owned = unlockedStickers
+                  .map(stickerById)
+                  .filter((sticker) => sticker?.kind === shelf.kind);
+                if (owned.length === 0) return null;
+                return (
+                  <div key={shelf.kind} className="flex items-center gap-2 flex-wrap">
+                    <span className="text-xs font-bold text-slate-600 w-full sm:w-auto">
+                      {shelf.label} ({owned.length}):
+                    </span>
+                    <span className="flex gap-2 text-2xl">
+                      {owned.map((sticker) => (
+                        <span key={sticker.id} title={sticker.label}>{sticker.emoji}</span>
+                      ))}
+                    </span>
+                  </div>
+                );
               })}
             </div>
           ) : (
-            <p className="text-slate-500 text-sm font-medium italic">No stickers purchased yet.</p>
+            <p className="text-slate-500 text-sm font-medium italic">
+              No stickers bought or earned yet.
+            </p>
           )}
         </div>
 

@@ -32,10 +32,15 @@ export default function WaypointEditor({ editor, initCanvas }) {
   } = editor;
 
   return (
-    <div className="w-full mt-3 p-4 bg-amber-50/60 border border-amber-200 rounded-2xl text-left">
+    /* `surface-adult` — this panel sits inside the child's tracing card but is
+       not the child's: it is a parent or teacher correcting a letterform. The
+       adult register (see src/index.css) tightens its radii, closes the rows
+       and makes its coordinate read-outs tabular so a column of x/y values
+       lines up. It changes nothing about the tracing surface above it. */
+    <div className="surface-adult w-full mt-3 p-4 bg-amber-50/60 border border-amber-200 rounded-2xl text-left">
       <div className="flex flex-col gap-2 mb-3">
         <span className="font-extrabold text-sm text-amber-800 flex items-center gap-1.5 justify-between">
-          <span>🔧 Waypoint Builder Tool</span>
+          <span>Waypoint Builder Tool</span>
           {saveStatus && <span className="text-xs bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-md animate-pulse">{saveStatus}</span>}
         </span>
         
