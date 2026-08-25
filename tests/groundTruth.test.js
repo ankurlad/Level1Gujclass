@@ -123,7 +123,12 @@ describe('ground truth letterforms (quality bar)', () => {
       // The defect this replaced: the stem's dots wandered off the centreline
       // band, the last of them visibly off-centre. Every dot down the stem
       // proper — all but the foot, which flicks right — sits on one vertical.
-      const xs = stem.slice(0, -1).map((wp) => wp.x)
+      //
+      // The foot is two dots, not one, at the 26px target gap: the flick's
+      // curve is long enough to hold a dot of its own before the tip. The rule
+      // is unchanged — the stem proper is one vertical — only how many dots at
+      // the end of it are the foot rather than the stem.
+      const xs = stem.slice(0, -2).map((wp) => wp.x)
       expect(Math.max(...xs) - Math.min(...xs), 'stem dots off one vertical').toBeLessThan(1)
     })
   })

@@ -54,7 +54,7 @@ const CROSSING = 18;
 // The distance the resampler aims to leave between consecutive dots, same units.
 // A dozen-ish dots on a letter: far enough apart that two never land under one
 // fingertip, close enough that a child always has the next one in view.
-const TARGET_GAP = 34;
+const TARGET_GAP = 26;
 
 const argOf = (name) => {
   const hit = process.argv.find((arg) => arg.startsWith(`--${name}=`));
