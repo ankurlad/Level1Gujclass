@@ -1,8 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
-import { Printer, RotateCcw, Volume2 } from 'lucide-react';
+import { Printer, RotateCcw, Timer, Volume2 } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import { useTraceModes } from '../hooks/useTraceModes';
 import { useWaypointEditor } from '../hooks/useWaypointEditor';
 import { speak } from '../lib/audio';
+import { stickerById } from '../lib/stickers';
+import { TRACE_MODES } from '../lib/traceModes';
 import { canvasRefCoords, setupCanvasScaling } from '../lib/canvas';
 import { BRUSH_TOKENS, themeColor } from '../lib/theme';
 import { ensureGujaratiFont } from '../lib/ensureGujaratiFont';
@@ -127,6 +130,19 @@ export default function TraceView() {
   const lastPointRef = useRef(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [traceStartTime, setTraceStartTime] = useState(null);
+
+  // Guided / Challenge / Free. The hook owns the clock, the live score and the
+  // write into the child's accuracy record; this view owns what a mode looks
+  // like — which dots are drawn, what the toolbar says, when the pen stops.
+  //
+  // onTimeUp is the pen going down. The scoring of the unfinished trace has
+  // already happened inside the hook by the time this runs.
+  const modes = useTraceModes({
+    onTimeUp: () => {
+      setIsDrawing(false);
+      traceSessionRef.current?.endStroke();
+    }
+  });
 
   // The waypoint builder: its state, its canvas operations and its exports.
   const editor = useWaypointEditor({ canvasRef });
@@ -323,6 +339,9 @@ export default function TraceView() {
     getTraceSession().reset();
     dispatch({ type: 'trace/setCompletedWaypoints', completedWaypoints: [] });
     setTraceStartTime(performance.now());
+    // Same beat as the engine reset: the clock, the live score and the result
+    // banner all belong to the letter that is being cleared.
+    modes.beginLetter();
   };
 
   // Rotating the device or zooming changes the backing store resolution, which
@@ -363,6 +382,10 @@ export default function TraceView() {
 
   const startDrawing = (e) => {
     e.preventDefault();
+    // Challenge's clock has run out. The letter is scored and on the board;
+    // more ink would be a second attempt sharing the first one's average, so
+    // the pen is refused until Clear (or the next letter) re-arms it.
+    if (modes.expired && !(editorMode && editorActive)) return;
     const { x, y } = getCoords(e);
 
     if (editorMode && editorActive) {
@@ -452,6 +475,9 @@ export default function TraceView() {
   const checkWaypoint = (x, y) => {
     const session = getTraceSession();
     const result = session.addPoint(canvasToPathXRaw(x), canvasToPathYRaw(y));
+    // Every sample, hit or miss: the sample that missed is the one the accuracy
+    // is made of, and the first of them is what starts Challenge's clock.
+    modes.noteSample();
     if (!result.hit) return;
 
     dispatch({ type: 'trace/setCompletedWaypoints', completedWaypoints: session.getCompletedWaypoints() });
@@ -465,6 +491,12 @@ export default function TraceView() {
   };
 
   const handleSuccess = () => {
+    // Scored before anything else in here, because the confetti and the points
+    // are the same in all three modes and this is the part that is not: it reads
+    // the engine's accuracy for the ink that is on screen right now, writes it
+    // to this child's record, and hands back any sticker it earned.
+    modes.finishLetter();
+
     const timeTaken = ((performance.now() - traceStartTime) / 1000).toFixed(1);
     const speedBonus = Number(timeTaken) < 7 ? 15 : 5;
     const basePoints = 25;
@@ -529,6 +561,31 @@ export default function TraceView() {
         </div>
       </div>
 
+      {/* Mode selector — Guided, Challenge, Free. Three equal 44px targets in
+          the lesson bar, with the mode's own one-line description under them so
+          a child (or the adult beside them) can tell what changes without
+          having to try it. */}
+      <div className="flex flex-col gap-1.5 mb-4 font-sans">
+        <div role="radiogroup" aria-label="Tracing mode" className="flex gap-1.5 w-full">
+          {TRACE_MODES.map((m) => {
+            const isActive = modes.modeId === m.id;
+            return (
+              <button
+                key={m.id}
+                type="button"
+                role="radio"
+                aria-checked={isActive}
+                onClick={() => modes.setMode(m.id)}
+                className={`flex-1 min-h-[44px] px-2 rounded-xl border font-extrabold text-xs transition ${isActive ? 'bg-primary border-primary text-white shadow-sm' : 'bg-white border-slate-200 text-slate-600'}`}
+              >
+                {m.label}
+              </button>
+            );
+          })}
+        </div>
+        <p className="text-xxs text-slate-500 font-medium text-center px-2">{modes.mode.hint}</p>
+      </div>
+
       {/* Tracing Content Card */}
       <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm flex-1 flex flex-col items-center">
         <div className="flex justify-between items-center w-full mb-3">
@@ -590,8 +647,29 @@ export default function TraceView() {
           </button>
         </div>
 
+        {/* Clock and running score. Only the modes that have one render one, so
+            Guided's card is the card it has always been. */}
+        {(modes.secondsLeft !== null || modes.showsLiveAccuracy) && (
+          <div className="flex items-center justify-between w-full mb-3 gap-2 font-sans">
+            {modes.secondsLeft !== null && (
+              <span
+                aria-label={`${modes.secondsLeft} seconds left`}
+                className={`flex items-center gap-1.5 font-extrabold text-xs px-2.5 py-1.5 rounded-xl ${modes.secondsLeft <= 15 ? 'bg-danger-hover text-white' : 'bg-reward text-ink'}`}
+              >
+                <Timer size={14} aria-hidden="true" />
+                {modes.secondsLeft}s
+              </span>
+            )}
+            {modes.showsLiveAccuracy && (
+              <span className="text-xs font-bold text-slate-600">
+                On the line: <strong className="text-primary font-black">{modes.liveAccuracy}%</strong>
+              </span>
+            )}
+          </div>
+        )}
+
         {/* Canvas draw field */}
-        <div 
+        <div
           style={{ position: 'relative', aspectRatio: `${CANVAS_W}/${CANVAS_H}` }}
           className="trace-surface border-4 border-slate-200 rounded-3xl overflow-hidden shadow-inner bg-slate-100 w-full max-w-[380px] flex-1 flex items-center justify-center"
         >
@@ -618,6 +696,12 @@ export default function TraceView() {
             const isCompleted = completedWaypoints.includes(idx);
             const isNext = completedWaypoints.length === idx;
             const si = strokeIndexOf(currentLesson.waypoints, idx);
+
+            // The mode decides how much of the path is on screen: Guided draws
+            // every dot, Challenge drops them after the first stroke, Free draws
+            // none. The editor is exempt — the dots are the thing it edits.
+            if (!(editorMode && editorActive) && !modes.dotsVisible(si)) return null;
+
             const sp = STROKE_PALETTE_TOKENS[si];
             const isStrokeStart = idx === 0 || currentLesson.waypoints[idx - 1].moveTo;
 
@@ -698,6 +782,47 @@ export default function TraceView() {
             );
           })}
         </div>
+
+        {/* What the trace was worth. Appears when a letter lands or when the
+            Challenge clock runs out, and clears with the next letter. The
+            stickers listed here are already on the child's shelf — this is the
+            announcement, the sticker shop is the shelf. */}
+        {modes.outcome && (
+          <div
+            role="status"
+            className="w-full mt-3 p-3 rounded-2xl border border-slate-100 bg-slate-50 flex flex-col gap-1.5 font-sans"
+          >
+            <div className="flex justify-between items-center gap-2">
+              <span className="text-xs font-extrabold text-slate-700">
+                {modes.outcome.complete ? `${modes.mode.label} score` : `Time up — ${modes.mode.label} score`}
+              </span>
+              <span className="text-lg font-black text-primary">{modes.outcome.accuracy}%</span>
+            </div>
+
+            {modes.outcome.neat && (
+              <span className="text-xxs font-extrabold uppercase tracking-wider text-success-shade">
+                Neat! {modes.outcome.streak.current} in a row
+              </span>
+            )}
+
+            {modes.outcome.awarded.length > 0 && (
+              <div className="flex items-center gap-2 flex-wrap">
+                {modes.outcome.awarded.map((id) => {
+                  const sticker = stickerById(id);
+                  return sticker ? (
+                    <span
+                      key={id}
+                      className="flex items-center gap-1.5 bg-white border border-slate-200 rounded-xl px-2.5 py-1 text-xs font-bold text-slate-700"
+                    >
+                      <span aria-hidden="true" className="text-base">{sticker.emoji}</span>
+                      {sticker.label}
+                    </span>
+                  ) : null;
+                })}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Developer Waypoint Editor Section */}
         {editorMode && (
