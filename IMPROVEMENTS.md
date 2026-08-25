@@ -88,7 +88,8 @@ PR 6 — Extract the tracing engine + accuracy score (DONE)
     reading pixels out of an offscreen canvas, which is a DOM capability, not geometry, and it is
     the waypoint editor's tool, not the child's. The engine's snapRadius/onPath is the pure
     analogue — projection onto the ideal polyline.
-  - PR 7 hook: the three-mode UI reads getAccuracy(); nothing renders it yet.
+  - PR 7 hook: the three-mode UI reads getAccuracy(). Wired up in the EXTRAS bundle below —
+    src/hooks/useTraceModes.js is the only caller, and the engine did not change to take it.
 
 PR 7 — Split App.jsx (DONE)
   - TraceView, GameZone, StickerShop, ParentDashboard, WaypointEditor + a shared store. Pure
@@ -211,6 +212,38 @@ PR 13 — Phase 5
 - Make progress legible (PR 7b dashboard): per-letter accuracy trend, not just completion count.
 - Dial back baby cues (rounding toward PR 2/3): drop rounded-3xl excess and unicorn-tier copy;
   the 6–8 audience doesn't need it.
+
+EXTRAS — modes, mastery, dashboard trends (DONE, branch pr/extras-modes-mastery-dashboard)
+  - Three modes in the trace view's lesson bar. Guided is byte-for-byte the old behaviour (every
+    dot, the 28px waypoint snap, no clock); Challenge hides the dots after stroke 1, runs a 90s
+    clock and shows the running score; Free shows the guide glyph alone. A mode changes SCAFFOLDS
+    only — the hit radius, the ordering rule and getAccuracy() are identical in all three, so an
+    88 in Free and an 88 in Challenge are the same number and can share a dashboard axis.
+  - The clock starts on the first pointer sample, not when the letter opens: reading the
+    pronunciation card is not part of the 90 seconds. Running out scores the unfinished trace
+    rather than discarding it, or abandoning a bad letter would be the way to protect a streak.
+  - src/lib/traceModes.js is the catalogue + the `guj:trace_mode` guard (React-free, because the
+    store, the ledger and the view each need a piece); src/hooks/useTraceModes.js is the clock,
+    the live score and the commit. TraceView grew 127 lines and App.jsx none.
+  - Mastery: best Challenge accuracy >= 85 (MASTERY_ACCURACY) earns that letter's own sticker,
+    whose emoji is the lesson's word picture. Challenge only — Guided draws the path under the
+    child's finger, so a 90 there says the dots were followed. Mastery is DERIVED from the record
+    on read, never stored, so there is no second copy to fall out of step.
+  - Streak: consecutive lessons at or above the same bar, in any mode; milestones at 5 and 12.
+    One untidy letter resets it. Points are untouched in both directions — mastery adds stickers,
+    never currency, and the shop's eight stickers keep their ids, prices and purchase flow.
+  - `guj:child:<id>:accuracy` holds best / attempts / last-7 history per (letter, mode) plus the
+    streak. Child-scoped and behind a validate guard that drops or clamps and never throws; the
+    mode itself is device-wide (a preference, not an earning).
+  - Dashboard: a Challenge-only table of best, 7-session average and a delta arrow (newest session
+    against the rest of its window), plus the mastered count and the streak. A letter traced but
+    never on the clock is a row of em dashes, which is itself the finding.
+  - .surface-adult now dresses ParentDashboard and WaypointEditor: 0.5rem radii, denser rows,
+    tabular numerals, no gradient, no decorative emoji. Scoped attribute overrides, declared
+    UNLAYERED — a Tailwind v4 cascade layer beats specificity, so a components-layer rule would
+    lose to `.rounded-2xl`.
+  - 77 tests across tests/mastery.test.js, tests/traceModes.test.jsx and
+    tests/dashboardTrends.test.jsx. 593 -> 670 tests.
 
 ## Execution rules for the coding agent
 - Work PR-by-PR in the listed order. One git branch + commit per PR (branch: pr/<n>-<slug>).
