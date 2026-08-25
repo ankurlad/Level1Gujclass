@@ -58,10 +58,21 @@ machine genuinely cannot help: stroke order, direction, and knots.
    strokes instead of four stubs. The resulting strokes are then ordered by the
    Gujarati heuristics: bodies first, top to bottom, right-hand stems last, each
    stroke starting at its higher end.
-5. **Resample** (`strokes.js`). Ramer-Douglas-Peucker keeps the corners, a
+5. **Land the tips** (`caps.js`). A medial axis stops short of a cap: the ridge
+   of the distance transform ends where the bisectors of the terminal's two
+   corners meet, roughly a half stroke width inside the visible end of the ink.
+   Left alone, every stroke-end dot therefore sits behind the place the child's
+   pen actually starts. `tipExtend` walks the centreline's own tangent outwards
+   until the ray leaves the ink and puts the endpoint on that exit, so the dot's
+   centre is on the centreline *and* on the visible tip. A stroke that ends at a
+   crossing is not a cap — there the ray is still inside ink a whole stroke
+   width out, and the endpoint is left where it was. The correction is opt-in:
+   auto strokes offer both chain ends, hand strokes only the anchors written
+   `[x, y, 'tip']`.
+6. **Resample** (`strokes.js`). Ramer-Douglas-Peucker keeps the corners, a
    maximum gap keeps a long stem from being two dots a hand-span apart, and a
    minimum gap keeps two dots from landing inside one fingertip.
-6. **Emit** (`generate.js`). Pixels become the 0-100 path space through
+7. **Emit** (`generate.js`). Pixels become the 0-100 path space through
    `canvasToPathX/Y` from `src/lib/waypoints.js` — the same conversion the
    editor writes with, so the contract from PR 5 holds — labels are 1-based in
    stroke order, and every stroke after the first starts with `moveTo: true`.
@@ -90,6 +101,12 @@ The run prints a table, and `png/<id>.png` is a proof sheet per letter: the ink
 in pale grey, the centreline over it, each stroke in its own colour, and the
 emitted waypoints as numbered dots. The numbers are the stroke order the child
 will follow, so a wrong order is visible at a glance.
+
+`png/proof-ka-lesson.png` and `png/proof-ka-lesson-dot1.png` are not generated:
+they are screenshots of the running app's ક lesson at a phone viewport, kept as
+the record that the dot the child is told to start on has its *centre* on the
+stroke's start. The proof sheets above are drawn from the tool's own ink, so
+only a shot of the app itself can show that.
 
 Three numbers per letter:
 
