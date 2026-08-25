@@ -164,15 +164,24 @@
   }
 }
 
+/* The "next waypoint" pulse. GLOW ONLY — this must never animate `transform`.
+   The waypoint dots are positioned by their CENTRE: TraceView puts left/top at
+   the waypoint's percentage and pulls the box back onto that point with an
+   inline `transform: translate(-50%, -50%)`. A running animation sits above
+   author declarations in the cascade, so a `transform` keyframe here does not
+   compose with that inline translate, it REPLACES it — and the dot the child
+   is being told to start on (the "next" dot is dot 1 on a fresh letter) then
+   hangs half its width right and half its height down of the point it marks:
+   its top rim lands on the stroke start instead of its centre. It also
+   contradicts the size rule the dot styles document — the next dot stays at
+   the base size so it never grows wider than the stroke band it sits in. */
 @keyframes pulse-glow {
   0%,
   100% {
-    transform: scale(1);
     opacity: 0.85;
     box-shadow: 0 0 0 transparent;
   }
   50% {
-    transform: scale(1.1);
     opacity: 1;
     /* Glow follows the dot's own stroke color (--dot-glow, set per dot),
        so the "next" pulse matches the hue the child is meant to trace. */
