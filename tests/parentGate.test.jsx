@@ -75,26 +75,71 @@ function buttons() {
 
 // Exact label first: "Remove" is a step button sitting under "Remove
 // passcode", and a substring match would find the wrong one.
-function button(label) {
+function findButton(label) {
   const wanted = label.toLowerCase()
   const all = buttons()
-  const found = all.find((b) => (b.textContent || '').trim().toLowerCase() === wanted)
+  return all.find((b) => (b.textContent || '').trim().toLowerCase() === wanted)
     ?? all.find((b) => `${b.textContent || ''} ${b.getAttribute('aria-label') || ''}`.toLowerCase().includes(wanted))
-  expect(found, `button "${label}"`).toBeTruthy()
-  return found
+    ?? null
 }
 
-// Hashing is a real async job, not a microtask, so let the queue drain before
-// asserting on what it wrote.
-async function settle() {
+const SETTLE_TICK_MS = 25
+const WAIT_TIMEOUT_MS = 1500
+
+// One real timer turn, drained inside act() so React applies everything the
+// awaited work queued: microtasks first, then the macrotask, then effects.
+async function tick(ms = SETTLE_TICK_MS) {
   await act(async () => {
-    await new Promise((resolve) => setTimeout(resolve, 0))
-    await new Promise((resolve) => setTimeout(resolve, 0))
+    await new Promise((resolve) => setTimeout(resolve, ms))
   })
 }
 
+// The handlers behind these buttons are async — they await WebCrypto's
+// subtle.digest before they set any state — so the alert, the stored record
+// and the next step land an unknown number of turns after the click: one or
+// two on a quiet desktop, more on a loaded CI runner. Counting turns is
+// guesswork; poll the rendered state instead and stop as soon as it is true.
+async function waitFor(predicate, description, timeoutMs = WAIT_TIMEOUT_MS) {
+  const deadline = Date.now() + timeoutMs
+  for (;;) {
+    const value = predicate()
+    if (value) return value
+    if (Date.now() >= deadline) {
+      throw new Error(
+        `Timed out after ${timeoutMs}ms waiting for ${description}.\n`
+        + `  alerts: ${JSON.stringify(alerts())}\n`
+        + `  stored: ${JSON.stringify(storedRecord())}`
+      )
+    }
+    await tick()
+  }
+}
+
+const waitForAlert = (needle) =>
+  waitFor(() => alerts().join(' ').includes(needle), `an alert containing "${needle}"`)
+
+const waitForText = (needle) =>
+  waitFor(() => text().includes(needle), `"${needle}" on screen`)
+
+const waitForStored = (check, description) =>
+  waitFor(() => check(storedRecord()), description)
+
+const waitForButton = (label) =>
+  waitFor(() => findButton(label), `button "${label}"`)
+
+const waitForField = (label) =>
+  waitFor(() => findField(label), `field "${label}"`)
+
+// Two real timer turns after the click, which is enough for the handlers that
+// resolve promptly; anything that depends on the async part having finished
+// waits on the state it cares about, not on this.
+async function settle() {
+  await tick()
+  await tick()
+}
+
 async function click(label) {
-  const el = button(label)
+  const el = await waitForButton(label)
   await act(async () => el.click())
   await settle()
 }
@@ -111,20 +156,25 @@ function fill(input, value) {
   return input
 }
 
-function type(field, value) {
-  return fill(fieldByLabel(field), value)
+// A step's fields only exist once the step before it has been proved, and
+// that proof is async — so wait for the field rather than assume it is there.
+async function type(field, value) {
+  return fill(await waitForField(field), value)
 }
 
 // The fields are wrapped in their <label>, so the label's own text is what
 // names them — no ids to keep in sync.
-function fieldByLabel(label) {
+function findField(label) {
   const wanted = label.toLowerCase()
   const labels = [...container.querySelectorAll('label')]
   const found = labels.find((l) => (l.textContent || '').trim().toLowerCase() === wanted)
     ?? labels.find((l) => (l.textContent || '').toLowerCase().includes(wanted))
-  expect(found, `field "${label}"`).toBeTruthy()
-  const input = found.querySelector('input')
-  expect(input, `input under "${label}"`).toBeTruthy()
+  return found?.querySelector('input') ?? null
+}
+
+function fieldByLabel(label) {
+  const input = findField(label)
+  expect(input, `field "${label}"`).toBeTruthy()
   return input
 }
 
@@ -174,17 +224,19 @@ describe('the gate on its first run', () => {
     expect(text()).toContain('Choose a 4-digit passcode')
     expect(storedRecord()).toBeNull()
 
-    type('New passcode', '4821')
-    type('Confirm passcode', '4821')
+    await type('New passcode', '4821')
+    await type('Confirm passcode', '4821')
     await click('Verify')
 
     // Stored the moment it is confirmed, and it is a digest, not the passcode.
+    await waitForStored((r) => r !== null, 'the passcode record to be written')
     const record = storedRecord()
     expect(record).not.toBeNull()
     expect(await verifyPin('4821', record)).toBe(true)
     expect(JSON.stringify(record)).not.toContain('4821')
 
     // The parent is told a passcode now exists before the modal goes.
+    await waitForAlert('now protects the parents')
     expect(alerts().join(' ')).toContain('now protects the parents')
     expect(text()).toContain('Parents Section')
 
@@ -201,10 +253,11 @@ describe('the gate on its first run', () => {
     await mountApp()
     await click('Parent Settings')
 
-    type('New passcode', '4821')
-    type('Confirm passcode', '4822')
+    await type('New passcode', '4821')
+    await type('Confirm passcode', '4822')
     await click('Verify')
 
+    await waitForAlert('do not match')
     expect(storedRecord()).toBeNull()
     expect(alerts().join(' ')).toContain('do not match')
     // Still on the gate, both fields cleared, focus back where the retype
@@ -220,10 +273,11 @@ describe('the gate on its first run', () => {
     await mountApp()
     await click('Parent Settings')
 
-    type('New passcode', '482')
-    type('Confirm passcode', '482')
+    await type('New passcode', '482')
+    await type('Confirm passcode', '482')
     await click('Verify')
 
+    await waitForAlert('exactly 4 digits')
     expect(storedRecord()).toBeNull()
     expect(alerts().join(' ')).toContain('exactly 4 digits')
   })
@@ -238,6 +292,8 @@ describe('changing the passcode from the dashboard', () => {
     await click('Parent Settings')
     typeGatePin(pin)
     await click('Verify')
+    // verifyPin is a digest away, so the room arrives when it arrives.
+    await waitForText('Parents Room')
     expect(text()).toContain('Parents Room')
   }
 
@@ -247,9 +303,10 @@ describe('changing the passcode from the dashboard', () => {
     const before = storedRecord()
 
     await click('Change passcode')
-    type('Enter the current passcode', '9999')
+    await type('Enter the current passcode', '9999')
     await click('Continue')
 
+    await waitForAlert('not the current passcode')
     expect(alerts().join(' ')).toContain('not the current passcode')
     expect(storedRecord()).toEqual(before)
     // The new-passcode fields are not reachable without the current one.
@@ -262,17 +319,23 @@ describe('changing the passcode from the dashboard', () => {
     const before = storedRecord()
 
     await click('Change passcode')
-    type('Enter the current passcode', '4821')
+    await type('Enter the current passcode', '4821')
     await click('Continue')
 
-    type('New passcode', '1357')
-    type('Confirm new passcode', '1357')
+    // Step two exists only once step one's digest has come back.
+    await type('New passcode', '1357')
+    await type('Confirm new passcode', '1357')
     await click('Save passcode')
 
+    await waitForStored(
+      (r) => JSON.stringify(r) !== JSON.stringify(before),
+      'the stored record to be replaced'
+    )
     const after = storedRecord()
     expect(after).not.toEqual(before)
     expect(await verifyPin('1357', after)).toBe(true)
     expect(await verifyPin('4821', after)).toBe(false)
+    await waitForAlert('Passcode saved')
     expect(alerts().join(' ')).toContain('Passcode saved')
   })
 
@@ -280,17 +343,20 @@ describe('changing the passcode from the dashboard', () => {
     await enterDashboard('4821')
 
     await click('Remove passcode')
-    type('Enter the current passcode to remove it', '0000')
+    await type('Enter the current passcode to remove it', '0000')
     await click('Remove')
 
     // A wrong entry deletes nothing — remove is management, not a way past
     // the gate.
+    await waitForAlert('not the current passcode')
     expect(storedRecord()).not.toBeNull()
     expect(alerts().join(' ')).toContain('not the current passcode')
 
-    type('Enter the current passcode to remove it', '4821')
+    await type('Enter the current passcode to remove it', '4821')
     await click('Remove')
 
+    await waitForStored((r) => r === null, 'the stored record to be removed')
+    await waitForAlert('Passcode removed')
     expect(storedRecord()).toBeNull()
     expect(text()).toContain('Not set yet')
     expect(alerts().join(' ')).toContain('Passcode removed')
